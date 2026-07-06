@@ -1,66 +1,131 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import LogoutButton from '@/components/LogoutButton';
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  
+  // Verify the user session on the server
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={styles.container}>
+      {/* Cozy Header */}
+      <header style={styles.header}>
+        <h1 className="handwritten" style={styles.logo}>
+          Personal Library
+        </h1>
+        <div style={styles.headerRight}>
+          <span style={styles.userEmail}>{user.email}</span>
+          <LogoutButton />
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      {/* Cozy Dashboard Workspace */}
+      <main style={styles.main}>
+        <div className="cozy-card" style={styles.welcomeCard}>
+          <h2 className="handwritten" style={styles.welcomeTitle}>
+            Welcome to your library!
+          </h2>
+          <p style={styles.welcomeText}>
+            You have successfully authenticated your account. This is the starting point for cataloging your books and organizing your bookshelves.
+          </p>
+
+          <div style={styles.grid}>
+            <div className="cozy-card" style={styles.actionItem}>
+              <h3 className="handwritten" style={styles.itemTitle}>1. Set up shelves</h3>
+              <p style={styles.itemDescription}>
+                Configure your rooms and bookshelves (e.g., &ldquo;Living Room &rarr; Oak Shelf&rdquo;) so you always know where your books are.
+              </p>
+            </div>
+
+            <div className="cozy-card" style={styles.actionItem}>
+              <h3 className="handwritten" style={styles.itemTitle}>2. Catalog books</h3>
+              <p style={styles.itemDescription}>
+                Use your hardware barcode scanner or mobile camera to look up book details automatically and place them on your shelves.
+              </p>
+            </div>
+          </div>
         </div>
       </main>
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    width: '100%',
+    padding: '0 24px 40px 24px',
+    maxWidth: '1200px',
+    margin: '0 auto',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '24px 0',
+    borderBottom: '2px solid var(--border-sketch)',
+    marginBottom: '40px',
+  },
+  logo: {
+    fontSize: '2.25rem',
+    color: 'var(--text-coffee)',
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  userEmail: {
+    fontSize: '0.9rem',
+    color: 'var(--text-muted)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  main: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+  },
+  welcomeCard: {
+    padding: '40px 32px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+  },
+  welcomeTitle: {
+    fontSize: '2.5rem',
+    color: 'var(--accent-sage)',
+  },
+  welcomeText: {
+    fontSize: '1.1rem',
+    color: 'var(--text-coffee)',
+    maxWidth: '700px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '24px',
+    marginTop: '16px',
+  },
+  actionItem: {
+    padding: '24px',
+    backgroundColor: 'var(--bg-parchment)',
+    borderStyle: 'dashed',
+  },
+  itemTitle: {
+    fontSize: '1.5rem',
+    color: 'var(--accent-terracotta)',
+    marginBottom: '8px',
+  },
+  itemDescription: {
+    fontSize: '0.95rem',
+    color: 'var(--text-coffee)',
+  },
+};
