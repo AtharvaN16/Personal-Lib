@@ -1,40 +1,124 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Color Palette - Cozy, Warm Journal */
+  --bg-parchment: #FAF6F0; /* Soft warm ivory paper */
+  --bg-sheet: #FFFDFB;     /* Warm white card sheets */
+  --text-coffee: #2E1E1C;  /* Muted dark coffee instead of tech-black */
+  --text-muted: #6E5F5D;   /* Muted warm pencil gray */
+  --accent-sage: #6D8B74;  /* Sage green primary accent */
+  --accent-sage-light: #E8ECE9;
+  --accent-terracotta: #C77966; /* Warm terracotta secondary accent */
+  --accent-terracotta-light: #F7EAE6;
+  --border-sketch: #C3B19B; /* Ink/pencil style outline */
+  --paper-shadow: 0 4px 15px rgba(62, 39, 35, 0.04), 0 2px 5px rgba(62, 39, 35, 0.02);
+  --paper-shadow-hover: 0 8px 25px rgba(62, 39, 35, 0.08), 0 4px 10px rgba(62, 39, 35, 0.04);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
+/* Base resets & typography */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  min-height: 100%;
 }
 
 body {
-  min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-coffee);
+  background: var(--bg-parchment);
+  font-family: var(--font-instrument-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* Google Font overrides and classes */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-instrument-sans), sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-coffee);
+}
+
+.handwritten {
+  font-family: var(--font-caveat), cursive;
+  font-size: 1.25rem;
+}
+
+/* Cozy Sketch/Journal Design Utilities */
+.sketch-border {
+  border: 2px solid var(--border-sketch);
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px; /* Organic hand-drawn radius */
+}
+
+.cozy-card {
+  background: var(--bg-sheet);
+  border: 2px solid var(--border-sketch);
+  border-radius: 12px 15px 12px 15px/15px 12px 15px 12px;
+  box-shadow: var(--paper-shadow);
+  transition: all 0.3s ease;
+}
+
+.cozy-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--paper-shadow-hover);
+}
+
+/* Button & interactive components styled cozily */
+.btn-cozy {
+  font-family: var(--font-instrument-sans), sans-serif;
+  font-weight: 500;
+  padding: 10px 20px;
+  background: var(--bg-sheet);
+  border: 2px solid var(--border-sketch);
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+  cursor: pointer;
+  color: var(--text-coffee);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-cozy:hover {
+  background: var(--accent-sage-light);
+  border-color: var(--accent-sage);
+  transform: scale(1.02);
+}
+
+.btn-cozy-primary {
+  background: var(--accent-sage);
+  color: #ffffff;
+  border-color: var(--accent-sage);
+}
+
+.btn-cozy-primary:hover {
+  background: #5b7461;
+  border-color: #5b7461;
+  color: #ffffff;
+}
+
+/* Input Fields */
+.input-cozy {
+  padding: 12px 16px;
+  border: 2px solid var(--border-sketch);
+  border-radius: 8px 10px 8px 10px/10px 8px 10px 8px;
+  background: var(--bg-sheet);
+  color: var(--text-coffee);
+  outline: none;
+  font-family: var(--font-instrument-sans), sans-serif;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.input-cozy:focus {
+  border-color: var(--accent-sage);
 }
 
 a {
@@ -42,8 +126,3 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
