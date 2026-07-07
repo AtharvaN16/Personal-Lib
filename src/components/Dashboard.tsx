@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LogoutLink from '@/components/LogoutLink';
 import BookModal, { Book } from '@/components/BookModal';
@@ -62,7 +62,27 @@ export default function Dashboard() {
   const supabase = createClient();
   const [books, setBooks] = useState<Book[]>(defaultMockBooks);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1.0);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  
+  // Track viewport dimensions for culling bounding box
+  const [dimensions, setDimensions] = useState({ width: 1000, height: 800 });
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  // Measure viewport size on mount and on resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (viewportRef.current) {
+        setDimensions({
+          width: viewportRef.current.clientWidth,
+          height: viewportRef.current.clientHeight,
+        });
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Load books from Supabase on mount
   useEffect(() => {
@@ -103,10 +123,40 @@ export default function Dashboard() {
     loadBooks();
   }, [supabase]);
 
-  // Listen to Arrow Keys to pan the canvas
+  // Keyboard Zoom Pivot at viewport center
+  const zoomAtCenter = (zoomFactor: number) => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    setScale(prevScale => {
+      const newScale = zoomFactor > 1 
+        ? Math.min(prevScale * zoomFactor, 2.5) 
+        : Math.max(prevScale * zoomFactor, 0.25);
+      
+      if (newScale === prevScale) return prevScale;
+
+      const rect = viewport.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      setPosition(prevPos => {
+        const worldX = (centerX - prevPos.x) / prevScale;
+        const worldY = (centerY - prevPos.y) / prevScale;
+
+        return {
+          x: centerX - worldX * newScale,
+          y: centerY - worldY * newScale
+        };
+      });
+
+      return newScale;
+    });
+  };
+
+  // Listen to Keyboard Arrow Keys to pan, and + / - keys to zoom
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip Arrow keys panning if detail modal is open
+      // Skip actions if modal is open
       if (selectedBook) return;
 
       const step = 40;
@@ -122,6 +172,12 @@ export default function Dashboard() {
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         setPosition(prev => ({ ...prev, x: prev.x - step }));
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        zoomAtCenter(1.1);
+      } else if (e.key === '-') {
+        e.preventDefault();
+        zoomAtCenter(1 / 1.1);
       }
     };
 
@@ -129,9 +185,54 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedBook]);
 
-  // Recenter canvas coordinates
+  // Bind Mouse Scroll Wheel for zoom-to-mouse tracking
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+
+      const zoomFactor = 1.08;
+      const isZoomIn = e.deltaY < 0;
+
+      setScale(prevScale => {
+        const newScale = isZoomIn
+          ? Math.min(prevScale * zoomFactor, 2.5)
+          : Math.max(prevScale / zoomFactor, 0.25);
+
+        if (newScale === prevScale) return prevScale;
+
+        const rect = viewport.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        setPosition(prevPos => {
+          // World coordinates of the cursor before scale change
+          const worldX = (mouseX - prevPos.x) / prevScale;
+          const worldY = (mouseY - prevPos.y) / prevScale;
+
+          // Align offsets to keep the world coordinates locked under the cursor
+          return {
+            x: mouseX - worldX * newScale,
+            y: mouseY - worldY * newScale
+          };
+        });
+
+        return newScale;
+      });
+    };
+
+    viewport.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      viewport.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
+
+  // Recenter both panning offsets and scale values
   const handleRecenter = () => {
     setPosition({ x: 0, y: 0 });
+    setScale(1.0);
   };
 
   // Handle status update locally and in Supabase
@@ -141,7 +242,6 @@ export default function Dashboard() {
       setSelectedBook(prev => prev ? { ...prev, status } : null);
     }
     
-    // Attempt saving to Supabase if it's a real book
     try {
       await supabase.from('books').update({ status }).eq('id', id);
     } catch {
@@ -154,7 +254,6 @@ export default function Dashboard() {
     setBooks(prev => prev.filter(b => b.id !== id));
     setSelectedBook(null);
 
-    // Attempt deleting from Supabase
     try {
       await supabase.from('books').delete().eq('id', id);
     } catch {
@@ -162,8 +261,17 @@ export default function Dashboard() {
     }
   };
 
-  // Check if canvas has panned away from center (with small buffer)
-  const isPanned = Math.abs(position.x) > 10 || Math.abs(position.y) > 10;
+  // Check if panned or zoomed away from center (with small floating buffers)
+  const isPannedOrZoomed = 
+    Math.abs(position.x) > 10 || 
+    Math.abs(position.y) > 10 || 
+    Math.abs(scale - 1) > 0.05;
+
+  // Viewport borders in World coordinates (for virtualization culling)
+  const worldLeft = (-position.x - dimensions.width / 2) / scale;
+  const worldRight = (-position.x + dimensions.width / 2) / scale;
+  const worldTop = (-position.y - dimensions.height / 2) / scale;
+  const worldBottom = (-position.y + dimensions.height / 2) / scale;
 
   return (
     <div className="page-container" style={styles.frame}>
@@ -184,12 +292,12 @@ export default function Dashboard() {
       </header>
 
       {/* Infinite Canvas Viewport */}
-      <main style={styles.viewport}>
+      <main ref={viewportRef} style={styles.viewport}>
         <motion.div
           drag
           dragMomentum={true}
           dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
-          animate={{ x: position.x, y: position.y }}
+          animate={{ x: position.x, y: position.y, scale: scale }}
           onDrag={(e, info) => {
             setPosition(prev => ({
               x: prev.x + info.delta.x,
@@ -198,15 +306,29 @@ export default function Dashboard() {
           }}
           style={styles.canvas}
         >
-          {/* Staggered Masonry Books Grid */}
-          {books.map((book) => (
-            <BookCard key={book.id} book={book} onClick={setSelectedBook} />
-          ))}
+          {/* Staggered Grid with Viewport Culling */}
+          {books.map((book) => {
+            const buffer = 160; // Render padding to avoid pop-in
+            const bx = book.x ?? 0;
+            const by = book.y ?? 0;
+            const isVisible =
+              bx >= worldLeft - buffer &&
+              bx <= worldRight + buffer &&
+              by >= worldTop - buffer &&
+              by <= worldBottom + buffer;
+
+            // Virtualized culling: skip rendering if card is offscreen
+            if (!isVisible) return null;
+
+            return (
+              <BookCard key={book.id} book={book} onClick={setSelectedBook} />
+            );
+          })}
         </motion.div>
 
-        {/* Recenter Button (Fades in when panned away from center) */}
+        {/* Recenter Button */}
         <AnimatePresence>
-          {isPanned && (
+          {isPannedOrZoomed && (
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -215,7 +337,7 @@ export default function Dashboard() {
               style={styles.recenterBtn}
               className="btn-cozy sketch-border"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
                 <circle cx="12" cy="12" r="10" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
@@ -253,8 +375,8 @@ function BookCard({ book, onClick }: BookCardProps) {
     <motion.div
       style={{
         position: 'absolute',
-        left: `calc(50% + ${book.x}px)`,
-        top: `calc(50% + ${book.y}px)`,
+        left: `calc(50% + ${(book.x ?? 0)}px)`,
+        top: `calc(50% + ${(book.y ?? 0)}px)`,
         width: '160px',
         cursor: hovered ? 'grabbing' : 'grab',
         zIndex: hovered ? 100 : 1,
@@ -345,7 +467,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   logo: {
     fontSize: '2.5rem',
-    color: 'var(--accent-primary)', // #002CBC
+    color: 'var(--accent-primary)',
     fontWeight: 'normal',
     textAlign: 'center',
     flex: 1,
@@ -374,6 +496,11 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     willChange: 'transform', // Promotes to GPU compositor layer for ultra-smooth panning
+    backgroundImage: `
+      linear-gradient(to right, rgba(17, 22, 37, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(17, 22, 37, 0.04) 1px, transparent 1px)
+    `,
+    backgroundSize: '40px 40px',
   },
   recenterBtn: {
     position: 'absolute',
@@ -387,5 +514,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 16px',
     fontSize: '0.9rem',
     fontWeight: 'bold',
+    display: 'inline-flex',
+    alignItems: 'center',
   },
 };
