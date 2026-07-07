@@ -1,16 +1,20 @@
 :root {
-  /* Color Palette - Cozy, Warm Journal */
-  --bg-parchment: #FAF6F0; /* Soft warm ivory paper */
-  --bg-sheet: #FFFDFB;     /* Warm white card sheets */
-  --text-coffee: #2E1E1C;  /* Muted dark coffee instead of tech-black */
-  --text-muted: #6E5F5D;   /* Muted warm pencil gray */
-  --accent-sage: #6D8B74;  /* Sage green primary accent */
+  /* Color Palette - Updated Cozy Canvas */
+  --bg-primary: #F4F2E4;       /* Warm parchment background */
+  --bg-sheet: #FFFDFB;         /* Warm white sheets */
+  
+  --text-primary: #111625;     /* Dark ink blue (no pure black) */
+  --text-secondary: #4E5564;   /* Muted ink gray */
+  --text-tertiary: #868C9B;    /* Pencil gray */
+  
+  --accent-primary: #002CBC;   /* Vibrant ink blue */
   --accent-sage-light: #E8ECE9;
-  --accent-terracotta: #C77966; /* Warm terracotta secondary accent */
+  --accent-terracotta: #C77966;
   --accent-terracotta-light: #F7EAE6;
-  --border-sketch: #C3B19B; /* Ink/pencil style outline */
-  --paper-shadow: 0 4px 15px rgba(62, 39, 35, 0.04), 0 2px 5px rgba(62, 39, 35, 0.02);
-  --paper-shadow-hover: 0 8px 25px rgba(62, 39, 35, 0.08), 0 4px 10px rgba(62, 39, 35, 0.04);
+  
+  --border-sketch: #111625;    /* Match dark ink text for cohesive outlines */
+  --paper-shadow: 0 4px 15px rgba(17, 22, 37, 0.03), 0 2px 5px rgba(17, 22, 37, 0.01);
+  --paper-shadow-hover: 0 8px 25px rgba(17, 22, 37, 0.06), 0 4px 10px rgba(17, 22, 37, 0.03);
 }
 
 /* Base resets & typography */
@@ -30,12 +34,35 @@ body {
 body {
   display: flex;
   flex-direction: column;
-  color: var(--text-coffee);
-  background: var(--bg-parchment);
+  color: var(--text-primary);
+  background: var(--bg-primary);
   font-family: var(--font-instrument-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  position: relative;
+}
+
+/* 2. SVG Grain/Noise Texture Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.075; /* Stronger noise density */
+  z-index: 9999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Page container (no border/margin) */
+.page-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 /* Google Font overrides and classes */
@@ -43,7 +70,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-instrument-sans), sans-serif;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--text-coffee);
+  color: var(--text-primary);
 }
 
 .handwritten {
@@ -74,12 +101,11 @@ h1, h2, h3, h4, h5, h6 {
 .btn-cozy {
   font-family: var(--font-instrument-sans), sans-serif;
   font-weight: 500;
-  padding: 10px 20px;
-  background: var(--bg-sheet);
-  border: 2px solid var(--border-sketch);
-  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  color: var(--text-coffee);
+  color: var(--text-primary);
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
@@ -87,21 +113,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-cozy:hover {
-  background: var(--accent-sage-light);
-  border-color: var(--accent-sage);
+  color: var(--accent-primary);
   transform: scale(1.02);
-}
-
-.btn-cozy-primary {
-  background: var(--accent-sage);
-  color: #ffffff;
-  border-color: var(--accent-sage);
-}
-
-.btn-cozy-primary:hover {
-  background: #5b7461;
-  border-color: #5b7461;
-  color: #ffffff;
 }
 
 /* Input Fields */
@@ -110,7 +123,7 @@ h1, h2, h3, h4, h5, h6 {
   border: 2px solid var(--border-sketch);
   border-radius: 8px 10px 8px 10px/10px 8px 10px 8px;
   background: var(--bg-sheet);
-  color: var(--text-coffee);
+  color: var(--text-primary);
   outline: none;
   font-family: var(--font-instrument-sans), sans-serif;
   font-size: 1rem;
@@ -118,11 +131,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .input-cozy:focus {
-  border-color: var(--accent-sage);
+  border-color: var(--accent-primary);
 }
 
 a {
   color: inherit;
   text-decoration: none;
 }
+
+.nav-link {
+  font-family: var(--font-instrument-sans), sans-serif;
+  font-size: 1rem;
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--accent-primary);
+}
+
 
