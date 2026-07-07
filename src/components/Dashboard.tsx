@@ -364,6 +364,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    touchAction: 'none', // Prevents browser scroll bounce & pull-to-refresh on drag
   },
   canvas: {
     position: 'absolute',
@@ -372,6 +373,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    willChange: 'transform', // Promotes to GPU compositor layer for ultra-smooth panning
   },
   recenterBtn: {
     position: 'absolute',
