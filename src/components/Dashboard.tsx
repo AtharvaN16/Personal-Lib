@@ -18,6 +18,7 @@ const defaultMockBooks: Book[] = [
     location: { room: 'Living room', bookshelf: 'Tall Shelf' },
     genres: ['Fiction', 'History', 'Satire'],
     status: 'Completed',
+    favorite: true,
   },
   {
     id: '2',
@@ -28,6 +29,7 @@ const defaultMockBooks: Book[] = [
     location: { room: 'Living room', bookshelf: 'Short Shelf' },
     genres: ['Fantasy', 'Fiction', 'Historical'],
     status: 'Reading',
+    favorite: false,
   },
   {
     id: '3',
@@ -38,6 +40,7 @@ const defaultMockBooks: Book[] = [
     location: { room: 'Bedroom', bookshelf: 'Bedside Table' },
     genres: ['Fantasy', 'Classic'],
     status: 'To Read',
+    favorite: false,
   },
   {
     id: '4',
@@ -48,6 +51,7 @@ const defaultMockBooks: Book[] = [
     location: { room: 'Living room', bookshelf: 'Tall Shelf' },
     genres: ['Fiction', 'Contemporary', 'Gaming'],
     status: 'Completed',
+    favorite: true,
   }
 ];
 
@@ -79,6 +83,7 @@ export default function Dashboard() {
             genres: [],
             status: b.status || 'To Read',
             notes: b.notes,
+            favorite: false,
           }));
           setBooks(formatted);
         } else {
@@ -106,6 +111,14 @@ export default function Dashboard() {
     }
   };
 
+  // Toggle favorite locally
+  const handleFavoriteToggle = (id: string, favorite: boolean) => {
+    setBooks(prev => prev.map(b => b.id === id ? { ...b, favorite } : b));
+    if (selectedBook && selectedBook.id === id) {
+      setSelectedBook(prev => prev ? { ...prev, favorite } : null);
+    }
+  };
+
   // Handle book deletion
   const handleDelete = async (id: string) => {
     setBooks(prev => prev.filter(b => b.id !== id));
@@ -115,6 +128,25 @@ export default function Dashboard() {
       await supabase.from('books').delete().eq('id', id);
     } catch {
       console.warn('Failed to delete book from Supabase');
+    }
+  };
+
+  // Handle location picker update inside BookModal
+  const handleLocationChange = async (
+    bookId: string, 
+    locationId: string, 
+    locationObj: { room: string; bookshelf: string } | null
+  ) => {
+    setBooks(prev => prev.map(b => b.id === bookId ? { ...b, location: locationObj } : b));
+    if (selectedBook && selectedBook.id === bookId) {
+      setSelectedBook(prev => prev ? { ...prev, location: locationObj } : null);
+    }
+
+    try {
+      const locationIdVal = locationId === '' || locationId === 'unassigned' ? null : locationId;
+      await supabase.from('books').update({ location_id: locationIdVal }).eq('id', bookId);
+    } catch {
+      console.warn('Failed to update book location in database');
     }
   };
 
@@ -154,7 +186,11 @@ export default function Dashboard() {
         {/* Left Column (Masonry grid flow) */}
         <div style={styles.sideColumn}>
           {leftBooks.map((book) => (
-            <BookCard key={book.id} book={book} onClick={setSelectedBook} />
+            <BookCard 
+              key={book.id} 
+              book={book} 
+              onClick={setSelectedBook} 
+            />
           ))}
         </div>
 
@@ -188,7 +224,11 @@ export default function Dashboard() {
         {/* Right Column (Masonry grid flow) */}
         <div style={styles.sideColumn}>
           {rightBooks.map((book) => (
-            <BookCard key={book.id} book={book} onClick={setSelectedBook} />
+            <BookCard 
+              key={book.id} 
+              book={book} 
+              onClick={setSelectedBook} 
+            />
           ))}
         </div>
       </main>
@@ -201,6 +241,8 @@ export default function Dashboard() {
             onClose={() => setSelectedBook(null)}
             onDelete={handleDelete}
             onStatusChange={handleStatusChange}
+            onLocationChange={handleLocationChange}
+            onFavoriteToggle={handleFavoriteToggle}
           />
         )}
         {isAddLocationOpen && (
@@ -216,7 +258,7 @@ export default function Dashboard() {
   );
 }
 
-// Inner Component for Book Cards to manage local hover state
+// Inner Component for Book Cards
 interface BookCardProps {
   book: Book;
   onClick: (book: Book) => void;
@@ -232,7 +274,7 @@ function BookCard({ book, onClick }: BookCardProps) {
       onMouseLeave={() => setHovered(false)}
       onClick={() => onClick(book)}
     >
-      {/* Cover Image - No Stroke, No Radius, Smaller (120px width) */}
+      {/* Cover Image Wrapper */}
       <motion.div
         animate={{
           scale: hovered ? 1.03 : 1,
@@ -295,7 +337,6 @@ const styles: Record<string, React.CSSProperties> = {
     top: 0,
     zIndex: 1000,
     width: '100%',
-    // Bottom gradient fade transition
     background: 'linear-gradient(to bottom, var(--bg-primary) 75%, rgba(244, 242, 228, 0.9) 90%, rgba(244, 242, 228, 0) 100%)',
     padding: '30px 40px 45px 40px',
   },
@@ -325,7 +366,7 @@ const styles: Record<string, React.CSSProperties> = {
   mainLayout: {
     flex: 1,
     display: 'grid',
-    gridTemplateColumns: '160px 1fr 160px', // Restrain side columns to hold book covers
+    gridTemplateColumns: '160px 1fr 160px',
     gap: '40px',
     width: '100%',
     maxWidth: '1200px',
@@ -368,14 +409,16 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    position: 'relative',
   },
   coverWrapper: {
     width: '120px',
     height: '168px',
-    borderRadius: '0px', // Removed radius
-    border: 'none', // Removed stroke
+    borderRadius: '0px',
+    border: 'none',
     overflow: 'hidden',
     backgroundColor: 'var(--bg-sheet)',
+    position: 'relative',
   },
   coverImg: {
     width: '100%',
@@ -397,7 +440,7 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: '1.2',
   },
   metaContainer: {
-    height: '50px', // Lock height to prevent shifting layout when hover reveals metadata
+    height: '50px',
     width: '120px',
     marginTop: '10px',
   },
