@@ -220,25 +220,21 @@ export default function BookModal({
               </p>
             </div>
 
-            {/* Location Section ("Where is it?") */}
-            <div style={styles.section}>
-              <div style={styles.sectionHeader}>
-                <h3 style={styles.sectionTitle}>Where is it?</h3>
-                {!isEditingLocation && (
-                  <button onClick={handleEditClick} style={styles.editLink}>Edit</button>
-                )}
-              </div>
-
-              <AnimatePresence mode="wait">
-                {isEditingLocation ? (
-                  <motion.div
-                    key="edit-form"
-                    initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                    transition={{ duration: 0.2 }}
-                    style={styles.editLocationForm}
-                  >
+            {/* Location Section ("Where is it?") with synchronized transitions */}
+            <AnimatePresence mode="wait">
+              {isEditingLocation ? (
+                <motion.div
+                  key="edit-form"
+                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.2 }}
+                  style={styles.section}
+                >
+                  <div style={styles.sectionHeader}>
+                    <h3 style={styles.sectionTitle}>Where is it?</h3>
+                  </div>
+                  <div style={styles.editLocationForm}>
                     {/* Select Room */}
                     <select 
                       value={selectedRoom} 
@@ -304,23 +300,29 @@ export default function BookModal({
                         </button>
                       </div>
                     </div>
-                  </motion.div>
-                ) : (
-                  <motion.p
-                    key="display-text"
-                    initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                    transition={{ duration: 0.2 }}
-                    style={styles.sectionContent}
-                  >
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="display-view"
+                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.2 }}
+                  style={styles.section}
+                >
+                  <div style={styles.sectionHeader}>
+                    <h3 style={styles.sectionTitle}>Where is it?</h3>
+                    <button onClick={handleEditClick} style={styles.editLink}>Edit</button>
+                  </div>
+                  <p style={styles.sectionContent}>
                     {book.location 
                       ? `${book.location.room}, ${book.location.bookshelf}` 
                       : 'Unassigned shelf'}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Genre Section - Hidden with animation when editing location */}
             <AnimatePresence>
