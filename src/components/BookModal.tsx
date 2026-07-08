@@ -55,8 +55,6 @@ export default function BookModal({
   const [tempGenres, setTempGenres] = useState<string[]>(book.genres || []);
   const [newGenreInput, setNewGenreInput] = useState('');
 
-
-
   // Fetch all shelves on mount for selection dropdowns
   useEffect(() => {
     async function loadShelves() {
@@ -149,7 +147,7 @@ export default function BookModal({
         style={styles.modal}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Floating Top-Right Square Actions - No Stroke, Larger */}
+        {/* Floating Top-Right Square Actions - Google Icons */}
         <div style={styles.modalActions}>
           {/* Favorite Toggle Button (Heart) */}
           <button 
@@ -160,9 +158,15 @@ export default function BookModal({
             }}
             title="Favorites"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
+            <span 
+              className="material-symbols-outlined" 
+              style={{ 
+                fontSize: '18px', 
+                fontVariationSettings: favorite ? "'FILL' 1" : "'FILL' 0" 
+              }}
+            >
+              favorite
+            </span>
           </button>
 
           {/* Completed Toggle Button (Trophy) */}
@@ -174,13 +178,15 @@ export default function BookModal({
             }}
             title="Completed status"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={book.status === 'Completed' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-              <path d="M4 22h16" />
-              <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
-              <path d="M12 2a6 6 0 0 1 6 6c0 3.6-2 5.5-6 6.6-4-1.1-6-3-6-6.6a6 6 0 0 1 6-6z" />
-            </svg>
+            <span 
+              className="material-symbols-outlined" 
+              style={{ 
+                fontSize: '18px', 
+                fontVariationSettings: book.status === 'Completed' ? "'FILL' 1" : "'FILL' 0" 
+              }}
+            >
+              trophy
+            </span>
           </button>
 
           {/* Delete Button (Trash) */}
@@ -192,19 +198,17 @@ export default function BookModal({
             }}
             title="Delete book"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              delete
+            </span>
           </button>
         </div>
 
-        {/* Close Button - Outside the Box */}
+        {/* Close Button - Outside the Box (Google Icon) */}
         <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+            close
+          </span>
         </button>
 
         <div style={styles.content}>
@@ -429,6 +433,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#FFFDFB', // Clear white on dark backdrop
     transition: 'opacity 0.2s ease',
     padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalActions: {
     position: 'absolute',
