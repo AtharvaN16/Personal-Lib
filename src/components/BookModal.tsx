@@ -209,7 +209,7 @@ export default function BookModal({
             </div>
           </div>
 
-          {/* Right Column - Information */}
+          {/* Right Column - Scrollable Information */}
           <div style={styles.rightCol}>
             <div style={styles.headerInfo}>
               <h2 style={styles.title}>
@@ -229,87 +229,125 @@ export default function BookModal({
                 )}
               </div>
 
-              {isEditingLocation ? (
-                <div style={styles.editLocationForm}>
-                  {/* Select Room */}
-                  <select 
-                    value={selectedRoom} 
-                    onChange={(e) => {
-                      setSelectedRoom(e.target.value);
-                      setSelectedShelfId('');
-                    }}
-                    style={styles.selectField}
+              <AnimatePresence mode="wait">
+                {isEditingLocation ? (
+                  <motion.div
+                    key="edit-form"
+                    initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.2 }}
+                    style={styles.editLocationForm}
                   >
-                    <option value="">-- Select Room --</option>
-                    {uniqueRooms.map((r, i) => (
-                      <option key={i} value={r}>{r}</option>
-                    ))}
-                  </select>
-
-                  {/* Select Shelf (Progressively Disclosed) */}
-                  {selectedRoom && (
-                    <select
-                      value={selectedShelfId}
-                      onChange={(e) => setSelectedShelfId(e.target.value)}
+                    {/* Select Room */}
+                    <select 
+                      value={selectedRoom} 
+                      onChange={(e) => {
+                        setSelectedRoom(e.target.value);
+                        setSelectedShelfId('');
+                      }}
                       style={styles.selectField}
                     >
-                      <option value="">-- Select Shelf/Bookshelf --</option>
-                      <option value="unassigned">Unassigned / None</option>
-                      {shelvesInRoom.map((s) => (
-                        <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                      <option value="">-- Select Room --</option>
+                      {uniqueRooms.map((r, i) => (
+                        <option key={i} value={r}>{r}</option>
                       ))}
                     </select>
-                  )}
 
-                  <div style={styles.inlineActions}>
-                    <button 
-                      onClick={() => setIsAddLocationOpen(true)} 
-                      style={styles.createLocationLink}
-                    >
-                      + Create New Location
-                    </button>
-                    <div style={styles.formButtons}>
+                    {/* Select Shelf (Progressively Disclosed with Blur & Slide) */}
+                    <AnimatePresence>
+                      {selectedRoom && (
+                        <motion.div
+                          key="shelf-select-wrapper"
+                          initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                          exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <select
+                            value={selectedShelfId}
+                            onChange={(e) => setSelectedShelfId(e.target.value)}
+                            style={styles.selectFieldWidth}
+                          >
+                            <option value="">-- Select Shelf/Bookshelf --</option>
+                            <option value="unassigned">Unassigned / None</option>
+                            {shelvesInRoom.map((s) => (
+                              <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                            ))}
+                          </select>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div style={styles.inlineActions}>
                       <button 
-                        onClick={() => setIsEditingLocation(false)} 
-                        style={styles.formCancelBtn}
+                        type="button"
+                        onClick={() => setIsAddLocationOpen(true)} 
+                        style={styles.createLocationLink}
                       >
-                        Cancel
+                        + Create New Location
                       </button>
-                      <button 
-                        onClick={handleSaveLocation} 
-                        style={styles.formSaveBtn}
-                      >
-                        Save
-                      </button>
+                      <div style={styles.formButtons}>
+                        <button 
+                          type="button"
+                          onClick={() => setIsEditingLocation(false)} 
+                          style={styles.formCancelBtn}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={handleSaveLocation} 
+                          style={styles.formSaveBtn}
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ) : (
-                <p style={styles.sectionContent}>
-                  {book.location 
-                    ? `${book.location.room}, ${book.location.bookshelf}` 
-                    : 'Unassigned shelf'}
-                </p>
-              )}
+                  </motion.div>
+                ) : (
+                  <motion.p
+                    key="display-text"
+                    initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.2 }}
+                    style={styles.sectionContent}
+                  >
+                    {book.location 
+                      ? `${book.location.room}, ${book.location.bookshelf}` 
+                      : 'Unassigned shelf'}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Genre Section with Rounded Pills - Hidden when editing location */}
-            {!isEditingLocation && (
-              <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>Genre</h3>
-                <div style={styles.genreContainer}>
-                  {book.genres && book.genres.length > 0 ? (
-                    book.genres.map((genre, idx) => (
-                      <span key={idx} style={styles.genrePill}>
-                        {genre}
-                      </span>
-                    ))
-                  ) : (
-                    <span style={styles.noGenres}>No genres assigned</span>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Genre Section - Hidden with animation when editing location */}
+            <AnimatePresence>
+              {!isEditingLocation && (
+                <motion.div 
+                  key="genre-section"
+                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.2 }}
+                  style={styles.section}
+                >
+                  <h3 style={styles.sectionTitle}>Genre</h3>
+                  <div style={styles.genreContainer}>
+                    {book.genres && book.genres.length > 0 ? (
+                      book.genres.map((genre, idx) => (
+                        <span key={idx} style={styles.genrePill}>
+                          {genre}
+                        </span>
+                      ))
+                    ) : (
+                      <span style={styles.noGenres}>No genres assigned</span>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Description (If available) */}
             {book.description && (
@@ -347,8 +385,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100vw',
     height: '100vh',
     backgroundColor: 'rgba(17, 22, 37, 0.25)',
-    backdropFilter: 'blur(8px)', // Blurs background behind modal
-    WebkitBackdropFilter: 'blur(8px)', // Safari support
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -358,14 +396,15 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: '100%',
     maxWidth: '680px',
+    height: '480px', // Constant Height
     backgroundColor: 'var(--bg-primary)',
     padding: '40px 36px 36px 36px',
     position: 'relative',
-    maxHeight: '90vh',
-    overflowY: 'auto',
     borderRadius: '0px',
     border: 'none',
     boxShadow: '0 12px 35px rgba(17, 22, 37, 0.15)',
+    display: 'flex',
+    flexDirection: 'column',
   },
   closeBtn: {
     position: 'absolute',
@@ -374,7 +413,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#FFFDFB', // Clear white on dark backdrop
+    color: '#FFFDFB',
     transition: 'opacity 0.2s ease',
     padding: 0,
     display: 'flex',
@@ -389,9 +428,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '8px',
   },
   squareBtn: {
-    width: '32px', // Larger
-    height: '32px', // Larger
-    border: 'none', // Removed stroke
+    width: '32px',
+    height: '32px',
+    border: 'none',
     backgroundColor: 'var(--bg-sheet)',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
     display: 'flex',
@@ -404,6 +443,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: '36px',
     flexDirection: 'row',
+    height: '100%',
+    overflow: 'hidden',
   },
   leftCol: {
     display: 'flex',
@@ -418,7 +459,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '210px',
     borderRadius: '0px',
     overflow: 'hidden',
-    boxShadow: '0 16px 30px rgba(17, 22, 37, 0.22)', // Stronger drop shadow
+    boxShadow: '0 16px 30px rgba(17, 22, 37, 0.22)',
     border: 'none',
     backgroundColor: 'var(--bg-sheet)',
   },
@@ -440,8 +481,10 @@ const styles: Record<string, React.CSSProperties> = {
   rightCol: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '28px',
+    gap: '24px',
     flex: 1,
+    overflowY: 'auto', // Scrollable column content
+    paddingRight: '8px',
   },
   headerInfo: {
     display: 'flex',
@@ -516,6 +559,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
+    width: '100%',
     maxWidth: '340px',
   },
   selectField: {
@@ -527,6 +571,18 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)',
     outline: 'none',
+    width: '100%',
+  },
+  selectFieldWidth: {
+    padding: '8px 12px',
+    border: 'none',
+    borderRadius: '0px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    backgroundColor: 'var(--bg-sheet)',
+    color: 'var(--text-primary)',
+    boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)',
+    outline: 'none',
+    width: '100%',
   },
   inlineActions: {
     display: 'flex',
