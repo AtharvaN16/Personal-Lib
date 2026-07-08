@@ -487,7 +487,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px',
   },
   title: {
-    fontSize: '2.5rem',
+    fontSize: '28px',
     fontWeight: 'bold',
     color: 'var(--text-primary)',
     lineHeight: '1.1',
