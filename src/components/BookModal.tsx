@@ -31,7 +31,7 @@ interface BookModalProps {
   onClose: () => void;
   onDelete?: (id: string) => void;
   onStatusChange?: (id: string, status: 'Completed' | 'Reading' | 'To Read') => void;
-  onLocationChange?: (id: string, locationId: string, locationObj: { room: string; bookshelf: string } | null) => void;
+  onLocationChange?: (id: string, locationId: string, locationObj: { room: string; bookshelf: string } | null, genres?: string[]) => void;
   onFavoriteToggle?: (id: string, favorite: boolean) => void;
 }
 
@@ -50,8 +50,12 @@ export default function BookModal({
   const [selectedShelfId, setSelectedShelfId] = useState('');
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
   
-  // Local state for favorite toggle
+  // Local states for toggles and tag edits
   const [favorite, setFavorite] = useState(book.favorite || false);
+  const [tempGenres, setTempGenres] = useState<string[]>(book.genres || []);
+  const [newGenreInput, setNewGenreInput] = useState('');
+
+
 
   // Fetch all shelves on mount for selection dropdowns
   useEffect(() => {
@@ -71,6 +75,7 @@ export default function BookModal({
   // Set up initial selection values on Edit trigger
   const handleEditClick = () => {
     setIsEditingLocation(true);
+    setTempGenres(book.genres || []);
     if (book.location) {
       const match = shelves.find(
         s => s.room === book.location?.room && s.bookshelf === book.location?.bookshelf
@@ -94,9 +99,9 @@ export default function BookModal({
       onLocationChange?.(book.id, selectedShelf.id, {
         room: selectedShelf.room,
         bookshelf: selectedShelf.bookshelf
-      });
-    } else if (selectedShelfId === 'unassigned') {
-      onLocationChange?.(book.id, '', null);
+      }, tempGenres);
+    } else if (selectedShelfId === 'unassigned' || !selectedShelfId) {
+      onLocationChange?.(book.id, '', null, tempGenres);
     }
     setIsEditingLocation(false);
   };
@@ -108,7 +113,7 @@ export default function BookModal({
     onFavoriteToggle?.(book.id, nextFavorite);
   };
 
-  // Toggle completed status trigger (Star)
+  // Toggle completed status trigger (Trophy)
   const handleCompletedClick = () => {
     const nextStatus = book.status === 'Completed' ? 'To Read' : 'Completed';
     onStatusChange?.(book.id, nextStatus);
@@ -118,6 +123,15 @@ export default function BookModal({
   const handleDeleteClick = () => {
     if (confirm('Are you sure you want to delete this book?')) {
       onDelete?.(book.id);
+    }
+  };
+
+  // Add genre tag inline
+  const handleAddGenre = () => {
+    const trimmed = newGenreInput.trim();
+    if (trimmed && !tempGenres.includes(trimmed)) {
+      setTempGenres(prev => [...prev, trimmed]);
+      setNewGenreInput('');
     }
   };
 
@@ -151,7 +165,7 @@ export default function BookModal({
             </svg>
           </button>
 
-          {/* Completed Toggle Button (Star) */}
+          {/* Completed Toggle Button (Trophy) */}
           <button 
             onClick={handleCompletedClick} 
             style={{
@@ -160,8 +174,12 @@ export default function BookModal({
             }}
             title="Completed status"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={book.status === 'Completed' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={book.status === 'Completed' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+              <path d="M4 22h16" />
+              <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
+              <path d="M12 2a6 6 0 0 1 6 6c0 3.6-2 5.5-6 6.6-4-1.1-6-3-6-6.6a6 6 0 0 1 6-6z" />
             </svg>
           </button>
 
@@ -215,10 +233,10 @@ export default function BookModal({
               </p>
             </div>
 
-            {/* Location Section ("where is it?") */}
+            {/* Location Section ("Where is it?") */}
             <div style={styles.section}>
               <div style={styles.sectionHeader}>
-                <h3 style={styles.sectionTitle}>where is it?</h3>
+                <h3 style={styles.sectionTitle}>Where is it?</h3>
                 {!isEditingLocation && (
                   <button onClick={handleEditClick} style={styles.editLink}>Edit</button>
                 )}
@@ -241,19 +259,61 @@ export default function BookModal({
                     ))}
                   </select>
 
-                  {/* Select Shelf */}
-                  <select
-                    value={selectedShelfId}
-                    onChange={(e) => setSelectedShelfId(e.target.value)}
-                    disabled={!selectedRoom}
-                    style={styles.selectField}
-                  >
-                    <option value="">-- Select Shelf/Bookshelf --</option>
-                    <option value="unassigned">Unassigned / None</option>
-                    {shelvesInRoom.map((s) => (
-                      <option key={s.id} value={s.id}>{s.bookshelf}</option>
-                    ))}
-                  </select>
+                  {/* Select Shelf (Progressively Disclosed) */}
+                  {selectedRoom && (
+                    <select
+                      value={selectedShelfId}
+                      onChange={(e) => setSelectedShelfId(e.target.value)}
+                      style={styles.selectField}
+                    >
+                      <option value="">-- Select Shelf/Bookshelf --</option>
+                      <option value="unassigned">Unassigned / None</option>
+                      {shelvesInRoom.map((s) => (
+                        <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Genre Add/Remove (Inline on edit) */}
+                  <div style={styles.genreEditSection}>
+                    <label style={styles.genreEditLabel}>Genres</label>
+                    <div style={styles.genreEditList}>
+                      {tempGenres.map((g, idx) => (
+                        <span key={idx} style={styles.genreEditPill}>
+                          {g}
+                          <button 
+                            type="button" 
+                            onClick={() => setTempGenres(prev => prev.filter(item => item !== g))}
+                            style={styles.removeGenreBtn}
+                          >
+                            &times;
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div style={styles.addGenreGroup}>
+                      <input
+                        type="text"
+                        placeholder="Add genre..."
+                        value={newGenreInput}
+                        onChange={(e) => setNewGenreInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddGenre();
+                          }
+                        }}
+                        style={styles.genreInput}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={handleAddGenre}
+                        style={styles.addGenreBtn}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
 
                   <div style={styles.inlineActions}>
                     <button 
@@ -373,7 +433,7 @@ const styles: Record<string, React.CSSProperties> = {
   modalActions: {
     position: 'absolute',
     top: '20px',
-    right: '20px', // Standard placement inside modal
+    right: '20px',
     display: 'flex',
     gap: '8px',
   },
@@ -407,7 +467,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '210px',
     borderRadius: '0px',
     overflow: 'hidden',
-    boxShadow: '0 8px 20px rgba(17, 22, 37, 0.12)',
+    boxShadow: '0 16px 30px rgba(17, 22, 37, 0.22)', // Stronger drop shadow
     border: 'none',
     backgroundColor: 'var(--bg-sheet)',
   },
@@ -486,11 +546,11 @@ const styles: Record<string, React.CSSProperties> = {
   genrePill: {
     display: 'inline-block',
     padding: '4px 12px',
-    backgroundColor: '#EAE7D8', // Cozy soft gray tone
+    backgroundColor: '#EAE7D8',
     color: 'var(--text-secondary)',
     borderRadius: '20px',
     fontSize: '0.85rem',
-    border: 'none', // Removed stroke
+    border: 'none',
   },
   noGenres: {
     fontSize: '1.1rem',
@@ -509,12 +569,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   selectField: {
     padding: '8px 12px',
-    border: 'none', // Removed stroke
+    border: 'none',
     borderRadius: '0px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     backgroundColor: 'var(--bg-sheet)',
     color: 'var(--text-primary)',
-    boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)', // Soft shadow instead of border
+    boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)',
     outline: 'none',
   },
   inlineActions: {
@@ -549,7 +609,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   formSaveBtn: {
     backgroundColor: 'var(--bg-sheet)',
-    border: 'none', // Removed stroke
+    border: 'none',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
     color: 'var(--text-primary)',
     padding: '4px 12px',
@@ -557,5 +617,69 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.9rem',
     fontWeight: 'bold',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  // Genre inline editing styles
+  genreEditSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginTop: '8px',
+  },
+  genreEditLabel: {
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    color: 'var(--text-secondary)',
+  },
+  genreEditList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px',
+  },
+  genreEditPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '3px 10px',
+    backgroundColor: '#EAE7D8',
+    color: 'var(--text-secondary)',
+    borderRadius: '20px',
+    fontSize: '0.8rem',
+  },
+  removeGenreBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#8B1E1E',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addGenreGroup: {
+    display: 'flex',
+    gap: '8px',
+    marginTop: '4px',
+  },
+  genreInput: {
+    flex: 1,
+    padding: '6px 10px',
+    border: 'none',
+    boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)',
+    borderRadius: '0px',
+    fontSize: '0.85rem',
+    outline: 'none',
+    backgroundColor: 'var(--bg-sheet)',
+    color: 'var(--text-primary)',
+  },
+  addGenreBtn: {
+    backgroundColor: 'var(--bg-sheet)',
+    border: 'none',
+    boxShadow: '0 2px 5px rgba(17, 22, 37, 0.08)',
+    color: 'var(--text-primary)',
+    padding: '0 12px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
   },
 };

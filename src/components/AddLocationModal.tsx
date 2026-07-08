@@ -113,7 +113,7 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
           </svg>
         </button>
 
-        <h2 className="handwritten" style={styles.title}>Add Location</h2>
+        <h2 style={styles.title}>Add Location</h2>
         <p style={styles.subtitle}>Define a room and shelf in your house to catalog your books.</p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -210,6 +210,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
     maxHeight: '90vh',
     overflowY: 'auto',
+    borderRadius: '0px', // Removed corner radius
   },
   closeBtn: {
     position: 'absolute',
