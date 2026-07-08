@@ -31,7 +31,7 @@ interface BookModalProps {
   onClose: () => void;
   onDelete?: (id: string) => void;
   onStatusChange?: (id: string, status: 'Completed' | 'Reading' | 'To Read') => void;
-  onLocationChange?: (id: string, locationId: string, locationObj: { room: string; bookshelf: string } | null, genres?: string[]) => void;
+  onLocationChange?: (id: string, locationId: string, locationObj: { room: string; bookshelf: string } | null) => void;
   onFavoriteToggle?: (id: string, favorite: boolean) => void;
 }
 
@@ -49,11 +49,6 @@ export default function BookModal({
   const [selectedRoom, setSelectedRoom] = useState('');
   const [selectedShelfId, setSelectedShelfId] = useState('');
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
-  
-  // Local states for toggles and tag edits
-  const [favorite, setFavorite] = useState(book.favorite || false);
-  const [tempGenres, setTempGenres] = useState<string[]>(book.genres || []);
-  const [newGenreInput, setNewGenreInput] = useState('');
 
   // Fetch all shelves on mount for selection dropdowns
   useEffect(() => {
@@ -73,7 +68,6 @@ export default function BookModal({
   // Set up initial selection values on Edit trigger
   const handleEditClick = () => {
     setIsEditingLocation(true);
-    setTempGenres(book.genres || []);
     if (book.location) {
       const match = shelves.find(
         s => s.room === book.location?.room && s.bookshelf === book.location?.bookshelf
@@ -97,18 +91,16 @@ export default function BookModal({
       onLocationChange?.(book.id, selectedShelf.id, {
         room: selectedShelf.room,
         bookshelf: selectedShelf.bookshelf
-      }, tempGenres);
+      });
     } else if (selectedShelfId === 'unassigned' || !selectedShelfId) {
-      onLocationChange?.(book.id, '', null, tempGenres);
+      onLocationChange?.(book.id, '', null);
     }
     setIsEditingLocation(false);
   };
 
-  // Toggle favorite trigger
+  // Toggle favorite trigger (directly modifies parent)
   const handleFavoriteClick = () => {
-    const nextFavorite = !favorite;
-    setFavorite(nextFavorite);
-    onFavoriteToggle?.(book.id, nextFavorite);
+    onFavoriteToggle?.(book.id, !book.favorite);
   };
 
   // Toggle completed status trigger (Trophy)
@@ -121,15 +113,6 @@ export default function BookModal({
   const handleDeleteClick = () => {
     if (confirm('Are you sure you want to delete this book?')) {
       onDelete?.(book.id);
-    }
-  };
-
-  // Add genre tag inline
-  const handleAddGenre = () => {
-    const trimmed = newGenreInput.trim();
-    if (trimmed && !tempGenres.includes(trimmed)) {
-      setTempGenres(prev => [...prev, trimmed]);
-      setNewGenreInput('');
     }
   };
 
@@ -154,7 +137,7 @@ export default function BookModal({
             onClick={handleFavoriteClick} 
             style={{
               ...styles.squareBtn,
-              color: favorite ? '#C77966' : 'var(--text-primary)'
+              color: book.favorite ? '#C77966' : 'var(--text-primary)'
             }}
             title="Favorites"
           >
@@ -162,7 +145,7 @@ export default function BookModal({
               className="material-symbols-outlined" 
               style={{ 
                 fontSize: '18px', 
-                fontVariationSettings: favorite ? "'FILL' 1" : "'FILL' 0" 
+                fontVariationSettings: book.favorite ? "'FILL' 1" : "'FILL' 0" 
               }}
             >
               favorite
@@ -204,7 +187,7 @@ export default function BookModal({
           </button>
         </div>
 
-        {/* Close Button - Outside the Box (Google Icon) */}
+        {/* Close Button - Outside the Box */}
         <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
           <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
             close
@@ -278,47 +261,6 @@ export default function BookModal({
                     </select>
                   )}
 
-                  {/* Genre Add/Remove (Inline on edit) */}
-                  <div style={styles.genreEditSection}>
-                    <label style={styles.genreEditLabel}>Genres</label>
-                    <div style={styles.genreEditList}>
-                      {tempGenres.map((g, idx) => (
-                        <span key={idx} style={styles.genreEditPill}>
-                          {g}
-                          <button 
-                            type="button" 
-                            onClick={() => setTempGenres(prev => prev.filter(item => item !== g))}
-                            style={styles.removeGenreBtn}
-                          >
-                            &times;
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div style={styles.addGenreGroup}>
-                      <input
-                        type="text"
-                        placeholder="Add genre..."
-                        value={newGenreInput}
-                        onChange={(e) => setNewGenreInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddGenre();
-                          }
-                        }}
-                        style={styles.genreInput}
-                      />
-                      <button 
-                        type="button" 
-                        onClick={handleAddGenre}
-                        style={styles.addGenreBtn}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
                   <div style={styles.inlineActions}>
                     <button 
                       onClick={() => setIsAddLocationOpen(true)} 
@@ -351,21 +293,23 @@ export default function BookModal({
               )}
             </div>
 
-            {/* Genre Section with Rounded Pills (No Stroke) */}
-            <div style={styles.section}>
-              <h3 style={styles.sectionTitle}>Genre</h3>
-              <div style={styles.genreContainer}>
-                {book.genres && book.genres.length > 0 ? (
-                  book.genres.map((genre, idx) => (
-                    <span key={idx} style={styles.genrePill}>
-                      {genre}
-                    </span>
-                  ))
-                ) : (
-                  <span style={styles.noGenres}>No genres assigned</span>
-                )}
+            {/* Genre Section with Rounded Pills - Hidden when editing location */}
+            {!isEditingLocation && (
+              <div style={styles.section}>
+                <h3 style={styles.sectionTitle}>Genre</h3>
+                <div style={styles.genreContainer}>
+                  {book.genres && book.genres.length > 0 ? (
+                    book.genres.map((genre, idx) => (
+                      <span key={idx} style={styles.genrePill}>
+                        {genre}
+                      </span>
+                    ))
+                  ) : (
+                    <span style={styles.noGenres}>No genres assigned</span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             
             {/* Description (If available) */}
             {book.description && (
@@ -624,69 +568,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.9rem',
     fontWeight: 'bold',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
-  },
-  // Genre inline editing styles
-  genreEditSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    marginTop: '8px',
-  },
-  genreEditLabel: {
-    fontSize: '0.85rem',
-    fontWeight: 'bold',
-    color: 'var(--text-secondary)',
-  },
-  genreEditList: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '6px',
-  },
-  genreEditPill: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '3px 10px',
-    backgroundColor: '#EAE7D8',
-    color: 'var(--text-secondary)',
-    borderRadius: '20px',
-    fontSize: '0.8rem',
-  },
-  removeGenreBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#8B1E1E',
-    cursor: 'pointer',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    padding: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addGenreGroup: {
-    display: 'flex',
-    gap: '8px',
-    marginTop: '4px',
-  },
-  genreInput: {
-    flex: 1,
-    padding: '6px 10px',
-    border: 'none',
-    boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)',
-    borderRadius: '0px',
-    fontSize: '0.85rem',
-    outline: 'none',
-    backgroundColor: 'var(--bg-sheet)',
-    color: 'var(--text-primary)',
-  },
-  addGenreBtn: {
-    backgroundColor: 'var(--bg-sheet)',
-    border: 'none',
-    boxShadow: '0 2px 5px rgba(17, 22, 37, 0.08)',
-    color: 'var(--text-primary)',
-    padding: '0 12px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
   },
 };
