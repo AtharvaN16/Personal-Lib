@@ -273,7 +273,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   submitBtn: {
     backgroundColor: 'var(--bg-sheet)',
-    border: '2px solid var(--border-sketch)',
+    border: 'none',
+    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
     color: 'var(--text-primary)',
     padding: '8px 20px',
     cursor: 'pointer',
