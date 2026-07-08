@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LogoutLink from '@/components/LogoutLink';
 import BookModal, { Book } from '@/components/BookModal';
+import AddLocationModal from '@/components/AddLocationModal';
 import { createClient } from '@/lib/supabase/client';
 
 // Pre-loaded mock books matching the styles in the mockup
@@ -54,6 +55,7 @@ export default function Dashboard() {
   const supabase = createClient();
   const [books, setBooks] = useState<Book[]>(defaultMockBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
 
   // Load books from Supabase on mount
   useEffect(() => {
@@ -128,6 +130,13 @@ export default function Dashboard() {
           <div style={styles.leftNav}>
             <a href="#" className="nav-link">Catalog</a>
             <a href="#" className="nav-link">Search</a>
+            <button 
+              onClick={() => setIsAddLocationOpen(true)} 
+              className="nav-link" 
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+            >
+              + Add Location
+            </button>
           </div>
           
           <h1 className="handwritten" style={styles.logo}>
@@ -158,6 +167,21 @@ export default function Dashboard() {
             <p style={styles.heroSubtitle}>
               Scan a book barcode to automatically log details, or explore the tabs to organize your shelves.
             </p>
+            <button
+              onClick={() => setIsAddLocationOpen(true)}
+              className="btn-cozy sketch-border"
+              style={{
+                marginTop: '24px',
+                backgroundColor: 'var(--bg-sheet)',
+                border: '2px solid var(--border-sketch)',
+                padding: '8px 20px',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              + Add Location
+            </button>
           </div>
         </div>
 
@@ -177,6 +201,14 @@ export default function Dashboard() {
             onClose={() => setSelectedBook(null)}
             onDelete={handleDelete}
             onStatusChange={handleStatusChange}
+          />
+        )}
+        {isAddLocationOpen && (
+          <AddLocationModal
+            onClose={() => setIsAddLocationOpen(false)}
+            onLocationAdded={(loc) => {
+              alert(`Successfully added location: ${loc.bookshelf} in ${loc.room}!`);
+            }}
           />
         )}
       </AnimatePresence>
