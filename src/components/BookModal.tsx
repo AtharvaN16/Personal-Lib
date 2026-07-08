@@ -123,14 +123,14 @@ export default function BookModal({
   return (
     <div style={styles.backdrop} onClick={onClose}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        transition={{ duration: 0.2 }}
+        initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
+        transition={{ duration: 0.3 }}
         style={styles.modal}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Floating Top-Right Square Actions - Google Icons */}
+        {/* Floating Actions inside card - Shifted back to standard position */}
         <div style={styles.modalActions}>
           {/* Favorite Toggle Button (Heart) */}
           <button 
@@ -187,11 +187,9 @@ export default function BookModal({
           </button>
         </div>
 
-        {/* Close Button - Outside the Box */}
+        {/* Close Button - Positioned above the card on the top right */}
         <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
-          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-            close
-          </span>
+          CLOSE
         </button>
 
         <div style={styles.content}>
@@ -220,132 +218,126 @@ export default function BookModal({
               </p>
             </div>
 
-            {/* Location Section ("Where is it?") with synchronized transitions */}
+            {/* Combined transitions for Location and Genre block to ensure perfect sync on save */}
             <AnimatePresence mode="wait">
               {isEditingLocation ? (
                 <motion.div
-                  key="edit-form"
+                  key="edit-mode"
                   initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
                   transition={{ duration: 0.2 }}
-                  style={styles.section}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
                 >
-                  <div style={styles.sectionHeader}>
-                    <h3 style={styles.sectionTitle}>Where is it?</h3>
-                  </div>
-                  <div style={styles.editLocationForm}>
-                    {/* Select Room */}
-                    <select 
-                      value={selectedRoom} 
-                      onChange={(e) => {
-                        setSelectedRoom(e.target.value);
-                        setSelectedShelfId('');
-                      }}
-                      style={styles.selectField}
-                    >
-                      <option value="">-- Select Room --</option>
-                      {uniqueRooms.map((r, i) => (
-                        <option key={i} value={r}>{r}</option>
-                      ))}
-                    </select>
-
-                    {/* Select Shelf (Progressively Disclosed with Blur & Slide) */}
-                    <AnimatePresence>
-                      {selectedRoom && (
-                        <motion.div
-                          key="shelf-select-wrapper"
-                          initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                          exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          <select
-                            value={selectedShelfId}
-                            onChange={(e) => setSelectedShelfId(e.target.value)}
-                            style={styles.selectFieldWidth}
-                          >
-                            <option value="">-- Select Shelf/Bookshelf --</option>
-                            <option value="unassigned">Unassigned / None</option>
-                            {shelvesInRoom.map((s) => (
-                              <option key={s.id} value={s.id}>{s.bookshelf}</option>
-                            ))}
-                          </select>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <div style={styles.inlineActions}>
-                      <button 
-                        type="button"
-                        onClick={() => setIsAddLocationOpen(true)} 
-                        style={styles.createLocationLink}
+                  <div style={styles.section}>
+                    <div style={styles.sectionHeader}>
+                      <h3 style={styles.sectionTitle}>Where is it?</h3>
+                    </div>
+                    <div style={styles.editLocationForm}>
+                      {/* Select Room */}
+                      <select 
+                        value={selectedRoom} 
+                        onChange={(e) => {
+                          setSelectedRoom(e.target.value);
+                          setSelectedShelfId('');
+                        }}
+                        style={styles.selectField}
                       >
-                        + Create New Location
-                      </button>
-                      <div style={styles.formButtons}>
+                        <option value="">-- Select Room --</option>
+                        {uniqueRooms.map((r, i) => (
+                          <option key={i} value={r}>{r}</option>
+                        ))}
+                      </select>
+
+                      {/* Select Shelf (Progressively Disclosed with Blur & Slide) */}
+                      <AnimatePresence>
+                        {selectedRoom && (
+                          <motion.div
+                            key="shelf-select-wrapper"
+                            initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            <select
+                              value={selectedShelfId}
+                              onChange={(e) => setSelectedShelfId(e.target.value)}
+                              style={styles.selectFieldWidth}
+                            >
+                              <option value="">-- Select Shelf/Bookshelf --</option>
+                              <option value="unassigned">Unassigned / None</option>
+                              {shelvesInRoom.map((s) => (
+                                <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                              ))}
+                            </select>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div style={styles.inlineActions}>
                         <button 
                           type="button"
-                          onClick={() => setIsEditingLocation(false)} 
-                          style={styles.formCancelBtn}
+                          onClick={() => setIsAddLocationOpen(true)} 
+                          style={styles.createLocationLink}
                         >
-                          Cancel
+                          + Create New Location
                         </button>
-                        <button 
-                          type="button"
-                          onClick={handleSaveLocation} 
-                          style={styles.formSaveBtn}
-                        >
-                          Save
-                        </button>
+                        <div style={styles.formButtons}>
+                          <button 
+                            type="button"
+                            onClick={() => setIsEditingLocation(false)} 
+                            style={styles.formCancelBtn}
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={handleSaveLocation} 
+                            style={styles.formSaveBtn}
+                          >
+                            Save
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </motion.div>
               ) : (
                 <motion.div
-                  key="display-view"
+                  key="display-mode"
                   initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
                   transition={{ duration: 0.2 }}
-                  style={styles.section}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
                 >
-                  <div style={styles.sectionHeader}>
-                    <h3 style={styles.sectionTitle}>Where is it?</h3>
-                    <button onClick={handleEditClick} style={styles.editLink}>Edit</button>
+                  {/* Location display section */}
+                  <div style={styles.section}>
+                    <div style={styles.sectionHeader}>
+                      <h3 style={styles.sectionTitle}>Where is it?</h3>
+                      <button onClick={handleEditClick} style={styles.editLink}>Edit</button>
+                    </div>
+                    <p style={styles.sectionContent}>
+                      {book.location 
+                        ? `${book.location.room}, ${book.location.bookshelf}` 
+                        : 'Unassigned shelf'}
+                    </p>
                   </div>
-                  <p style={styles.sectionContent}>
-                    {book.location 
-                      ? `${book.location.room}, ${book.location.bookshelf}` 
-                      : 'Unassigned shelf'}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
-            {/* Genre Section - Hidden with animation when editing location */}
-            <AnimatePresence>
-              {!isEditingLocation && (
-                <motion.div 
-                  key="genre-section"
-                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.2 }}
-                  style={styles.section}
-                >
-                  <h3 style={styles.sectionTitle}>Genre</h3>
-                  <div style={styles.genreContainer}>
-                    {book.genres && book.genres.length > 0 ? (
-                      book.genres.map((genre, idx) => (
-                        <span key={idx} style={styles.genrePill}>
-                          {genre}
-                        </span>
-                      ))
-                    ) : (
-                      <span style={styles.noGenres}>No genres assigned</span>
-                    )}
+                  {/* Genre display section */}
+                  <div style={styles.section}>
+                    <h3 style={styles.sectionTitle}>Genre</h3>
+                    <div style={styles.genreContainer}>
+                      {book.genres && book.genres.length > 0 ? (
+                        book.genres.map((genre, idx) => (
+                          <span key={idx} style={styles.genrePill}>
+                            {genre}
+                          </span>
+                        ))
+                      ) : (
+                        <span style={styles.noGenres}>No genres assigned</span>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -410,22 +402,23 @@ const styles: Record<string, React.CSSProperties> = {
   },
   closeBtn: {
     position: 'absolute',
-    top: '0px',
-    right: '-48px', // Float outside the box
+    top: '-36px', // Positioned above the card
+    right: '0px', // Aligned to the right boundary
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#FFFDFB',
+    color: '#FFFDFB', // Crisp white on dark backdrop
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    letterSpacing: '0.1em',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
     transition: 'opacity 0.2s ease',
     padding: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   modalActions: {
     position: 'absolute',
     top: '20px',
-    right: '20px',
+    right: '20px', // Standard position inside card
     display: 'flex',
     gap: '8px',
   },
@@ -485,7 +478,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: '24px',
     flex: 1,
-    overflowY: 'auto', // Scrollable column content
+    overflowY: 'auto',
     paddingRight: '8px',
   },
   headerInfo: {

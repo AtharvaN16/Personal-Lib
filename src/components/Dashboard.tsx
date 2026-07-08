@@ -185,13 +185,23 @@ export default function Dashboard() {
       <main style={styles.mainLayout}>
         {/* Left Column (Masonry grid flow) */}
         <div style={styles.sideColumn}>
-          {leftBooks.map((book) => (
-            <BookCard 
-              key={book.id} 
-              book={book} 
-              onClick={setSelectedBook} 
-            />
-          ))}
+          <AnimatePresence>
+            {leftBooks.map((book) => (
+              <motion.div
+                key={book.id}
+                layout
+                initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
+                transition={{ duration: 0.3 }}
+              >
+                <BookCard 
+                  book={book} 
+                  onClick={setSelectedBook} 
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {/* Center Column (Hero Text / Action Space) */}
@@ -223,13 +233,23 @@ export default function Dashboard() {
 
         {/* Right Column (Masonry grid flow) */}
         <div style={styles.sideColumn}>
-          {rightBooks.map((book) => (
-            <BookCard 
-              key={book.id} 
-              book={book} 
-              onClick={setSelectedBook} 
-            />
-          ))}
+          <AnimatePresence>
+            {rightBooks.map((book) => (
+              <motion.div
+                key={book.id}
+                layout
+                initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
+                transition={{ duration: 0.3 }}
+              >
+                <BookCard 
+                  book={book} 
+                  onClick={setSelectedBook} 
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </main>
 
