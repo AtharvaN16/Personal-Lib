@@ -144,7 +144,7 @@ export default function BookModal({
             <span 
               className="material-symbols-outlined" 
               style={{ 
-                fontSize: '18px', 
+                fontSize: '22px', // Larger
                 fontVariationSettings: book.favorite ? "'FILL' 1" : "'FILL' 0" 
               }}
             >
@@ -164,7 +164,7 @@ export default function BookModal({
             <span 
               className="material-symbols-outlined" 
               style={{ 
-                fontSize: '18px', 
+                fontSize: '22px', // Larger
                 fontVariationSettings: book.status === 'Completed' ? "'FILL' 1" : "'FILL' 0" 
               }}
             >
@@ -181,7 +181,7 @@ export default function BookModal({
             }}
             title="Delete book"
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
               delete
             </span>
           </button>
@@ -423,8 +423,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '8px',
   },
   squareBtn: {
-    width: '32px',
-    height: '32px',
+    width: '40px', // Larger button
+    height: '40px', // Larger button
     border: 'none',
     backgroundColor: 'var(--bg-sheet)',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
@@ -439,7 +439,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '36px',
     flexDirection: 'row',
     height: '100%',
-    overflow: 'hidden',
+    overflow: 'visible', // Remove overflow hidden to prevent shadow clipping
   },
   leftCol: {
     display: 'flex',
@@ -454,7 +454,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '210px',
     borderRadius: '0px',
     overflow: 'hidden',
-    boxShadow: '0 16px 30px rgba(17, 22, 37, 0.22)',
+    boxShadow: '0 10px 25px rgba(17, 22, 37, 0.12)', // Softened, non-harsh drop shadow
     border: 'none',
     backgroundColor: 'var(--bg-sheet)',
   },
@@ -487,10 +487,11 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px',
   },
   title: {
-    fontSize: '28px',
+    fontSize: '24px', // Exactly 24px
     fontWeight: 'bold',
-    color: 'var(--text-primary)',
-    lineHeight: '1.1',
+    color: 'var(--accent-primary)', // Accent primary blue
+    lineHeight: '1.2',
+    maxWidth: '380px', // Prevents overlapping with actions
   },
   author: {
     fontSize: '1.25rem',
