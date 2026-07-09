@@ -9,7 +9,7 @@ export default function HeroAnimation() {
       transition={{ delay: 1.5, duration: 0.8, ease: 'easeOut' }}
       style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '20px' }}
     >
-      <svg width="180" height="220" viewBox="0 0 415 506" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="180" height="220" viewBox="0 0 415 506" fill="none" xmlns="http://www.w3.org/2000/svg" className="hero-animation-svg">
         <style>
           {`
             @keyframes flip {
