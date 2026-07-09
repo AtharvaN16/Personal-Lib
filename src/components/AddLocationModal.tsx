@@ -6,42 +6,37 @@ import { createClient } from '@/lib/supabase/client';
 
 interface AddLocationModalProps {
   onClose: () => void;
-  onLocationAdded: (newLocation: { id: string; room: string; bookshelf: string }) => void;
+  onLocationAdded: (location: { id: string; room: string; bookshelf: string }) => void;
 }
 
 export default function AddLocationModal({ onClose, onLocationAdded }: AddLocationModalProps) {
   const supabase = createClient();
   const [room, setRoom] = useState('');
   const [bookshelf, setBookshelf] = useState('');
-  const [shelfIndex, setShelfIndex] = useState('');
   const [roomsList, setRoomsList] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch existing rooms list on mount for autocomplete suggestions
+  // Fetch unique room names from existing shelves on mount
   useEffect(() => {
-    async function fetchRooms() {
+    async function loadRooms() {
       try {
-        const { data } = await supabase
-          .from('shelves')
-          .select('room');
-        
+        const { data } = await supabase.from('shelves').select('room');
         if (data) {
-          // Get unique room names
-          const uniqueRooms = Array.from(new Set(data.map(item => item.room)));
+          const uniqueRooms = Array.from(new Set(data.map(d => d.room))).filter(Boolean);
           setRoomsList(uniqueRooms);
         }
       } catch {
-        console.warn('Failed to fetch existing rooms');
+        console.warn('Failed to load existing rooms list');
       }
     }
-    fetchRooms();
+    loadRooms();
   }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!room.trim() || !bookshelf.trim()) {
-      setError('Please fill in both Room and Bookshelf Name.');
+      setError('Please fill in both fields.');
       return;
     }
 
@@ -49,34 +44,40 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
     setError(null);
 
     try {
-      // Get current authenticated user
+      // Get current user session
       const { data: { user } } = await supabase.auth.getUser();
-
-      const parsedShelfIndex = shelfIndex ? parseInt(shelfIndex, 10) : null;
-      
-      const newShelfData = {
-        user_id: user?.id || '00000000-0000-0000-0000-000000000000', // fallback mock user id
-        room: room.trim(),
-        bookshelf: bookshelf.trim(),
-        shelf_index: parsedShelfIndex === null || isNaN(parsedShelfIndex) ? null : parsedShelfIndex,
-      };
-
-      const { data, error: insertError } = await supabase
-        .from('shelves')
-        .insert(newShelfData)
-        .select()
-        .single();
-
-      if (insertError) {
-        throw insertError;
+      if (!user) {
+        throw new Error('No authenticated user session');
       }
 
-      if (data) {
-        onLocationAdded({
-          id: data.id,
-          room: data.room,
-          bookshelf: data.bookshelf,
-        });
+      // Check if location already exists
+      const { data: existing } = await supabase
+        .from('shelves')
+        .select('*')
+        .eq('room', room.trim())
+        .eq('bookshelf', bookshelf.trim())
+        .eq('user_id', user.id);
+
+      if (existing && existing.length > 0) {
+        setError('This bookshelf in this room already exists!');
+        setLoading(false);
+        return;
+      }
+
+      // Insert new location
+      const { data, error: insertError } = await supabase
+        .from('shelves')
+        .insert([{
+          room: room.trim(),
+          bookshelf: bookshelf.trim(),
+          user_id: user.id
+        }])
+        .select();
+
+      if (insertError) throw insertError;
+
+      if (data && data[0]) {
+        onLocationAdded(data[0]);
         onClose();
       }
     } catch {
@@ -95,7 +96,14 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
   };
 
   return (
-    <div style={styles.backdrop} onClick={onClose}>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      style={styles.backdrop} 
+      onClick={onClose}
+    >
       <motion.div
         initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
@@ -127,6 +135,7 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
               onChange={(e) => setRoom(e.target.value)}
               list="existing-rooms"
               required
+              style={styles.formInput}
             />
             <datalist id="existing-rooms">
               {roomsList.map((r, idx) => (
@@ -137,31 +146,18 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
 
           {/* Bookshelf input */}
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Bookshelf / Storage Name</label>
+            <label style={styles.label}>Bookshelf Name</label>
             <input
               type="text"
               className="input-cozy"
-              placeholder="e.g. Tall Pine Shelf, Bedside Table"
+              placeholder="e.g. Tall Shelf, Bedside Drawer"
               value={bookshelf}
               onChange={(e) => setBookshelf(e.target.value)}
               required
+              style={styles.formInput}
             />
           </div>
 
-          {/* Optional Shelf Index input */}
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Shelf Index (Optional)</label>
-            <input
-              type="number"
-              className="input-cozy"
-              placeholder="e.g. 1 for top shelf, 2 for second shelf"
-              value={shelfIndex}
-              onChange={(e) => setShelfIndex(e.target.value)}
-              min="1"
-            />
-          </div>
-
-          {/* Submit Actions */}
           <div style={styles.actions}>
             <button 
               type="button" 
@@ -173,15 +169,17 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
             <button 
               type="submit" 
               disabled={loading} 
-              style={styles.submitBtn}
-              className="sketch-border"
+              style={{
+                ...styles.submitBtn,
+                opacity: loading ? 0.6 : 1
+              }}
             >
-              {loading ? 'Adding...' : 'Add Location'}
+              {loading ? 'Adding...' : 'Add Shelf'}
             </button>
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -201,13 +199,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modal: {
     width: '100%',
-    maxWidth: '440px',
+    maxWidth: '380px', // Re-worked to be more compact
     backgroundColor: 'var(--bg-primary)',
-    padding: '36px',
+    padding: '28px 24px 24px 24px', // Reduced padding
     position: 'relative',
     maxHeight: '90vh',
     overflowY: 'auto',
     borderRadius: '0px', // Removed corner radius
+    boxShadow: '0 12px 30px rgba(17, 22, 37, 0.12)',
   },
   closeBtn: {
     position: 'absolute',
@@ -217,7 +216,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     cursor: 'pointer',
     color: 'var(--text-secondary)',
-    fontSize: '0.8rem',
+    fontSize: '0.75rem',
     fontWeight: 'bold',
     letterSpacing: '0.1em',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
@@ -225,20 +224,23 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 0,
   },
   title: {
-    fontSize: '2.5rem',
+    fontSize: '22px', // Compact typography
+    fontWeight: 'bold',
     color: 'var(--text-primary)',
-    marginBottom: '8px',
+    marginBottom: '6px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   subtitle: {
-    fontSize: '0.95rem',
+    fontSize: '0.85rem', // Compact typography
     color: 'var(--text-secondary)',
-    marginBottom: '24px',
+    marginBottom: '20px',
     lineHeight: '1.4',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '16px',
   },
   inputGroup: {
     display: 'flex',
@@ -246,17 +248,23 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '6px',
   },
   label: {
-    fontSize: '0.9rem',
+    fontSize: '0.8rem', // Small bold label
     fontWeight: 'bold',
     color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  formInput: {
+    padding: '8px 12px', // More compact inputs
+    fontSize: '0.9rem',
+    borderRadius: '0px',
   },
   errorAlert: {
     color: '#8B1E1E',
     backgroundColor: '#F7EAE6',
-    border: '1px solid #8B1E1E',
-    borderRadius: '4px',
-    padding: '10px 14px',
-    fontSize: '0.9rem',
+    borderRadius: '0px',
+    padding: '8px 12px',
+    fontSize: '0.85rem',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   actions: {
     display: 'flex',
@@ -269,7 +277,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     border: 'none',
     color: 'var(--text-secondary)',
-    fontSize: '0.95rem',
+    fontSize: '0.9rem',
     cursor: 'pointer',
     padding: 0,
     fontFamily: 'var(--font-instrument-sans), sans-serif',
@@ -279,9 +287,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
     color: 'var(--text-primary)',
-    padding: '8px 20px',
+    padding: '8px 16px',
     cursor: 'pointer',
-    fontSize: '0.95rem',
+    fontSize: '0.9rem',
     fontWeight: 'bold',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     transition: 'transform 0.2s ease',

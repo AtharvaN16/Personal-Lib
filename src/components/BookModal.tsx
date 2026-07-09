@@ -144,7 +144,7 @@ export default function BookModal({
                 <img src={book.cover_url} alt={book.title} style={styles.coverImg} />
               ) : (
                 <div style={styles.placeholderCover}>
-                  <span className="handwritten">{book.title}</span>
+                  <span className="display-serif">{book.title}</span>
                 </div>
               )}
             </div>
@@ -167,7 +167,7 @@ export default function BookModal({
                 <span 
                   className="material-symbols-outlined" 
                   style={{ 
-                    fontSize: '24px', // Bigger
+                    fontSize: '24px', 
                     fontVariationSettings: book.favorite ? "'FILL' 1" : "'FILL' 0" 
                   }}
                 >
@@ -187,7 +187,7 @@ export default function BookModal({
                 <span 
                   className="material-symbols-outlined" 
                   style={{ 
-                    fontSize: '24px', // Bigger
+                    fontSize: '24px', 
                     fontVariationSettings: book.status === 'Completed' ? "'FILL' 1" : "'FILL' 0" 
                   }}
                 >
@@ -211,10 +211,12 @@ export default function BookModal({
             </div>
 
             <div style={styles.headerInfo}>
-              <h2 style={styles.title}>
+              {/* Title styled with Newsreader Display Font */}
+              <h2 className="display-serif" style={styles.title}>
                 {book.title}
               </h2>
-              <p style={styles.author}>
+              {/* Author styled with Caveat cursive font */}
+              <p className="handwritten" style={styles.author}>
                 {book.authors.join(', ')}
               </p>
             </div>
@@ -496,7 +498,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '1.25rem',
     color: 'var(--text-secondary)',
     marginTop: '2px',
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    fontFamily: 'var(--font-caveat), cursive', // Cursive Caveat author
   },
   section: {
     display: 'flex',
@@ -512,6 +514,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '1.25rem',
     fontWeight: 'bold',
     color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   editLink: {
     background: 'none',
@@ -526,6 +529,7 @@ const styles: Record<string, React.CSSProperties> = {
   sectionContent: {
     fontSize: '1.1rem',
     color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   genreContainer: {
     display: 'flex',
@@ -540,15 +544,18 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '20px',
     fontSize: '0.85rem',
     border: 'none',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   noGenres: {
     fontSize: '1.1rem',
     color: 'var(--text-tertiary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   descriptionText: {
     fontSize: '0.95rem',
     color: 'var(--text-secondary)',
     lineHeight: '1.5',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   editLocationForm: {
     display: 'flex',

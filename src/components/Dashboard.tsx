@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LogoutLink from '@/components/LogoutLink';
-import BookModal, { Book } from '@/components/BookModal';
+import BookCardModal, { Book } from '@/components/BookModal';
 import AddLocationModal from '@/components/AddLocationModal';
 import { createClient } from '@/lib/supabase/client';
 
@@ -167,7 +167,8 @@ export default function Dashboard() {
             </button>
           </div>
           
-          <h1 className="handwritten" style={styles.logo}>
+          {/* Using Newsreader Display Font */}
+          <h1 className="display-serif" style={styles.logo}>
             My Personal Library
           </h1>
           
@@ -181,11 +182,12 @@ export default function Dashboard() {
       <main style={styles.mainLayout}>
         {/* Center Column (Hero Text / Action Space) */}
         <div style={styles.heroContainer}>
-          <h2 className="handwritten" style={styles.heroTitle}>
+          {/* Using Newsreader Display Font */}
+          <h2 className="display-serif" style={styles.heroTitle}>
             Your Quiet Reading Corner
           </h2>
           <p style={styles.heroSubtitle}>
-            Scan a book barcode to automatically log details, or explore the tabs to organize your shelves.
+            Scan a book barcode to automatically log details, or explore the shelves to organize your library.
           </p>
           <button
             onClick={() => setIsAddLocationOpen(true)}
@@ -231,7 +233,7 @@ export default function Dashboard() {
       {/* Book details overlay modal */}
       <AnimatePresence>
         {selectedBook && (
-          <BookModal
+          <BookCardModal
             book={selectedBook}
             onClose={() => setSelectedBook(null)}
             onDelete={handleDelete}
@@ -269,7 +271,7 @@ function BookCard({ book, onClick }: BookCardProps) {
       onMouseLeave={() => setHovered(false)}
       onClick={() => onClick(book)}
     >
-      {/* Cover Image Wrapper - Increased Size (150px x 210px) */}
+      {/* Cover Image Wrapper - Enlarged Size (180px x 252px) */}
       <motion.div
         animate={{
           scale: hovered ? 1.04 : 1,
@@ -290,7 +292,7 @@ function BookCard({ book, onClick }: BookCardProps) {
           />
         ) : (
           <div style={styles.placeholderCover}>
-            <span className="handwritten" style={styles.placeholderText}>{book.title}</span>
+            <span className="display-serif" style={styles.placeholderText}>{book.title}</span>
           </div>
         )}
       </motion.div>
@@ -363,14 +365,16 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'space-between', // Push grid to bottom edge
     width: '100%',
+    minHeight: 'calc(100vh - 100px)', // Make mainLayout fill height
     padding: '0 40px 0 40px',
     overflowX: 'hidden',
   },
   heroContainer: {
     textAlign: 'center',
     maxWidth: '560px',
-    margin: '40px auto 20px auto',
+    margin: 'auto auto 20px auto', // Vertical centering inside upper fold
   },
   heroTitle: {
     fontSize: '3rem',
@@ -384,21 +388,21 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: '1.6',
   },
   booksSection: {
-    width: '100%',
-    maxWidth: '1100px',
-    marginTop: 'auto', // Pushes section to the bottom of the viewport
+    width: '95%', // Smaller margins
+    maxWidth: '1400px', // Wider grid container
+    marginTop: 'auto',
     paddingTop: '40px',
   },
   booksGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(6, 1fr)',
-    gap: '24px',
+    gap: '32px', // Comfortable spacing for larger cards
     width: '100%',
     paddingBottom: '24px',
   },
   // BookCard styles
   cardContainer: {
-    width: '150px', // Larger Card
+    width: '180px', // Enlarged Card width
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
@@ -406,8 +410,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
   },
   coverWrapper: {
-    width: '150px', // Larger Cover Width
-    height: '210px', // Larger Cover Height
+    width: '180px', // Enlarged Cover Width
+    height: '252px', // Enlarged Cover Height
     borderRadius: '0px',
     border: 'none',
     overflow: 'hidden',
@@ -430,16 +434,16 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'var(--bg-sheet)',
   },
   placeholderText: {
-    fontSize: '0.9rem',
+    fontSize: '0.95rem',
     lineHeight: '1.2',
   },
   metaContainer: {
     height: '65px',
-    width: '150px',
+    width: '180px',
     marginTop: '12px',
   },
   bookTitle: {
-    fontSize: '1rem', // Larger Font Size on Hover
+    fontSize: '1rem',
     fontWeight: 'bold',
     color: 'var(--text-primary)',
     margin: 0,
@@ -450,7 +454,7 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: 'ellipsis',
   },
   bookAuthor: {
-    fontSize: '0.85rem', // Larger Font Size on Hover
+    fontSize: '0.85rem',
     color: 'var(--text-secondary)',
     margin: '4px 0 0 0',
     textAlign: 'center',
