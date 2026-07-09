@@ -1,21 +1,13 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useLogout } from '@/hooks/useLogout';
 
 export default function LogoutLink() {
-  const router = useRouter();
-  const supabase = createClient();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
+  const logout = useLogout();
 
   return (
-    <button 
-      onClick={handleLogout} 
+    <button
+      onClick={logout}
       style={{
         background: 'none',
         border: 'none',
