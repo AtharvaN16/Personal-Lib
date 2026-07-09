@@ -232,8 +232,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'fixed',
     top: 0,
     left: 0,
-    width: '100vw',
-    height: '100vh',
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(17, 22, 37, 0.25)',
     display: 'flex',
     alignItems: 'center',
@@ -247,7 +247,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'var(--bg-sheet)',
     padding: '28px 24px 24px 24px', // Reduced padding
     position: 'relative',
-    maxHeight: '90vh',
+    maxHeight: '90svh',
     overflowY: 'auto',
     borderRadius: '0px', // Removed corner radius
     boxShadow: '0 12px 30px rgba(17, 22, 37, 0.12)',

@@ -1162,7 +1162,7 @@ function BookCard({ book, onClick, isMobile = false, editMode, selected, onToggl
 
 const styles: Record<string, React.CSSProperties> = {
   frame: {
-    minHeight: '100vh',
+    minHeight: '100dvh',
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
@@ -1290,7 +1290,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between', // Push grid to bottom edge
     width: '100%',
-    minHeight: '100vh', // Make mainLayout fill height
+    minHeight: '100dvh', // Make mainLayout fill height
     padding: '170px 40px 0 40px', // Added 170px padding-top for fixed header offset
     overflowX: 'hidden',
   },
@@ -1298,7 +1298,7 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: 'center',
     width: '100%', // Stretch container to full width to prevent layout shrink
     maxWidth: '1100px',
-    height: 'calc(100vh - 130px)', // Take up exact vertical viewport height below fixed header
+    height: 'calc(100svh - 130px)', // Take up exact vertical viewport height below fixed header
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

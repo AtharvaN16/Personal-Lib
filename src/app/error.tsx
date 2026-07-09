@@ -31,7 +31,7 @@ export default function Error({
 const styles: Record<string, React.CSSProperties> = {
   container: {
     display: 'flex',
-    minHeight: '100vh',
+    minHeight: '100dvh',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px',

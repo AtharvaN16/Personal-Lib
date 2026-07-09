@@ -193,7 +193,7 @@ export default function LoginPage() {
     <Suspense fallback={
       <div style={{
         display: 'flex',
-        minHeight: '100vh',
+        minHeight: '100dvh',
         alignItems: 'center',
         justifyContent: 'center',
         color: 'var(--text-secondary)',
@@ -213,7 +213,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     display: 'flex',
     flex: 1,
-    minHeight: '100vh',
+    minHeight: '100dvh',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px',

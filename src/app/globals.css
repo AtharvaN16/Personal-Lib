@@ -58,8 +58,8 @@ body::before {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  bottom: 0;
   opacity: 0.115; /* Increased noise density */
   z-index: -2; /* Background level, behind all text, modals, fabs, and books */
   pointer-events: none;
@@ -98,7 +98,7 @@ body::after {
 
 /* Page container (no border/margin) */
 .page-container {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -273,7 +273,7 @@ a {
 @media (max-width: 640px) {
   .book-modal-panel {
     height: auto;
-    max-height: 90vh;
+    max-height: 90svh;
     overflow-y: auto;
   }
 
@@ -511,7 +511,7 @@ a {
 
   .hero-container-mobile {
     height: auto !important;
-    min-height: 60vh !important;
+    min-height: 60svh !important;
     transform: none !important;
     padding: 24px 20px; /* Add side padding back for hero content */
   }
