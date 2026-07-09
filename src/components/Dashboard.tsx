@@ -167,9 +167,18 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
-  // Fade the header title into the "Currently showing X" status as soon as the page starts scrolling
+  // Fade the header title into the "Currently showing X" status as soon as the page starts scrolling.
+  // Uses hysteresis (collapse at 150, only re-expand at 30) rather than a single threshold: live search
+  // filtering can shrink the grid enough that the browser clamps scrollY back down momentarily, and
+  // without a dead zone that dip would falsely flip isScrolled back to false mid-interaction.
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY >= 150);
+    const handleScroll = () => {
+      setIsScrolled(prev => {
+        if (!prev && window.scrollY >= 150) return true;
+        if (prev && window.scrollY <= 30) return false;
+        return prev;
+      });
+    };
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);

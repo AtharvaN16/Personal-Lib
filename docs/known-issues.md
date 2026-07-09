@@ -33,6 +33,28 @@ visible on short pages (e.g., a filter with only 1-2 results), where the clamped
 scroll position sits right at the flip threshold. Any fix here must leave
 `heroContainer`'s height and total document flow height untouched during scroll.
 
-**Status:** deferred until after the header/FAB redesign (search moving into the
-header, Scan becoming a FAB) lands, since that work will likely retune these same
-thresholds — fixing this now risks being redone/thrown away.
+**Status:** still open. The header/FAB redesign (search moving into the header, Scan
+becoming a FAB) has landed, so this can be picked up now — replace the hardcoded `150`
+with the hero's real height as described above.
+
+## Grid reflow could clamp `scrollY` and falsely flip `isScrolled` (fixed)
+
+**Where:** `src/components/Dashboard.tsx`, the `isScrolled` scroll listener.
+
+Same root cause as the issue above (a single no-hysteresis scroll threshold), but
+triggered by the *grid* shrinking instead of the hero: typing into either search pill
+live-filters the books grid on every keystroke. On a heavily filtered/short result
+set, that shrink could reduce total document height enough for the browser to clamp
+`scrollY` back below `150`, flipping `isScrolled` to `false` mid-interaction — even
+though the user never scrolled up. Two symptoms this produced:
+
+- The header search pill appeared to "randomly close" while typing.
+- After committing a search (Enter), the header would snap back to the unscrolled
+  "Manage Locations"/logo state — the `isScrolled` corruption happened silently
+  during typing and only became visible once `isHeaderSearching` stopped masking it.
+
+**Fix (implemented):** `isScrolled` now uses hysteresis instead of one threshold —
+collapses at `scrollY >= 150`, but only re-expands at `scrollY <= 30`. A clamp-induced
+dip from grid reflow lands in the dead zone between 30 and 150 and no longer flips
+the state. This is the same technique flagged as the fix for the hero-height issue
+above; worth applying there too when that one is picked up.
