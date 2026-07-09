@@ -369,7 +369,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'column',
-    transform: 'translateY(-60px)', // Shift text slightly above the exact center
+    transform: 'translateY(-70px)', // Shift text slightly above the exact center
   },
   heroTitle: {
     fontSize: '32px', // Exactly 32px
@@ -392,7 +392,7 @@ const styles: Record<string, React.CSSProperties> = {
   booksSection: {
     width: '95%', // Smaller margins
     maxWidth: '1400px', // Wider grid container
-    marginTop: '-110px', // Pulls the top of the covers up to peek above the fold
+    marginTop: '-190px', // Pulls the top of the covers up to peek above the fold
     paddingTop: '40px',
   },
   booksGrid: {
