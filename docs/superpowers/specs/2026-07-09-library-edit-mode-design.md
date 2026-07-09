@@ -34,9 +34,12 @@ Clicking `Edit` calls `enterEditMode()` (sets `isEditMode = true`; selection sta
 
 ### Mobile
 
-No changes to the mobile header icons (search/hamburger stay as-is). `MobileMenu` gains a new row — `Edit Library` — alongside the existing `Manage Locations` and `Logout` rows, calling `enterEditMode()` and closing the menu.
+`mobile-header-actions` gains a third icon button, placed beside the existing search icon (before the hamburger), using the same `mobile-icon-btn` styling/hit-target as the search and menu icons — no separate hamburger-menu entry point, so entering/exiting edit mode never requires opening the menu.
 
-To exit edit mode on mobile: the mobile header's compact row (`.mobile-header-row`, currently showing `displayLabel` as a plain `<h1>` when scrolled) renders a small `Done` text button in place of that title *only while `isEditMode` is true* — same blue/wavy-underline treatment as desktop's `Edit`/`Done`, positioned where `mobile-header-actions` already sits (to the right of the title). This is the one small addition beyond "no changes to mobile header icons": it's additive (only appears in edit mode) and doesn't alter the search/hamburger icons themselves.
+- Not editing: pencil/edit icon, `aria-label="Edit library"`, `onClick={enterEditMode}`.
+- Editing: the *same button slot* swaps its icon to a checkmark, `aria-label="Done editing"`, `onClick={exitEditMode}`.
+
+Search and hamburger icons remain visible and functional throughout — only the third icon swaps its icon/label/handler based on `isEditMode`. This replaces the earlier idea of a `MobileMenu` row and a title-replacing `Done` text button; there's no mobile `MobileMenu` change at all.
 
 ## Selection & Grid
 
