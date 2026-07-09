@@ -341,11 +341,12 @@ a {
   .mobile-menu-row {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     min-height: 56px;
     padding: 0 24px;
     background: none;
     border: none;
-    text-align: left;
+    text-align: right;
     font-family: var(--font-instrument-sans), sans-serif;
     font-size: 1.05rem;
     color: var(--text-primary);
