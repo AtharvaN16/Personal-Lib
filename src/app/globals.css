@@ -265,8 +265,32 @@ a {
   }
 
   .book-modal-cover {
-    width: 140px;
-    height: 196px;
+    width: 168px;
+    height: 235px;
+  }
+
+  .book-modal-title {
+    font-size: 22px !important;
+  }
+
+  .book-modal-location-form {
+    gap: 16px !important;
+  }
+
+  .book-modal-select {
+    min-height: 44px !important;
+    font-size: 16px !important; /* 16px prevents iOS Safari auto-zoom on focus */
+    padding: 10px 12px !important;
+  }
+
+  .book-modal-inline-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+
+  .book-modal-form-buttons {
+    justify-content: flex-end !important;
   }
 }
 
@@ -290,12 +314,14 @@ a {
 }
 
 @media (max-width: 640px) {
+  /* Cinematic full-takeover backdrop: near-opaque parchment + heavy blur, rather than the
+     light modal-style dim used elsewhere, so the menu/search feel like their own scene. */
   .mobile-overlay-backdrop {
     position: fixed;
     inset: 0;
-    background-color: rgba(17, 22, 37, 0.25);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background-color: rgba(244, 242, 228, 0.92);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
     z-index: 10000;
     display: flex;
     justify-content: center;

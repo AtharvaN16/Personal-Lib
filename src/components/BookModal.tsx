@@ -379,7 +379,7 @@ export default function BookModal({
           {/* Right Column - Scrollable Information */}
           <div style={styles.rightCol}>
             <div style={styles.headerInfo}>
-              <h2 style={styles.title}>
+              <h2 style={styles.title} className="book-modal-title">
                 {book.title}
               </h2>
               {book.authors.length > 0 ? (
@@ -433,7 +433,7 @@ export default function BookModal({
                     <div style={styles.sectionHeader}>
                       <h3 style={styles.sectionTitle}>Location</h3>
                     </div>
-                    <div style={styles.editLocationForm}>
+                    <div style={styles.editLocationForm} className="book-modal-location-form">
                       {/* Select Room */}
                       <select
                         aria-label="Select room"
@@ -443,6 +443,7 @@ export default function BookModal({
                           setSelectedShelfId('');
                         }}
                         style={styles.selectField}
+                        className="book-modal-select"
                       >
                         <option value="">-- Select Room --</option>
                         {uniqueRooms.map((r, i) => (
@@ -465,6 +466,7 @@ export default function BookModal({
                               value={selectedShelfId}
                               onChange={(e) => setSelectedShelfId(e.target.value)}
                               style={styles.selectFieldWidth}
+                              className="book-modal-select"
                             >
                               <option value="">Unassigned</option>
                               {shelvesInRoom.map((s) => (
@@ -475,15 +477,15 @@ export default function BookModal({
                         )}
                       </AnimatePresence>
 
-                      <div style={styles.inlineActions}>
-                        <button 
+                      <div style={styles.inlineActions} className="book-modal-inline-actions">
+                        <button
                           type="button"
-                          onClick={() => setIsAddLocationOpen(true)} 
+                          onClick={() => setIsAddLocationOpen(true)}
                           style={styles.createLocationLink}
                         >
                           + Add New Location
                         </button>
-                        <div style={styles.formButtons}>
+                        <div style={styles.formButtons} className="book-modal-form-buttons">
                           <button 
                             type="button"
                             onClick={() => setIsEditingLocation(false)} 
