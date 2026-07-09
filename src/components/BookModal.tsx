@@ -383,9 +383,14 @@ export default function BookModal({
                 {book.title}
               </h2>
               {book.authors.length > 0 ? (
-                <p style={styles.author}>
+                <p style={styles.author} className="book-modal-author">
                   {book.authors.join(', ')}
-                  {publishedYear && <span style={styles.authorYear}> · {publishedYear}</span>}
+                  {publishedYear && (
+                    <>
+                      <span style={styles.authorSeparator} />
+                      <span style={styles.authorYear}>{publishedYear}</span>
+                    </>
+                  )}
                 </p>
               ) : isEditingAuthor ? (
                 <div style={styles.authorEditRow}>
@@ -406,9 +411,14 @@ export default function BookModal({
                   <button onClick={handleCancelAuthor} style={styles.confirmCancelBtn}>Cancel</button>
                 </div>
               ) : (
-                <p style={styles.author}>
+                <p style={styles.author} className="book-modal-author">
                   Unknown Author
-                  {publishedYear && <span style={styles.authorYear}> · {publishedYear}</span>}
+                  {publishedYear && (
+                    <>
+                      <span style={styles.authorSeparator} />
+                      <span style={styles.authorYear}>{publishedYear}</span>
+                    </>
+                  )}
                   {isNew && (
                     <button onClick={handleAddAuthorClick} style={styles.addAuthorLink}>
                       + Add author
@@ -776,11 +786,21 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-secondary)',
     marginTop: '2px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
+    display: 'inline-flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
   authorYear: {
     color: 'var(--text-tertiary)',
     fontWeight: '400',
-    marginLeft: '8px',
+  },
+  authorSeparator: {
+    display: 'inline-block',
+    width: '4px',
+    height: '4px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--text-tertiary)',
+    margin: '0 12px',
   },
   addAuthorLink: {
     background: 'none',

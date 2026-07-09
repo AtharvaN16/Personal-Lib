@@ -287,12 +287,16 @@ a {
   }
 
   .book-modal-cover {
-    width: 168px;
-    height: 235px;
+    width: 120px !important;
+    height: 168px !important;
   }
 
   .book-modal-title {
-    font-size: 22px !important;
+    font-size: 20px !important;
+  }
+
+  .book-modal-author {
+    font-size: 16px !important;
   }
 
   .book-modal-location-form {
