@@ -429,7 +429,7 @@ export default function Dashboard() {
           style={styles.headerContent}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.8, duration: 0.8, ease: 'easeOut' }}
+          transition={{ delay: 2.05, duration: 0.8, ease: 'easeOut' }}
         >
           <div style={styles.leftNav}>
             <AnimatePresence mode="wait">
@@ -581,7 +581,7 @@ export default function Dashboard() {
           style={styles.booksSection}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.5, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
+          transition={{ delay: 2.85, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
         >
           <AnimatePresence>
             {isScrolled && (
