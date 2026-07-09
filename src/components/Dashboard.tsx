@@ -186,38 +186,43 @@ export default function Dashboard() {
         {/* Center Column (Hero Text / Action Space) */}
         <div style={styles.heroContainer}>
           {isSearching ? (
-            <h1 className="display-serif" style={styles.heroTitle}>
-              <input
-                autoFocus
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onBlur={() => {
-                  if (!searchQuery) setIsSearching(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-                placeholder="Search"
-                style={{
-                  fontFamily: 'var(--font-newsreader), Georgia, serif',
-                  fontWeight: 'normal',
-                  fontSize: '32px',
-                  fontStyle: 'italic',
-                  color: 'var(--accent-primary)',
-                  background: 'none',
-                  border: 'none',
-                  outline: 'none',
-                  textDecoration: 'underline wavy var(--accent-primary)',
-                  textDecorationThickness: '1.5px',
-                  width: searchQuery ? `${Math.max(100, searchQuery.length * 16)}px` : '100px',
-                  transition: 'width 0.1s ease',
-                  padding: 0,
-                  margin: 0,
-                }}
-              />
+            <h1 className="display-serif" style={{ ...styles.heroTitle, position: 'relative' }}>
+              <span style={{ position: 'relative', display: 'inline-block' }}>
+                <span style={{ visibility: 'hidden' }}>Search</span>
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => {
+                    if (!searchQuery) setIsSearching(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  placeholder="Search"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    fontFamily: 'var(--font-newsreader), Georgia, serif',
+                    fontWeight: 'normal',
+                    fontSize: '32px',
+                    fontStyle: 'italic',
+                    color: 'var(--accent-primary)',
+                    background: 'none',
+                    border: 'none',
+                    outline: 'none',
+                    textDecoration: 'underline wavy var(--accent-primary)',
+                    textDecorationThickness: '1.5px',
+                    width: '600px', // Sits over text without expanding/pushing layout
+                    padding: 0,
+                    margin: 0,
+                  }}
+                />
+              </span>
               <span style={{ 
                 filter: 'blur(5px)', 
                 opacity: 0.4, 
