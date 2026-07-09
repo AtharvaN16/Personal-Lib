@@ -839,15 +839,16 @@ export default function Dashboard() {
             aria-label="Scan a book"
             style={styles.scanFab}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <line x1="14" y1="14" x2="14" y2="21" />
-              <line x1="21" y1="14" x2="21" y2="21" />
-              <line x1="17.5" y1="14" x2="17.5" y2="21" />
-              <line x1="14" y1="17.5" x2="21" y2="17.5" />
-            </svg>
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '24px',
+                color: 'var(--accent-primary)',
+                fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+              }}
+            >
+              qr_code_scanner
+            </span>
           </motion.button>
         )}
 
@@ -862,13 +863,16 @@ export default function Dashboard() {
             aria-label="Delete selected books"
             style={styles.scanFab}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6" />
-              <path d="M14 11v6" />
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '24px',
+                color: 'var(--error)',
+                fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+              }}
+            >
+              delete
+            </span>
           </motion.button>
         )}
 
@@ -883,11 +887,16 @@ export default function Dashboard() {
             aria-label="Move selected books"
             style={{ ...styles.scanFab, bottom: '104px' }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="12" height="10" rx="1" />
-              <path d="M17 7h4v4" />
-              <path d="M21 7l-7 7" />
-            </svg>
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '24px',
+                color: 'var(--accent-primary)',
+                fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+              }}
+            >
+              drive_file_move
+            </span>
           </motion.button>
         )}
 
