@@ -26,7 +26,12 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
   const [confirmingDeleteRoom, setConfirmingDeleteRoom] = useState<string | null>(null);
   const [newShelves, setNewShelves] = useState<{ tempId: string; room: string; bookshelf: string }[]>([]);
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
+  const [collapsedRooms, setCollapsedRooms] = useState<Record<string, boolean>>({});
   const modalRef = useRef<HTMLDivElement>(null);
+
+  const toggleRoomCollapsed = (room: string) => {
+    setCollapsedRooms(prev => ({ ...prev, [room]: !prev[room] }));
+  };
 
   // Focus the panel on open, restore focus on close, trap Tab, close on Escape, prevent body scroll
   useEffect(() => {
@@ -183,6 +188,7 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
   // Pending "add shelf" rows, scoped to a room, only persisted once Done is pressed
   const handleAddShelfDraft = (room: string) => {
     setNewShelves(prev => [...prev, { tempId: `new-${Date.now()}-${Math.random()}`, room, bookshelf: '' }]);
+    setCollapsedRooms(prev => ({ ...prev, [room]: false }));
   };
 
   const handleNewShelfChange = (tempId: string, value: string) => {
@@ -242,186 +248,237 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
           ) : rooms.length === 0 ? (
             <p style={styles.emptyText}>No locations yet. Add one below.</p>
           ) : (
-            rooms.map(room => (
-              <div key={room} style={styles.roomGroup}>
-                <div style={styles.roomHeaderRow}>
-                  <AnimatePresence mode="wait">
-                    {confirmingDeleteRoom === room ? (
-                      <motion.div
-                        key="confirm-room"
-                        initial={{ opacity: 0, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.15 }}
-                        style={styles.confirmRow}
-                      >
-                        <span style={styles.confirmText}>
-                          Delete this room and all its shelves?
-                        </span>
-                        <button
-                          onClick={() => handleConfirmDeleteRoom(room)}
-                          style={styles.confirmDeleteBtn}
+            rooms.map(room => {
+              const roomShelves = shelves.filter(s => s.room === room && s.bookshelf !== '');
+              const roomNewShelves = newShelves.filter(n => n.room === room);
+              const roomShelvesCount = roomShelves.length;
+              const isCollapsed = !!collapsedRooms[room];
+              const hasShelves = roomShelves.length > 0 || (isEditMode && roomNewShelves.length > 0);
+
+              return (
+                <div key={room} style={styles.roomGroup}>
+                  <div style={styles.roomHeaderRow}>
+                    <AnimatePresence mode="wait">
+                      {confirmingDeleteRoom === room ? (
+                        <motion.div
+                          key="confirm-room"
+                          initial={{ opacity: 0, filter: 'blur(4px)' }}
+                          animate={{ opacity: 1, filter: 'blur(0px)' }}
+                          exit={{ opacity: 0, filter: 'blur(4px)' }}
+                          transition={{ duration: 0.15 }}
+                          style={styles.confirmRow}
                         >
-                          Delete
-                        </button>
-                        <button onClick={handleCancelDeleteRoom} style={styles.confirmCancelBtn}>
-                          Cancel
-                        </button>
-                      </motion.div>
-                    ) : (
+                          <span style={styles.confirmText}>
+                            Delete this room and all its shelves?
+                          </span>
+                          <button
+                            onClick={() => handleConfirmDeleteRoom(room)}
+                            style={styles.confirmDeleteBtn}
+                          >
+                            Delete
+                          </button>
+                          <button onClick={handleCancelDeleteRoom} style={styles.confirmCancelBtn}>
+                            Cancel
+                          </button>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="display-room"
+                          initial={{ opacity: 0, filter: 'blur(4px)' }}
+                          animate={{ opacity: 1, filter: 'blur(0px)' }}
+                          exit={{ opacity: 0, filter: 'blur(4px)' }}
+                          transition={{ duration: 0.15 }}
+                          style={{
+                            ...styles.displayRow,
+                            cursor: isEditMode ? 'default' : 'pointer',
+                          }}
+                          onClick={isEditMode ? undefined : () => toggleRoomCollapsed(room)}
+                        >
+                          <div style={styles.roomTitleContainer}>
+                            <span 
+                              className="material-symbols-outlined" 
+                              style={{ 
+                                fontSize: '20px', 
+                                color: 'var(--text-secondary)',
+                                transition: 'transform 0.2s ease', 
+                                transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                                marginRight: '4px',
+                                opacity: isEditMode ? 0.3 : 0.8,
+                                userSelect: 'none'
+                              }}
+                            >
+                              expand_more
+                            </span>
+                            <span 
+                              className="material-symbols-outlined" 
+                              style={{ 
+                                fontSize: '20px', 
+                                color: 'var(--text-secondary)',
+                                opacity: 0.5,
+                                marginRight: '8px',
+                                userSelect: 'none'
+                              }}
+                            >
+                              folder
+                            </span>
+                            {isEditMode ? (
+                              <input
+                                className="field-white"
+                                value={roomDrafts[room] ?? room}
+                                onChange={(e) =>
+                                  setRoomDrafts(prev => ({ ...prev, [room]: e.target.value }))
+                                }
+                                onClick={(e) => e.stopPropagation()} // Prevent collapse click
+                                aria-label="Room name"
+                                style={styles.editInput}
+                              />
+                            ) : (
+                              <h3 style={styles.roomTitle}>{room}</h3>
+                            )}
+                            {!isEditMode && (
+                              <span style={styles.roomMetadata}>({roomShelvesCount})</span>
+                            )}
+                          </div>
+                          <div style={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                            {isEditMode && (
+                              <button
+                                onClick={() => handleAddShelfDraft(room)}
+                                className="icon-btn"
+                                style={styles.iconBtn}
+                                title="Add shelf to this room"
+                                aria-label="Add shelf to this room"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                                  add
+                                </span>
+                              </button>
+                            )}
+                            {isEditMode && (
+                              <button
+                                onClick={() => handleDeleteRoomClick(room)}
+                                className="icon-btn"
+                                style={{ ...styles.iconBtn, color: 'var(--error)' }}
+                                title="Delete room"
+                                aria-label="Delete room"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                                  delete
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <AnimatePresence initial={false}>
+                    {!isCollapsed && hasShelves && (
                       <motion.div
-                        key="display-room"
-                        initial={{ opacity: 0, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.15 }}
-                        style={styles.displayRow}
+                        initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+                        animate={{ height: 'auto', opacity: 1, transition: { duration: 0.25, ease: 'easeOut' } }}
+                        exit={{ height: 0, opacity: 0, transition: { duration: 0.2, ease: 'easeIn' } }}
+                        style={styles.shelvesContainer}
                       >
-                        {isEditMode ? (
-                          <input
-                            className="field-white"
-                            value={roomDrafts[room] ?? room}
-                            onChange={(e) =>
-                              setRoomDrafts(prev => ({ ...prev, [room]: e.target.value }))
-                            }
-                            aria-label="Room name"
-                            style={styles.editInput}
-                          />
-                        ) : (
-                          <h3 style={styles.roomTitle}>{room}</h3>
-                        )}
-                        <div style={styles.rowActions}>
-                          {isEditMode && (
-                            <button
-                              onClick={() => handleAddShelfDraft(room)}
-                              className="icon-btn"
-                              style={styles.iconBtn}
-                              title="Add shelf to this room"
-                              aria-label="Add shelf to this room"
-                            >
-                              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                                add
-                              </span>
-                            </button>
-                          )}
-                          {isEditMode && (
-                            <button
-                              onClick={() => handleDeleteRoomClick(room)}
-                              className="icon-btn"
-                              style={{ ...styles.iconBtn, color: 'var(--error)' }}
-                              title="Delete room"
-                              aria-label="Delete room"
-                            >
-                              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                                delete
-                              </span>
-                            </button>
-                          )}
+                        <div style={styles.shelvesList}>
+                          {roomShelves.map(shelf => (
+                            <div key={shelf.id} style={styles.shelfRow}>
+                              <AnimatePresence mode="wait">
+                                {confirmingDeleteId === shelf.id ? (
+                                  <motion.div
+                                    key="confirm"
+                                    initial={{ opacity: 0, filter: 'blur(4px)' }}
+                                    animate={{ opacity: 1, filter: 'blur(0px)' }}
+                                    exit={{ opacity: 0, filter: 'blur(4px)' }}
+                                    transition={{ duration: 0.15 }}
+                                    style={styles.confirmRow}
+                                  >
+                                    <span style={styles.confirmText}>Delete this location?</span>
+                                    <button
+                                      onClick={() => handleConfirmDelete(shelf.id)}
+                                      style={styles.confirmDeleteBtn}
+                                    >
+                                      Delete
+                                    </button>
+                                    <button onClick={handleCancelDelete} style={styles.confirmCancelBtn}>
+                                      Cancel
+                                    </button>
+                                  </motion.div>
+                                ) : (
+                                  <motion.div
+                                    key="display"
+                                    initial={{ opacity: 0, filter: 'blur(4px)' }}
+                                    animate={{ opacity: 1, filter: 'blur(0px)' }}
+                                    exit={{ opacity: 0, filter: 'blur(4px)' }}
+                                    transition={{ duration: 0.15 }}
+                                    style={styles.displayRow}
+                                  >
+                                    {isEditMode ? (
+                                      <input
+                                        className="field-white"
+                                        value={shelfDrafts[shelf.id] ?? shelf.bookshelf}
+                                        onChange={(e) =>
+                                          setShelfDrafts(prev => ({ ...prev, [shelf.id]: e.target.value }))
+                                        }
+                                        placeholder="Shelf (optional)"
+                                        aria-label="Shelf name"
+                                        style={styles.editInput}
+                                      />
+                                    ) : (
+                                      <span style={styles.shelfName}>{shelf.bookshelf}</span>
+                                    )}
+                                    {isEditMode && (
+                                      <button
+                                        onClick={() => handleDeleteClick(shelf.id)}
+                                        className="icon-btn"
+                                        style={{ ...styles.iconBtn, color: 'var(--error)' }}
+                                        title="Delete location"
+                                        aria-label="Delete location"
+                                      >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                                          delete
+                                        </span>
+                                      </button>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          ))}
+                          {isEditMode &&
+                            roomNewShelves.map(n => (
+                              <div key={n.tempId} style={styles.shelfRow}>
+                                <div style={styles.displayRow}>
+                                  <input
+                                    className="field-white"
+                                    value={n.bookshelf}
+                                    onChange={(e) => handleNewShelfChange(n.tempId, e.target.value)}
+                                    placeholder="New shelf name"
+                                    aria-label="New shelf name"
+                                    autoFocus
+                                    style={styles.editInput}
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveNewShelfDraft(n.tempId)}
+                                    className="icon-btn"
+                                    style={{ ...styles.iconBtn, color: 'var(--error)' }}
+                                    title="Remove"
+                                    aria-label="Remove new shelf"
+                                  >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                                      close
+                                    </span>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
-
-                <div style={styles.shelvesList}>
-                  {shelves
-                    .filter(s => s.room === room && s.bookshelf !== '')
-                    .map(shelf => (
-                      <div key={shelf.id} style={styles.shelfRow}>
-                        <AnimatePresence mode="wait">
-                          {confirmingDeleteId === shelf.id ? (
-                            <motion.div
-                              key="confirm"
-                              initial={{ opacity: 0, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, filter: 'blur(4px)' }}
-                              transition={{ duration: 0.15 }}
-                              style={styles.confirmRow}
-                            >
-                              <span style={styles.confirmText}>Delete this location?</span>
-                              <button
-                                onClick={() => handleConfirmDelete(shelf.id)}
-                                style={styles.confirmDeleteBtn}
-                              >
-                                Delete
-                              </button>
-                              <button onClick={handleCancelDelete} style={styles.confirmCancelBtn}>
-                                Cancel
-                              </button>
-                            </motion.div>
-                          ) : (
-                            <motion.div
-                              key="display"
-                              initial={{ opacity: 0, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, filter: 'blur(4px)' }}
-                              transition={{ duration: 0.15 }}
-                              style={styles.displayRow}
-                            >
-                              {isEditMode ? (
-                                <input
-                                  className="field-white"
-                                  value={shelfDrafts[shelf.id] ?? shelf.bookshelf}
-                                  onChange={(e) =>
-                                    setShelfDrafts(prev => ({ ...prev, [shelf.id]: e.target.value }))
-                                  }
-                                  placeholder="Shelf (optional)"
-                                  aria-label="Shelf name"
-                                  style={styles.editInput}
-                                />
-                              ) : (
-                                <span style={styles.shelfName}>{shelf.bookshelf}</span>
-                              )}
-                              {isEditMode && (
-                                <button
-                                  onClick={() => handleDeleteClick(shelf.id)}
-                                  className="icon-btn"
-                                  style={{ ...styles.iconBtn, color: 'var(--error)' }}
-                                  title="Delete location"
-                                  aria-label="Delete location"
-                                >
-                                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                                    delete
-                                  </span>
-                                </button>
-                              )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    ))}
-                  {isEditMode &&
-                    newShelves
-                      .filter(n => n.room === room)
-                      .map(n => (
-                        <div key={n.tempId} style={styles.shelfRow}>
-                          <div style={styles.displayRow}>
-                            <input
-                              className="field-white"
-                              value={n.bookshelf}
-                              onChange={(e) => handleNewShelfChange(n.tempId, e.target.value)}
-                              placeholder="New shelf name"
-                              aria-label="New shelf name"
-                              autoFocus
-                              style={styles.editInput}
-                            />
-                            <button
-                              onClick={() => handleRemoveNewShelfDraft(n.tempId)}
-                              className="icon-btn"
-                              style={{ ...styles.iconBtn, color: 'var(--error)' }}
-                              title="Remove"
-                              aria-label="Remove new shelf"
-                            >
-                              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                                close
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -531,12 +588,17 @@ const styles: Record<string, React.CSSProperties> = {
   roomGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px', // Medium gap: room header to its shelves
+    gap: '6px', // Reduced gap: room header to its shelves container
   },
   roomHeaderRow: {
     minHeight: '32px',
     display: 'flex',
     alignItems: 'center',
+  },
+  roomTitleContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    flex: 1,
   },
   roomTitle: {
     fontSize: '16px',
@@ -544,16 +606,29 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
+  roomMetadata: {
+    fontSize: '0.85rem',
+    color: 'var(--text-secondary)',
+    marginLeft: '6px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  shelvesContainer: {
+    backgroundColor: 'rgba(244, 242, 228, 0.35)', // subtle warm tonal difference
+    borderRadius: '4px',
+    padding: '8px 12px',
+    marginLeft: '12px',
+  },
   shelvesList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px', // Smallest gap: between individual shelves
+    gap: '2px', // slightly reduced spacing between shelves
+    borderLeft: '1.5px solid rgba(139, 90, 43, 0.12)', // subtle guideline
   },
   shelfRow: {
-    minHeight: '36px',
+    minHeight: '34px', // slightly reduced height for cohesiveness
     display: 'flex',
     alignItems: 'center',
-    paddingLeft: '16px', // Indented under its room
+    paddingLeft: '14px', // indented next to the guideline
   },
   displayRow: {
     display: 'flex',
