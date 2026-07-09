@@ -159,7 +159,32 @@ export default function Dashboard() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
+  const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  // The header visually locks into its compact/scrolled appearance while editing — regardless of
+  // actual scroll position — so Edit Mode's "Done" trigger and the compact title/nav stay put
+  // until the user explicitly exits, instead of flickering back to the expanded header on scroll.
+  const headerCompact = isScrolled || isEditMode;
+
+  const enterEditMode = () => setIsEditMode(true);
+
+  const exitEditMode = () => {
+    setIsEditMode(false);
+    setSelectedBookIds(new Set());
+    setIsDeleteConfirming(false);
+  };
+
+  const toggleBookSelected = (id: string) => {
+    setSelectedBookIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 150], [1, 0]);
@@ -476,7 +501,7 @@ export default function Dashboard() {
                     autoFocus
                   />
                 </motion.div>
-              ) : !isScrolled ? (
+              ) : !headerCompact ? (
                 <motion.button
                   key="manage-locations"
                   initial={{ opacity: 0, filter: 'blur(6px)' }}
@@ -519,7 +544,7 @@ export default function Dashboard() {
           {/* Fades from the title into the "Currently showing X" status (same style as the hero's) on scroll */}
           <div style={styles.logoSlot}>
             <AnimatePresence mode="wait">
-              {isScrolled || isHeaderSearching ? (
+              {headerCompact || isHeaderSearching ? (
                 <motion.div
                   key="header-actions"
                   initial={{ opacity: 0, filter: 'blur(6px)' }}
@@ -563,13 +588,49 @@ export default function Dashboard() {
           </div>
 
           <div style={styles.rightNav}>
-            <LogoutLink />
+            <AnimatePresence mode="wait">
+              {isEditMode ? (
+                <motion.button
+                  key="edit-done"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                  onClick={exitEditMode}
+                  style={styles.editModeTrigger}
+                >
+                  Done
+                </motion.button>
+              ) : isScrolled ? (
+                <motion.button
+                  key="edit-trigger"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                  onClick={enterEditMode}
+                  style={styles.editModeTrigger}
+                >
+                  Edit
+                </motion.button>
+              ) : (
+                <motion.div
+                  key="logout-link"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <LogoutLink />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
 
         <div className="mobile-header-row">
           <AnimatePresence mode="wait">
-            {isScrolled || isHeaderSearching || isMobileSearchOpen ? (
+            {headerCompact || isHeaderSearching || isMobileSearchOpen ? (
               <motion.h1
                 key="mobile-logo-status"
                 className="mobile-logo"
@@ -991,6 +1052,18 @@ const styles: Record<string, React.CSSProperties> = {
   rightNav: {
     display: 'flex',
     justifyContent: 'flex-end',
+  },
+  editModeTrigger: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    fontFamily: 'var(--font-newsreader), Georgia, serif',
+    fontStyle: 'italic',
+    fontSize: '32px',
+    color: 'var(--accent-primary)',
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textDecorationThickness: '1.5px',
   },
   scanFab: {
     position: 'fixed',
