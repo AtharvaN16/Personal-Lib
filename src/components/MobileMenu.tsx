@@ -31,6 +31,39 @@ export default function MobileMenu({ onClose, onManageLocations }: MobileMenuPro
 
   return (
     <div className="mobile-overlay-backdrop" onClick={onClose}>
+      <motion.button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        initial={{ opacity: 0, rotate: -90, scale: 0.8 }}
+        animate={{ opacity: 1, rotate: 0, scale: 1 }}
+        exit={{ opacity: 0, rotate: 90, scale: 0.8 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          width: '44px',
+          height: '44px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-primary)',
+          padding: 0,
+          zIndex: 10001,
+        }}
+        aria-label="Close menu"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </motion.button>
+
       <motion.div
         ref={panelRef}
         role="dialog"

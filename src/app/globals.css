@@ -224,8 +224,8 @@ a {
   }
 
   body::after {
-    background: radial-gradient(ellipse 65vw 65vh at 50% 72%, rgba(0, 44, 188, 0.24) 0%, rgba(0, 44, 188, 0.06) 60%, transparent 100%) !important;
-    transform-origin: 50% 72% !important;
+    background: radial-gradient(ellipse 65vw 65vh at 50% 74%, rgba(0, 44, 188, 0.24) 0%, rgba(0, 44, 188, 0.06) 60%, transparent 100%) !important;
+    transform-origin: 50% 74% !important;
   }
 }
 
