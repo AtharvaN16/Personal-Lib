@@ -12,6 +12,9 @@ import { createClient } from '@/lib/supabase/client';
 import { TextAnimate } from '@/registry/magicui/text-animate';
 import HeroAnimation from '@/components/HeroAnimation';
 import SearchPill from '@/components/SearchPill';
+import MobileMenu from '@/components/MobileMenu';
+import MobileSearchOverlay from '@/components/MobileSearchOverlay';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 
 /** Closes an open search pill when the user clicks anywhere outside its wrapper element. */
@@ -154,6 +157,9 @@ export default function Dashboard() {
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [filterRoom, setFilterRoom] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 150], [1, 0]);
@@ -327,7 +333,7 @@ export default function Dashboard() {
   // text — so abandoning a zero-match search (Escape/outside-click) can't leave the grid stuck
   // empty. The typed text itself (searchQuery) is untouched either way, so reopening the pill
   // shows exactly what was left there.
-  const appliedQuery = (isSearching || isHeaderSearching) ? searchQuery : committedQuery;
+  const appliedQuery = (isSearching || isHeaderSearching || isMobileSearchOpen) ? searchQuery : committedQuery;
 
   // Once a search is applied (at least one match found), "Currently showing" reflects the
   // matched book(s) instead of the active filter, until the search is cleared. Must apply
@@ -343,7 +349,7 @@ export default function Dashboard() {
     : `${activeSearchMatches[0].title} and ${otherMatchCount} other${otherMatchCount === 1 ? '' : 's'}`;
 
   const searchContent = (
-    <h1 className="display-serif" style={{ ...styles.heroTitle, whiteSpace: 'normal' }}>
+    <h1 className="display-serif hero-title-mobile" style={{ ...styles.heroTitle, whiteSpace: 'normal' }}>
       <SearchPill
         id="hero-search-wrapper"
         value={searchQuery}
@@ -386,10 +392,21 @@ export default function Dashboard() {
       animation="blurIn"
       by="word"
       as="h1"
-      className="display-serif"
+      className="display-serif hero-title-mobile"
       style={{ ...styles.heroTitle, whiteSpace: 'normal' }}
       highlights={[
-        { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); }, badge: !!committedQuery },
+        {
+          match: 'Search',
+          onClick: () => {
+            if (isMobile) {
+              setIsMobileSearchOpen(true);
+            } else {
+              setIsSearching(true);
+            }
+            setHasSearched(true);
+          },
+          badge: !!committedQuery,
+        },
         { match: 'Scan', onClick: () => setIsScanModalOpen(true) },
         { match: displayLabel, onClick: () => setIsFilterOpen(true) },
       ]}
@@ -429,6 +446,7 @@ export default function Dashboard() {
       {/* Design Header with Bottom Gradient Fade */}
       <header style={styles.header}>
         <motion.div
+          className="desktop-header-row"
           style={styles.headerContent}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -548,13 +566,66 @@ export default function Dashboard() {
             <LogoutLink />
           </div>
         </motion.div>
+
+        <div className="mobile-header-row">
+          <AnimatePresence mode="wait">
+            {isScrolled || isHeaderSearching || isMobileSearchOpen ? (
+              <motion.h1
+                key="mobile-logo-status"
+                className="mobile-logo"
+                initial={{ opacity: 0, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, filter: 'blur(6px)' }}
+                transition={{ duration: 0.25 }}
+              >
+                {displayLabel}
+              </motion.h1>
+            ) : (
+              <motion.h1
+                key="mobile-logo-mpl"
+                className="mobile-logo"
+                initial={{ opacity: 0, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, filter: 'blur(6px)' }}
+                transition={{ duration: 0.25 }}
+              >
+                MPL
+              </motion.h1>
+            )}
+          </AnimatePresence>
+
+          <div className="mobile-header-actions">
+            <button
+              className="mobile-icon-btn"
+              onClick={() => setIsMobileSearchOpen(true)}
+              aria-label="Search"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </button>
+            <button
+              className="mobile-icon-btn"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </header>
 
       {/* Unified Flex Layout with Hero Centered and 6-Column Shelf Peeking at Bottom */}
-      <main style={styles.mainLayout}>
+      <main style={styles.mainLayout} className="main-layout-mobile">
         {/* Center Column (Hero Text / Action Space) */}
         <motion.div
           id="hero-search-container"
+          className="hero-container-mobile"
           style={{
             ...styles.heroContainer,
             opacity: heroOpacity,
@@ -580,8 +651,9 @@ export default function Dashboard() {
         </motion.div>
 
         {/* 6-Column Shelf Grid Peeking above the fold */}
-        <motion.div 
+        <motion.div
           style={styles.booksSection}
+          className="books-section-mobile"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.85, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
@@ -673,6 +745,21 @@ export default function Dashboard() {
               setFilterRoom(room);
             }}
             onClose={() => setIsFilterOpen(false)}
+          />
+        )}
+        {isMobileMenuOpen && (
+          <MobileMenu
+            onClose={() => setIsMobileMenuOpen(false)}
+            onManageLocations={() => setIsManageLocationsOpen(true)}
+          />
+        )}
+        {isMobileSearchOpen && (
+          <MobileSearchOverlay
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onEnter={() => { commitSearch(); setIsMobileSearchOpen(false); }}
+            onClear={clearSearch}
+            onClose={() => setIsMobileSearchOpen(false)}
           />
         )}
       </AnimatePresence>
