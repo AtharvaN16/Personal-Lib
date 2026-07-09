@@ -378,100 +378,131 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
                         initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
                         animate={{ height: 'auto', opacity: 1, transition: { duration: 0.25, ease: 'easeOut' } }}
                         exit={{ height: 0, opacity: 0, transition: { duration: 0.2, ease: 'easeIn' } }}
-                        style={styles.shelvesContainer}
+                        style={{
+                          ...styles.shelvesContainer,
+                          backgroundColor: isEditMode ? 'var(--bg-sheet)' : styles.shelvesContainer.backgroundColor,
+                          paddingRight: isEditMode ? '0px' : '12px',
+                        }}
                       >
                         <div style={styles.shelvesList}>
-                          {roomShelves.map(shelf => (
-                            <div key={shelf.id} style={styles.shelfRow}>
-                              <AnimatePresence mode="wait">
-                                {confirmingDeleteId === shelf.id ? (
-                                  <motion.div
-                                    key="confirm"
-                                    initial={{ opacity: 0, filter: 'blur(4px)' }}
-                                    animate={{ opacity: 1, filter: 'blur(0px)' }}
-                                    exit={{ opacity: 0, filter: 'blur(4px)' }}
-                                    transition={{ duration: 0.15 }}
-                                    style={styles.confirmRow}
-                                  >
-                                    <span style={styles.confirmText}>Delete this location?</span>
-                                    <button
-                                      onClick={() => handleConfirmDelete(shelf.id)}
-                                      style={styles.confirmDeleteBtn}
-                                    >
-                                      Delete
-                                    </button>
-                                    <button onClick={handleCancelDelete} style={styles.confirmCancelBtn}>
-                                      Cancel
-                                    </button>
-                                  </motion.div>
-                                ) : (
-                                  <motion.div
-                                    key="display"
-                                    initial={{ opacity: 0, filter: 'blur(4px)' }}
-                                    animate={{ opacity: 1, filter: 'blur(0px)' }}
-                                    exit={{ opacity: 0, filter: 'blur(4px)' }}
-                                    transition={{ duration: 0.15 }}
-                                    style={styles.displayRow}
-                                  >
-                                    {isEditMode ? (
+                          {(() => {
+                            const allRoomShelves = [
+                              ...roomShelves.map(s => ({ id: s.id, type: 'existing' as const, data: s })),
+                              ...roomNewShelves.map(n => ({ id: n.tempId, type: 'new' as const, data: n }))
+                            ];
+
+                            return allRoomShelves.map((item, index) => {
+                              const isFirst = index === 0;
+                              const isLast = index === allRoomShelves.length - 1;
+                              const topOffset = isFirst ? '2px' : '0px';
+                              const heightVal = isFirst ? 'calc(50% - 2px)' : '50%';
+
+                              return (
+                                <div key={item.id} style={styles.shelfRow}>
+                                  {/* Directory branch lines */}
+                                  <div style={styles.branchContainer}>
+                                    {/* L-shaped corner segment */}
+                                    <div style={{
+                                      ...styles.branchCornerL,
+                                      top: topOffset,
+                                      height: heightVal,
+                                      borderTopLeftRadius: isFirst ? '1px' : '0px',
+                                    }} />
+                                    {/* Vertical continuation line */}
+                                    {!isLast && (
+                                      <div style={styles.branchContinuation} />
+                                    )}
+                                  </div>
+
+                                  {item.type === 'existing' ? (
+                                    <AnimatePresence mode="wait">
+                                      {confirmingDeleteId === item.data.id ? (
+                                        <motion.div
+                                          key="confirm"
+                                          initial={{ opacity: 0, filter: 'blur(4px)' }}
+                                          animate={{ opacity: 1, filter: 'blur(0px)' }}
+                                          exit={{ opacity: 0, filter: 'blur(4px)' }}
+                                          transition={{ duration: 0.15 }}
+                                          style={styles.confirmRow}
+                                        >
+                                          <span style={styles.confirmText}>Delete this location?</span>
+                                          <button
+                                            onClick={() => handleConfirmDelete(item.data.id)}
+                                            style={styles.confirmDeleteBtn}
+                                          >
+                                            Delete
+                                          </button>
+                                          <button onClick={handleCancelDelete} style={styles.confirmCancelBtn}>
+                                            Cancel
+                                          </button>
+                                        </motion.div>
+                                      ) : (
+                                        <motion.div
+                                          key="display"
+                                          initial={{ opacity: 0, filter: 'blur(4px)' }}
+                                          animate={{ opacity: 1, filter: 'blur(0px)' }}
+                                          exit={{ opacity: 0, filter: 'blur(4px)' }}
+                                          transition={{ duration: 0.15 }}
+                                          style={styles.displayRow}
+                                        >
+                                          {isEditMode ? (
+                                            <input
+                                              className="field-white"
+                                              value={shelfDrafts[item.data.id] ?? item.data.bookshelf}
+                                              onChange={(e) =>
+                                                setShelfDrafts(prev => ({ ...prev, [item.data.id]: e.target.value }))
+                                              }
+                                              placeholder="Shelf (optional)"
+                                              aria-label="Shelf name"
+                                              style={styles.editInput}
+                                            />
+                                          ) : (
+                                            <span style={styles.shelfName}>{item.data.bookshelf}</span>
+                                          )}
+                                          {isEditMode && (
+                                            <button
+                                              onClick={() => handleDeleteClick(item.data.id)}
+                                              className="icon-btn"
+                                              style={{ ...styles.iconBtn, color: 'var(--error)' }}
+                                              title="Delete location"
+                                              aria-label="Delete location"
+                                            >
+                                              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                                                delete
+                                              </span>
+                                            </button>
+                                          )}
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  ) : (
+                                    <div style={styles.displayRow}>
                                       <input
                                         className="field-white"
-                                        value={shelfDrafts[shelf.id] ?? shelf.bookshelf}
-                                        onChange={(e) =>
-                                          setShelfDrafts(prev => ({ ...prev, [shelf.id]: e.target.value }))
-                                        }
-                                        placeholder="Shelf (optional)"
-                                        aria-label="Shelf name"
+                                        value={item.data.bookshelf}
+                                        onChange={(e) => handleNewShelfChange(item.id, e.target.value)}
+                                        placeholder="New shelf name"
+                                        aria-label="New shelf name"
+                                        autoFocus
                                         style={styles.editInput}
                                       />
-                                    ) : (
-                                      <span style={styles.shelfName}>{shelf.bookshelf}</span>
-                                    )}
-                                    {isEditMode && (
                                       <button
-                                        onClick={() => handleDeleteClick(shelf.id)}
+                                        onClick={() => handleRemoveNewShelfDraft(item.id)}
                                         className="icon-btn"
                                         style={{ ...styles.iconBtn, color: 'var(--error)' }}
-                                        title="Delete location"
-                                        aria-label="Delete location"
+                                        title="Remove"
+                                        aria-label="Remove new shelf"
                                       >
                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                                          delete
+                                          close
                                         </span>
                                       </button>
-                                    )}
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          ))}
-                          {isEditMode &&
-                            roomNewShelves.map(n => (
-                              <div key={n.tempId} style={styles.shelfRow}>
-                                <div style={styles.displayRow}>
-                                  <input
-                                    className="field-white"
-                                    value={n.bookshelf}
-                                    onChange={(e) => handleNewShelfChange(n.tempId, e.target.value)}
-                                    placeholder="New shelf name"
-                                    aria-label="New shelf name"
-                                    autoFocus
-                                    style={styles.editInput}
-                                  />
-                                  <button
-                                    onClick={() => handleRemoveNewShelfDraft(n.tempId)}
-                                    className="icon-btn"
-                                    style={{ ...styles.iconBtn, color: 'var(--error)' }}
-                                    title="Remove"
-                                    aria-label="Remove new shelf"
-                                  >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                                      close
-                                    </span>
-                                  </button>
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            });
+                          })()}
                         </div>
                       </motion.div>
                     )}
@@ -588,7 +619,7 @@ const styles: Record<string, React.CSSProperties> = {
   roomGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px', // Reduced gap: room header to its shelves container
+    gap: '0px', // Gap is 0 so the guideline starts right below the header row
   },
   roomHeaderRow: {
     minHeight: '32px',
@@ -615,20 +646,47 @@ const styles: Record<string, React.CSSProperties> = {
   shelvesContainer: {
     backgroundColor: 'rgba(244, 242, 228, 0.35)', // subtle warm tonal difference
     borderRadius: '4px',
-    padding: '8px 12px',
-    marginLeft: '12px',
+    padding: '8px 12px 8px 10px', // Left padding 10px to center guideline
+    marginLeft: '24px', // Align left edge under the folder icon
   },
   shelvesList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '2px', // slightly reduced spacing between shelves
-    borderLeft: '1.5px solid rgba(139, 90, 43, 0.12)', // subtle guideline
+    gap: '0px', // gapless to prevent guidelines from having vertical gaps
   },
   shelfRow: {
-    minHeight: '34px', // slightly reduced height for cohesiveness
+    minHeight: '36px', // slightly increased to maintain comfortable tap target while gap is 0
     display: 'flex',
     alignItems: 'center',
-    paddingLeft: '14px', // indented next to the guideline
+    paddingLeft: '20px', // indented to make room for branch lines
+    position: 'relative',
+  },
+  branchContainer: {
+    position: 'absolute',
+    left: '0px',
+    top: '0px',
+    bottom: '0px',
+    width: '14px',
+    pointerEvents: 'none',
+  },
+  branchCornerL: {
+    position: 'absolute',
+    left: '0px',
+    width: '10px',
+    borderLeft: '1.5px solid rgba(139, 90, 43, 0.35)',
+    borderBottom: '1.5px solid rgba(139, 90, 43, 0.35)',
+    boxSizing: 'border-box',
+    borderBottomLeftRadius: '2px', // rounds outer corner of the right angle
+    borderBottomRightRadius: '1px', // rounds the end of horizontal branch line
+  },
+  branchContinuation: {
+    position: 'absolute',
+    left: '0px',
+    top: 'calc(50% - 2px)', // Overlap by 2px to bridge any curved corner subpixel gap
+    bottom: '0px',
+    width: '1.5px',
+    borderLeft: '1.5px solid rgba(139, 90, 43, 0.35)',
+    boxSizing: 'border-box',
   },
   displayRow: {
     display: 'flex',
