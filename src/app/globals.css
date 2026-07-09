@@ -419,7 +419,7 @@ a {
 
 @media (max-width: 640px) {
   .app-header {
-    padding: 20px 16px 20px 16px !important;
+    padding: 20px 20px 20px 20px !important;
   }
 
   .desktop-header-row {
