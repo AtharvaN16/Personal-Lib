@@ -455,7 +455,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Fades from the title into wiggly Search/Scan/Filter words (same style as the hero's) on scroll */}
+          {/* Fades from the title into the "Currently showing X" status (same style as the hero's) on scroll */}
           <div style={styles.logoSlot}>
             <AnimatePresence mode="wait">
               {isScrolled ? (
@@ -473,12 +473,10 @@ export default function Dashboard() {
                     className="display-serif"
                     style={{ ...styles.heroTitle, whiteSpace: 'nowrap' }}
                     highlights={[
-                      { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); } },
-                      { match: 'Scan', onClick: () => setIsScanModalOpen(true) },
-                      { match: 'Filter', onClick: () => setIsFilterOpen(true) },
+                      { match: filterLabel, onClick: () => setIsFilterOpen(true) },
                     ]}
                   >
-                    {'Search   Scan   Filter'}
+                    {`Currently showing ${filterLabel}.`}
                   </TextAnimate>
                 </motion.div>
               ) : (
