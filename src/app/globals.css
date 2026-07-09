@@ -35,8 +35,8 @@ body {
   display: flex;
   flex-direction: column;
   color: var(--text-primary);
-  /* Red glow radial gradient on the left column, blending into warm parchment background */
-  background: radial-gradient(circle at 5% 50%, rgba(199, 121, 102, 0.15) 0%, var(--bg-primary) 65%);
+  /* Blue glow radial gradient at the bottom center, blending into warm parchment background */
+  background: radial-gradient(circle at 50% 100%, rgba(0, 44, 188, 0.08) 0%, var(--bg-primary) 70%);
   font-family: var(--font-instrument-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -47,7 +47,7 @@ body {
 .display-serif {
   font-family: var(--font-newsreader), Georgia, serif;
   font-weight: 500;
-  font-style: italic; /* Soft elegant italic serif display font */
+  /* Upright display font by default (no italic) */
 }
 
 /* 2. SVG Grain/Noise Texture Overlay */

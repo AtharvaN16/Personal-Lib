@@ -144,7 +144,7 @@ export default function BookModal({
                 <img src={book.cover_url} alt={book.title} style={styles.coverImg} />
               ) : (
                 <div style={styles.placeholderCover}>
-                  <span className="display-serif">{book.title}</span>
+                  <span>{book.title}</span>
                 </div>
               )}
             </div>
@@ -211,8 +211,7 @@ export default function BookModal({
             </div>
 
             <div style={styles.headerInfo}>
-              {/* Title styled with Newsreader Display Font */}
-              <h2 className="display-serif" style={styles.title}>
+              <h2 style={styles.title}>
                 {book.title}
               </h2>
               {/* Author styled with Caveat cursive font */}
