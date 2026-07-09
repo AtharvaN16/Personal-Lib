@@ -60,6 +60,7 @@ export default function Dashboard() {
   const supabase = createClient();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   const [books, setBooks] = useState<Book[]>(defaultMockBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
@@ -241,7 +242,11 @@ export default function Dashboard() {
               as="h1"
               className="display-serif"
               style={styles.heroTitle}
-              onSearchClick={() => setIsSearching(true)}
+              onSearchClick={() => {
+                setIsSearching(true);
+                setHasSearched(true);
+              }}
+              disableAnimation={hasSearched}
             >
               Search for the books in your library. Scan to add new books
             </TextAnimate>

@@ -17,6 +17,7 @@ interface TextAnimateProps {
   duration?: number;
   delay?: number;
   onSearchClick?: () => void;
+  disableAnimation?: boolean;
 }
 
 // Static lookup mapping to prevent dynamic component creation during render
@@ -40,6 +41,7 @@ export function TextAnimate({
   duration = 0.5,
   delay = 0,
   onSearchClick,
+  disableAnimation = false,
 }: TextAnimateProps) {
   const ContainerComponent = motionElements[as as string] || motion.p;
 
@@ -91,11 +93,12 @@ export function TextAnimate({
   };
 
   const selectedVariants = itemVariants[animation] || itemVariants.fadeIn;
+  const initialValue = disableAnimation ? 'visible' : 'hidden';
 
   return (
     <ContainerComponent
       variants={containerVariants}
-      initial="hidden"
+      initial={initialValue}
       animate="visible"
       className={className}
       style={style}
