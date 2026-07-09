@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import AddLocationModal from '@/components/AddLocationModal';
@@ -358,11 +359,12 @@ export default function BookModal({
           <div style={styles.leftCol} className="book-modal-left-col">
             <div style={styles.coverWrapper} className="book-modal-cover">
               {book.cover_url && !imgError ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
+                <Image
                   src={book.cover_url}
                   alt={book.title}
-                  style={styles.coverImg}
+                  fill
+                  sizes="150px"
+                  style={{ objectFit: 'cover' }}
                   onError={() => setImgError(true)}
                 />
               ) : (
@@ -720,11 +722,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: '0 10px 25px rgba(17, 22, 37, 0.12)', // Softened drop shadow
     border: 'none',
     backgroundColor: 'var(--bg-sheet)',
-  },
-  coverImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
+    position: 'relative',
   },
   placeholderCover: {
     position: 'relative',

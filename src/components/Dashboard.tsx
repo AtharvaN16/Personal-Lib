@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import LogoutLink from '@/components/LogoutLink';
 import BookCardModal, { Book } from '@/components/BookModal';
@@ -583,38 +584,6 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.85, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
         >
-          <AnimatePresence>
-            {isScrolled && (
-              <motion.div
-                key="scroll-filter-status"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-                style={{
-                  textAlign: 'center',
-                  marginBottom: '40px',
-                  fontFamily: 'var(--font-newsreader), Georgia, serif',
-                  fontSize: '22px',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                Currently showing{' '}
-                <span
-                  style={{
-                    color: 'var(--accent-primary)',
-                    textDecoration: 'underline wavy var(--accent-primary)',
-                    textDecorationThickness: '1px',
-                    textUnderlineOffset: '4px',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {filterLabel}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           <div style={styles.booksGrid} className="books-grid">
             <AnimatePresence>
               {books
@@ -785,14 +754,13 @@ function BookCard({ book, onClick }: BookCardProps) {
         className="book-card-cover"
       >
         {book.cover_url && !imgError ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={book.cover_url}
             alt={book.title}
-            style={styles.coverImg}
+            fill
+            sizes="(max-width: 480px) 140px, 180px"
+            style={{ objectFit: 'cover' }}
             draggable={false}
-            loading="lazy"
-            decoding="async"
             onError={() => setImgError(true)}
           />
         ) : (
@@ -957,11 +925,6 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     backgroundColor: 'var(--bg-sheet)',
     position: 'relative',
-  },
-  coverImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
   },
   placeholderCover: {
     position: 'relative',
