@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import AddLocationModal from '@/components/AddLocationModal';
+import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 
 export interface Book {
   id: string;
@@ -33,15 +34,29 @@ interface BookModalProps {
   onStatusChange?: (id: string, status: 'Completed' | 'Reading' | 'To Read') => void;
   onLocationChange?: (id: string, locationId: string, locationObj: { room: string; bookshelf: string } | null) => void;
   onFavoriteToggle?: (id: string, favorite: boolean) => void;
+  /** True while this book hasn't been saved to the library yet (fresh scan result). */
+  isNew?: boolean;
+  /** Called when the user confirms saving a new (unsaved) book. Ignored unless isNew. */
+  onSaveNew?: () => void;
+  /** True while onSaveNew's save is in flight, to disable the button and show progress. */
+  isSaving?: boolean;
+  /** Called when the user manually fills in an author the lookup couldn't find. Ignored unless isNew. */
+  onAuthorChange?: (id: string, authors: string[]) => void;
 }
 
-export default function BookModal({ 
-  book, 
-  onClose, 
-  onDelete, 
+const DESCRIPTION_EXPAND_THRESHOLD = 220; // Roughly where text starts exceeding 4 lines at this width
+
+export default function BookModal({
+  book,
+  onClose,
+  onDelete,
   onStatusChange,
   onLocationChange,
-  onFavoriteToggle
+  onFavoriteToggle,
+  isNew = false,
+  onSaveNew,
+  isSaving = false,
+  onAuthorChange,
 }: BookModalProps) {
   const supabase = createClient();
   const [shelves, setShelves] = useState<{ id: string; room: string; bookshelf: string }[]>([]);
@@ -49,6 +64,48 @@ export default function BookModal({
   const [selectedRoom, setSelectedRoom] = useState('');
   const [selectedShelfId, setSelectedShelfId] = useState('');
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isEditingAuthor, setIsEditingAuthor] = useState(false);
+  const [authorDraft, setAuthorDraft] = useState('');
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus the panel on open, restore focus on close, trap Tab, close on Escape, prevent body scroll
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    modalRef.current?.focus();
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
 
   // Fetch all shelves on mount for selection dropdowns
   useEffect(() => {
@@ -85,15 +142,46 @@ export default function BookModal({
     }
   };
 
-  const handleSaveLocation = () => {
+  const handleSaveLocation = async () => {
     const selectedShelf = shelves.find(s => s.id === selectedShelfId);
     if (selectedShelf) {
       onLocationChange?.(book.id, selectedShelf.id, {
         room: selectedShelf.room,
         bookshelf: selectedShelf.bookshelf
       });
-    } else if (selectedShelfId === 'unassigned' || !selectedShelfId) {
+      setIsEditingLocation(false);
+      return;
+    }
+
+    if (!selectedRoom) {
+      // No room chosen at all — clear the location entirely
       onLocationChange?.(book.id, '', null);
+      setIsEditingLocation(false);
+      return;
+    }
+
+    // Room chosen without a specific shelf — find or create a "room only" entry (bookshelf: '')
+    const roomOnlyShelf = shelves.find(s => s.room === selectedRoom && s.bookshelf === '');
+    if (roomOnlyShelf) {
+      onLocationChange?.(book.id, roomOnlyShelf.id, { room: selectedRoom, bookshelf: '' });
+      setIsEditingLocation(false);
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('shelves')
+        .insert([{ room: selectedRoom, bookshelf: '', user_id: user?.id }])
+        .select();
+      if (error) throw error;
+      if (data && data[0]) {
+        setShelves(prev => [...prev, data[0]]);
+        onLocationChange?.(book.id, data[0].id, { room: selectedRoom, bookshelf: '' });
+      }
+    } catch {
+      console.warn('Failed to save room-only location');
+      onLocationChange?.(book.id, '', { room: selectedRoom, bookshelf: '' });
     }
     setIsEditingLocation(false);
   };
@@ -109,25 +197,62 @@ export default function BookModal({
     onStatusChange?.(book.id, nextStatus);
   };
 
-  // Delete book trigger
+  // Delete book trigger — swaps the action row into an inline confirm instead of a native dialog
   const handleDeleteClick = () => {
-    if (confirm('Are you sure you want to delete this book?')) {
+    setIsConfirmingDelete(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setIsConfirmingDelete(false);
+    if (isNew) {
+      onClose();
+    } else {
       onDelete?.(book.id);
     }
   };
 
+  const handleCancelDelete = () => {
+    setIsConfirmingDelete(false);
+  };
+
+  // Fill in an author the lookup couldn't find (scan preview only)
+  const handleAddAuthorClick = () => {
+    setAuthorDraft('');
+    setIsEditingAuthor(true);
+  };
+
+  const handleSaveAuthor = () => {
+    const name = authorDraft.trim();
+    if (!name) return;
+    onAuthorChange?.(book.id, [name]);
+    setIsEditingAuthor(false);
+  };
+
+  const handleCancelAuthor = () => {
+    setIsEditingAuthor(false);
+  };
+
+  // Pull just the year out of a published_date string (e.g. "January 28, 1813" -> "1813")
+  const publishedYear = book.published_date?.match(/\d{4}/)?.[0] || null;
+
   // Get unique room lists from existing shelves
   const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
-  const shelvesInRoom = shelves.filter(s => s.room === selectedRoom);
+  const shelvesInRoom = shelves.filter(s => s.room === selectedRoom && s.bookshelf !== '');
 
   return (
     <div style={styles.backdrop} onClick={onClose}>
       <motion.div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${book.title} details`}
+        tabIndex={-1}
         initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
         transition={{ duration: 0.3 }}
-        style={styles.modal}
+        style={{ ...styles.modal, outline: 'none' }}
+        className="book-modal-panel"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button - Positioned above the card on the top right */}
@@ -135,40 +260,51 @@ export default function BookModal({
           CLOSE
         </button>
 
-        <div style={styles.content}>
-          {/* Left Column - Cover */}
-          <div style={styles.leftCol}>
-            <div style={styles.coverWrapper}>
-              {book.cover_url ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={book.cover_url} alt={book.title} style={styles.coverImg} />
-              ) : (
-                <div style={styles.placeholderCover}>
-                  <span>{book.title}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column - Scrollable Information */}
-          <div style={styles.rightCol}>
-            
-            {/* Inline Action Buttons Row - Avoids title overlaps, makes buttons larger */}
-            <div style={styles.actionButtonsRow}>
+        {/* Action Buttons Row - Sits above both columns so cover and content stay top-aligned */}
+        <AnimatePresence mode="wait">
+          {isConfirmingDelete ? (
+            <motion.div
+              key="confirm-delete"
+              initial={{ opacity: 0, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, filter: 'blur(4px)' }}
+              transition={{ duration: 0.15 }}
+              style={styles.confirmDeleteRow}
+            >
+              <span style={styles.confirmDeleteText}>
+                {isNew ? 'Discard this book?' : 'Delete this book?'}
+              </span>
+              <button onClick={handleConfirmDelete} style={styles.confirmDeleteBtn}>
+                {isNew ? 'Discard' : 'Delete'}
+              </button>
+              <button onClick={handleCancelDelete} style={styles.confirmCancelBtn}>
+                Cancel
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="action-buttons"
+              initial={{ opacity: 0, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, filter: 'blur(4px)' }}
+              transition={{ duration: 0.15 }}
+              style={styles.actionButtonsRow}
+            >
               {/* Favorite Toggle Button (Heart) */}
-              <button 
-                onClick={handleFavoriteClick} 
+              <button
+                onClick={handleFavoriteClick}
+                className="icon-btn"
                 style={{
-                  ...styles.squareBtn,
-                  color: book.favorite ? '#C77966' : 'var(--text-primary)'
+                  ...styles.iconBtn,
+                  color: book.favorite ? 'var(--accent-terracotta)' : 'var(--text-primary)'
                 }}
                 title="Favorites"
               >
-                <span 
-                  className="material-symbols-outlined" 
-                  style={{ 
-                    fontSize: '24px', 
-                    fontVariationSettings: book.favorite ? "'FILL' 1" : "'FILL' 0" 
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '26px',
+                    fontVariationSettings: book.favorite ? "'FILL' 1" : "'FILL' 0"
                   }}
                 >
                   favorite
@@ -176,48 +312,102 @@ export default function BookModal({
               </button>
 
               {/* Completed Toggle Button (Trophy) */}
-              <button 
-                onClick={handleCompletedClick} 
+              <button
+                onClick={handleCompletedClick}
+                className="icon-btn"
                 style={{
-                  ...styles.squareBtn,
-                  color: book.status === 'Completed' ? '#D4A373' : 'var(--text-primary)'
+                  ...styles.iconBtn,
+                  color: book.status === 'Completed' ? 'var(--status-amber)' : 'var(--text-primary)'
                 }}
                 title="Completed status"
               >
-                <span 
-                  className="material-symbols-outlined" 
-                  style={{ 
-                    fontSize: '24px', 
-                    fontVariationSettings: book.status === 'Completed' ? "'FILL' 1" : "'FILL' 0" 
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '26px',
+                    fontVariationSettings: book.status === 'Completed' ? "'FILL' 1" : "'FILL' 0"
                   }}
                 >
                   trophy
                 </span>
               </button>
 
-              {/* Delete Button (Trash) */}
-              <button 
-                onClick={handleDeleteClick} 
-                style={{
-                  ...styles.squareBtn,
-                  color: '#8B1E1E'
-                }}
-                title="Delete book"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-                  delete
-                </span>
-              </button>
-            </div>
+              {/* Delete Button (Trash) - not shown for an unsaved scan preview; CLOSE already discards it */}
+              {!isNew && (
+                <button
+                  onClick={handleDeleteClick}
+                  className="icon-btn"
+                  style={{
+                    ...styles.iconBtn,
+                    color: 'var(--error)'
+                  }}
+                  title="Delete book"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '26px' }}>
+                    delete
+                  </span>
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+        <div style={styles.content} className="book-modal-content">
+          {/* Left Column - Cover */}
+          <div style={styles.leftCol} className="book-modal-left-col">
+            <div style={styles.coverWrapper} className="book-modal-cover">
+              {book.cover_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={book.cover_url} alt={book.title} style={styles.coverImg} />
+              ) : (
+                <div style={{ ...styles.placeholderCover, backgroundColor: getPlaceholderColor(book.title) }}>
+                  <div style={{ ...styles.placeholderSpine, backgroundColor: getSpineColor(book.title) }} />
+                  <span style={styles.placeholderText}>{book.title}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Scrollable Information */}
+          <div style={styles.rightCol}>
             <div style={styles.headerInfo}>
               <h2 style={styles.title}>
                 {book.title}
               </h2>
-              {/* Author styled with Caveat cursive font */}
-              <p className="handwritten" style={styles.author}>
-                {book.authors.join(', ')}
-              </p>
+              {book.authors.length > 0 ? (
+                <p style={styles.author}>
+                  {book.authors.join(', ')}
+                  {publishedYear && <span style={styles.authorYear}> · {publishedYear}</span>}
+                </p>
+              ) : isEditingAuthor ? (
+                <div style={styles.authorEditRow}>
+                  <input
+                    className="field-white"
+                    value={authorDraft}
+                    onChange={(e) => setAuthorDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveAuthor();
+                      if (e.key === 'Escape') handleCancelAuthor();
+                    }}
+                    placeholder="Author name"
+                    aria-label="Author name"
+                    autoFocus
+                    style={styles.authorEditInput}
+                  />
+                  <button onClick={handleSaveAuthor} style={styles.authorSaveBtn}>Save</button>
+                  <button onClick={handleCancelAuthor} style={styles.confirmCancelBtn}>Cancel</button>
+                </div>
+              ) : (
+                <p style={styles.author}>
+                  Unknown Author
+                  {publishedYear && <span style={styles.authorYear}> · {publishedYear}</span>}
+                  {isNew && (
+                    <button onClick={handleAddAuthorClick} style={styles.addAuthorLink}>
+                      + Add author
+                    </button>
+                  )}
+                </p>
+              )}
             </div>
 
             {/* Combined transitions for Location and Genre block to ensure perfect sync on save */}
@@ -229,16 +419,17 @@ export default function BookModal({
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
                   transition={{ duration: 0.2 }}
-                  style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}
                 >
                   <div style={styles.section}>
                     <div style={styles.sectionHeader}>
-                      <h3 style={styles.sectionTitle}>Where is it?</h3>
+                      <h3 style={styles.sectionTitle}>Location</h3>
                     </div>
                     <div style={styles.editLocationForm}>
                       {/* Select Room */}
-                      <select 
-                        value={selectedRoom} 
+                      <select
+                        aria-label="Select room"
+                        value={selectedRoom}
                         onChange={(e) => {
                           setSelectedRoom(e.target.value);
                           setSelectedShelfId('');
@@ -262,12 +453,12 @@ export default function BookModal({
                             transition={{ duration: 0.15 }}
                           >
                             <select
+                              aria-label="Select shelf"
                               value={selectedShelfId}
                               onChange={(e) => setSelectedShelfId(e.target.value)}
                               style={styles.selectFieldWidth}
                             >
-                              <option value="">-- Select Shelf/Bookshelf --</option>
-                              <option value="unassigned">Unassigned / None</option>
+                              <option value="">Unassigned</option>
                               {shelvesInRoom.map((s) => (
                                 <option key={s.id} value={s.id}>{s.bookshelf}</option>
                               ))}
@@ -282,7 +473,7 @@ export default function BookModal({
                           onClick={() => setIsAddLocationOpen(true)} 
                           style={styles.createLocationLink}
                         >
-                          + Create New Location
+                          + Add New Location
                         </button>
                         <div style={styles.formButtons}>
                           <button 
@@ -311,49 +502,67 @@ export default function BookModal({
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
                   transition={{ duration: 0.2 }}
-                  style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}
                 >
                   {/* Location display section */}
                   <div style={styles.section}>
                     <div style={styles.sectionHeader}>
-                      <h3 style={styles.sectionTitle}>Where is it?</h3>
+                      <h3 style={styles.sectionTitle}>Location</h3>
                       <button onClick={handleEditClick} style={styles.editLink}>Edit</button>
                     </div>
-                    <p style={styles.sectionContent}>
-                      {book.location 
-                        ? `${book.location.room}, ${book.location.bookshelf}` 
-                        : 'Unassigned shelf'}
-                    </p>
+                    {book.location ? (
+                      <div style={styles.locationRow}>
+                        <span style={styles.locationText}>{book.location.room}</span>
+                        {book.location.bookshelf && (
+                          <>
+                            <span style={styles.locationArrow}>→</span>
+                            <span style={styles.locationText}>{book.location.bookshelf}</span>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <p style={styles.sectionContent}>Unassigned shelf</p>
+                    )}
                   </div>
 
-                  {/* Genre display section */}
-                  <div style={styles.section}>
-                    <h3 style={styles.sectionTitle}>Genre</h3>
-                    <div style={styles.genreContainer}>
-                      {book.genres && book.genres.length > 0 ? (
-                        book.genres.map((genre, idx) => (
-                          <span key={idx} style={styles.genrePill}>
-                            {genre}
-                          </span>
-                        ))
-                      ) : (
-                        <span style={styles.noGenres}>No genres assigned</span>
-                      )}
-                    </div>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
-            
-            {/* Description (If available) */}
+
+            {/* Description (If available), with an inline "Show more" at the end of long text */}
             {book.description && (
               <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>Description</h3>
-                <p style={styles.descriptionText}>{book.description}</p>
+                <p style={styles.descriptionText}>
+                  {book.description.length > DESCRIPTION_EXPAND_THRESHOLD && !isDescriptionExpanded
+                    ? book.description.slice(0, DESCRIPTION_EXPAND_THRESHOLD).trimEnd() + '…'
+                    : book.description}
+                  {book.description.length > DESCRIPTION_EXPAND_THRESHOLD && (
+                    <button
+                      onClick={() => setIsDescriptionExpanded(v => !v)}
+                      style={styles.expandDescriptionBtn}
+                    >
+                      {isDescriptionExpanded ? ' Show less' : ' Show more'}
+                    </button>
+                  )}
+                </p>
               </div>
             )}
           </div>
         </div>
+
+        {/* Save footer - only for an unsaved (scanned) book, anchored bottom-right */}
+        {isNew && (
+          <div style={styles.saveFooter}>
+            <button
+              onClick={onSaveNew}
+              disabled={isSaving}
+              style={{ ...styles.saveNewBtn, opacity: isSaving ? 0.6 : 1 }}
+            >
+              {isSaving ? 'Saving...' : 'Save to Library'}
+            </button>
+          </div>
+        )}
       </motion.div>
 
       {/* Nested AddLocationModal Trigger */}
@@ -392,8 +601,7 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: '100%',
     maxWidth: '680px',
-    height: '480px', // Constant Height
-    backgroundColor: 'var(--bg-primary)',
+    backgroundColor: 'var(--bg-sheet)',
     padding: '40px 36px 36px 36px',
     position: 'relative',
     borderRadius: '0px',
@@ -409,7 +617,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#FFFDFB', // Crisp white on dark backdrop
+    color: 'var(--bg-sheet)', // Crisp white on dark backdrop
     fontSize: '0.85rem',
     fontWeight: 'bold',
     letterSpacing: '0.1em',
@@ -419,26 +627,78 @@ const styles: Record<string, React.CSSProperties> = {
   },
   actionButtonsRow: {
     display: 'flex',
-    gap: '12px',
-    marginBottom: '8px',
+    justifyContent: 'flex-end',
+    gap: '8px',
+    marginBottom: '20px',
   },
-  squareBtn: {
-    width: '44px', // Bigger button target
-    height: '44px', // Bigger button target
+  confirmDeleteRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    marginBottom: '20px',
+    height: '32px',
+  },
+  confirmDeleteText: {
+    fontSize: '0.95rem',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  confirmDeleteBtn: {
+    background: 'none',
     border: 'none',
-    backgroundColor: 'var(--bg-sheet)',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
+    backgroundColor: 'var(--bg-sheet)',
+    color: 'var(--error)',
+    fontWeight: 'bold',
+    fontSize: '0.9rem',
+    padding: '6px 14px',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  confirmCancelBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    padding: 0,
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  saveFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: '20px',
+    flexShrink: 0,
+  },
+  saveNewBtn: {
+    backgroundColor: 'var(--accent-primary)',
+    border: 'none',
+    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
+    color: 'var(--bg-sheet)',
+    padding: '8px 18px',
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  iconBtn: {
+    width: '40px', // Touch-friendly hit area without a visible frame
+    height: '40px',
+    border: 'none',
+    boxShadow: 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     padding: 0,
+    transition: 'transform 0.15s ease',
   },
   content: {
     display: 'flex',
-    gap: '36px',
-    flexDirection: 'row',
-    height: '100%',
+    gap: '48px',
+    flex: 1,
+    minHeight: 0, // Lets rightCol's overflowY:auto work correctly inside the fixed-height modal
     overflow: 'visible', // Remove overflow hidden to prevent shadow clipping
   },
   leftCol: {
@@ -446,12 +706,9 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     alignItems: 'flex-start',
     gap: '20px',
-    width: '150px',
     flexShrink: 0,
   },
   coverWrapper: {
-    width: '150px',
-    height: '210px',
     borderRadius: '0px',
     overflow: 'hidden',
     boxShadow: '0 10px 25px rgba(17, 22, 37, 0.12)', // Softened drop shadow
@@ -464,19 +721,33 @@ const styles: Record<string, React.CSSProperties> = {
     objectFit: 'cover',
   },
   placeholderCover: {
+    position: 'relative',
     width: '100%',
     height: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '16px',
+    padding: '16px 16px 16px 26px', // Extra left padding so text clears the spine strip
     textAlign: 'center',
     backgroundColor: 'var(--bg-sheet)',
+  },
+  placeholderSpine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '10px',
+    boxShadow: 'inset -2px 0 3px rgba(17, 22, 37, 0.2)',
+  },
+  placeholderText: {
+    color: '#FFFDFB',
+    fontSize: '1rem',
+    lineHeight: '1.3',
   },
   rightCol: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '32px',
     flex: 1,
     overflowY: 'auto',
     paddingRight: '8px',
@@ -487,17 +758,60 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px',
   },
   title: {
-    fontSize: '24px', // Exactly 24px
-    fontWeight: 'bold',
+    fontSize: '26px',
+    fontWeight: '600', // Semibold
     color: 'var(--accent-primary)', // Accent primary blue
     lineHeight: '1.2',
     maxWidth: '420px', // Clean maximum width
   },
   author: {
-    fontSize: '1.25rem',
+    fontSize: '18px',
+    fontWeight: '500', // Medium
     color: 'var(--text-secondary)',
     marginTop: '2px',
-    fontFamily: 'var(--font-caveat), cursive', // Cursive Caveat author
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  authorYear: {
+    color: 'var(--text-tertiary)',
+    fontWeight: '400',
+    marginLeft: '8px',
+  },
+  addAuthorLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--accent-primary)',
+    textDecoration: 'underline',
+    fontSize: '0.9rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    padding: 0,
+    marginLeft: '10px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  authorEditRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginTop: '4px',
+  },
+  authorEditInput: {
+    padding: '6px 10px',
+    fontSize: '0.95rem',
+    borderRadius: '0px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    color: 'var(--text-primary)',
+    flex: 1,
+    maxWidth: '220px',
+  },
+  authorSaveBtn: {
+    backgroundColor: 'var(--accent-primary)',
+    border: 'none',
+    color: 'var(--bg-sheet)',
+    padding: '6px 14px',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   section: {
     display: 'flex',
@@ -510,50 +824,57 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '12px',
   },
   sectionTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 'bold',
+    fontSize: '16px',
+    fontWeight: '500',
     color: 'var(--text-primary)',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   editLink: {
     background: 'none',
     border: 'none',
-    color: 'var(--text-secondary)',
+    color: 'var(--text-primary)',
     textDecoration: 'underline',
     fontSize: '0.9rem',
     cursor: 'pointer',
     padding: 0,
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
-  sectionContent: {
-    fontSize: '1.1rem',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-  },
-  genreContainer: {
+  locationRow: {
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
+    alignItems: 'center',
+    gap: '12px',
   },
-  genrePill: {
-    display: 'inline-block',
-    padding: '4px 12px',
-    backgroundColor: '#EAE7D8',
+  locationText: {
+    fontSize: '15px',
     color: 'var(--text-secondary)',
-    borderRadius: '20px',
-    fontSize: '0.85rem',
-    border: 'none',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
-  noGenres: {
-    fontSize: '1.1rem',
-    color: 'var(--text-tertiary)',
+  locationArrow: {
+    fontSize: '15px',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  sectionContent: {
+    fontSize: '15px',
+    color: 'var(--text-secondary)',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   descriptionText: {
     fontSize: '0.95rem',
     color: 'var(--text-secondary)',
     lineHeight: '1.5',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  expandDescriptionBtn: {
+    display: 'inline',
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-primary)',
+    textDecoration: 'underline',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    padding: 0,
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   editLocationForm: {
@@ -565,23 +886,23 @@ const styles: Record<string, React.CSSProperties> = {
   },
   selectField: {
     padding: '8px 12px',
-    border: 'none',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
     borderRadius: '0px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
-    backgroundColor: 'var(--bg-sheet)',
+    backgroundColor: '#FFFFFF',
     color: 'var(--text-primary)',
-    boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)',
+    boxShadow: 'none',
     outline: 'none',
     width: '100%',
   },
   selectFieldWidth: {
     padding: '8px 12px',
-    border: 'none',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
     borderRadius: '0px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
-    backgroundColor: 'var(--bg-sheet)',
+    backgroundColor: '#FFFFFF',
     color: 'var(--text-primary)',
-    boxShadow: 'inset 0 1px 3px rgba(17, 22, 37, 0.08)',
+    boxShadow: 'none',
     outline: 'none',
     width: '100%',
   },
@@ -596,7 +917,7 @@ const styles: Record<string, React.CSSProperties> = {
   createLocationLink: {
     background: 'none',
     border: 'none',
-    color: 'var(--accent-primary)',
+    color: 'var(--text-secondary)',
     fontSize: '0.85rem',
     cursor: 'pointer',
     padding: 0,
@@ -616,10 +937,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   formSaveBtn: {
-    backgroundColor: 'var(--bg-sheet)',
+    backgroundColor: 'var(--accent-primary)',
     border: 'none',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
-    color: 'var(--text-primary)',
+    color: 'var(--bg-sheet)',
     padding: '4px 12px',
     cursor: 'pointer',
     fontSize: '0.9rem',

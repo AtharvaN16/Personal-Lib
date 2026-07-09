@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 
@@ -16,6 +16,44 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
   const [roomsList, setRoomsList] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus the panel on open, restore focus on close, trap Tab, close on Escape, prevent body scroll
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    modalRef.current?.focus();
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
 
   // Fetch unique room names from existing shelves on mount
   useEffect(() => {
@@ -105,12 +143,16 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
       onClick={onClose}
     >
       <motion.div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add Location"
+        tabIndex={-1}
         initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
         transition={{ duration: 0.3 }}
-        className="cozy-card"
-        style={styles.modal}
+        style={{ ...styles.modal, outline: 'none' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button - CLOSE text in all caps */}
@@ -126,10 +168,11 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
 
           {/* Room input */}
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Room Name</label>
+            <label htmlFor="location-room" style={styles.label}>Room Name</label>
             <input
+              id="location-room"
               type="text"
-              className="input-cozy"
+              className="field-white"
               placeholder="e.g. Living Room, Bedroom"
               value={room}
               onChange={(e) => setRoom(e.target.value)}
@@ -146,10 +189,11 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
 
           {/* Bookshelf input */}
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Bookshelf Name</label>
+            <label htmlFor="location-bookshelf" style={styles.label}>Bookshelf Name</label>
             <input
+              id="location-bookshelf"
               type="text"
-              className="input-cozy"
+              className="field-white"
               placeholder="e.g. Tall Shelf, Bedside Drawer"
               value={bookshelf}
               onChange={(e) => setBookshelf(e.target.value)}
@@ -200,7 +244,7 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: '100%',
     maxWidth: '380px', // Re-worked to be more compact
-    backgroundColor: 'var(--bg-primary)',
+    backgroundColor: 'var(--bg-sheet)',
     padding: '28px 24px 24px 24px', // Reduced padding
     position: 'relative',
     maxHeight: '90vh',
@@ -259,8 +303,8 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '0px',
   },
   errorAlert: {
-    color: '#8B1E1E',
-    backgroundColor: '#F7EAE6',
+    color: 'var(--error)',
+    backgroundColor: 'var(--accent-terracotta-light)',
     borderRadius: '0px',
     padding: '8px 12px',
     fontSize: '0.85rem',
@@ -283,10 +327,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   submitBtn: {
-    backgroundColor: 'var(--bg-sheet)',
+    backgroundColor: 'var(--accent-primary)',
     border: 'none',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
-    color: 'var(--text-primary)',
+    color: 'var(--bg-sheet)',
     padding: '8px 16px',
     cursor: 'pointer',
     fontSize: '0.9rem',

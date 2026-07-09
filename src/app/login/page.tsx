@@ -78,12 +78,10 @@ function LoginForm() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="cozy-card"
         style={styles.card}
       >
-        {/* Sketchy Handdrawn Title */}
         <div style={styles.header}>
-          <h1 className="handwritten" style={styles.title}>
+          <h1 className="display-serif" style={styles.title}>
             Personal Library
           </h1>
           <p style={styles.subtitle}>Catalog your books & organize your shelves</p>
@@ -99,28 +97,32 @@ function LoginForm() {
           >
             <form onSubmit={handleAuth} style={styles.form}>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Email Address</label>
+                <label htmlFor="login-email" style={styles.label}>Email Address</label>
                 <input
+                  id="login-email"
                   type="email"
-                  className="input-cozy"
+                  className="field-white"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={loading}
+                  style={styles.input}
                 />
               </div>
 
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Password</label>
+                <label htmlFor="login-password" style={styles.label}>Password</label>
                 <input
+                  id="login-password"
                   type="password"
-                  className="input-cozy"
+                  className="field-white"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
+                  style={styles.input}
                 />
               </div>
 
@@ -131,7 +133,6 @@ function LoginForm() {
                     ...styles.notification,
                     ...(message.type === 'success' ? styles.successNotify : styles.errorNotify),
                   }}
-                  className="sketch-border"
                 >
                   <p>{message.text}</p>
                 </div>
@@ -139,8 +140,7 @@ function LoginForm() {
 
               <button
                 type="submit"
-                className="btn-cozy btn-cozy-primary"
-                style={styles.submitBtn}
+                style={{ ...styles.submitBtn, opacity: loading ? 0.6 : 1 }}
                 disabled={loading}
               >
                 {loading ? 'Working on it...' : isSignUp ? 'Create Account' : 'Sign In'}
@@ -173,9 +173,9 @@ export default function LoginPage() {
         minHeight: '100vh',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'var(--text-muted)',
-        fontFamily: 'var(--font-caveat), cursive',
-        fontSize: '2rem'
+        color: 'var(--text-secondary)',
+        fontFamily: 'var(--font-instrument-sans), sans-serif',
+        fontSize: '1rem'
       }}>
         Loading...
       </div>
@@ -222,24 +222,30 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     width: '100%',
     maxWidth: '440px',
-    padding: '40px 32px',
+    padding: '40px 32px 36px 32px',
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     gap: '24px',
+    backgroundColor: 'var(--bg-sheet)',
+    borderRadius: '0px',
+    border: 'none',
+    boxShadow: '0 12px 35px rgba(17, 22, 37, 0.15)',
   },
   header: {
     textAlign: 'center',
     marginBottom: '8px',
   },
   title: {
-    fontSize: '3rem',
-    color: 'var(--text-coffee)',
+    fontSize: '2.5rem',
+    fontWeight: 500,
+    color: 'var(--accent-primary)',
     marginBottom: '8px',
   },
   subtitle: {
     fontSize: '0.9rem',
-    color: 'var(--text-muted)',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   form: {
     display: 'flex',
@@ -254,40 +260,56 @@ const styles: Record<string, React.CSSProperties> = {
   label: {
     fontSize: '0.9rem',
     fontWeight: '500',
-    color: 'var(--text-coffee)',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  input: {
+    padding: '10px 14px',
+    fontSize: '0.95rem',
+    borderRadius: '0px',
+    width: '100%',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    color: 'var(--text-primary)',
   },
   submitBtn: {
+    backgroundColor: 'var(--accent-primary)',
+    border: 'none',
+    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
+    color: 'var(--bg-sheet)',
     justifyContent: 'center',
     width: '100%',
     marginTop: '8px',
+    padding: '10px 16px',
     fontSize: '1rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   notification: {
     padding: '12px',
     fontSize: '0.85rem',
     lineHeight: '1.4',
     textAlign: 'center',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   successNotify: {
     backgroundColor: 'var(--accent-sage-light)',
-    borderColor: 'var(--accent-sage)',
     color: '#3d5242',
   },
   errorNotify: {
     backgroundColor: 'var(--accent-terracotta-light)',
-    borderColor: 'var(--accent-terracotta)',
-    color: '#823725',
+    color: 'var(--error)',
   },
   footer: {
     textAlign: 'center',
     marginTop: '12px',
-    borderTop: '1px dashed var(--border-sketch)',
+    borderTop: '1px solid rgba(17, 22, 37, 0.08)',
     paddingTop: '16px',
   },
   toggleBtn: {
     background: 'none',
     border: 'none',
-    color: 'var(--text-muted)',
+    color: 'var(--text-secondary)',
     fontSize: '0.85rem',
     cursor: 'pointer',
     textDecoration: 'underline',

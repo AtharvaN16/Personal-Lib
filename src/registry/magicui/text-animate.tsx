@@ -7,6 +7,12 @@ import { ElementType, ComponentType } from 'react';
 
 type AnimationType = 'blurIn' | 'fadeIn' | 'slideUp';
 
+interface Highlight {
+  /** Phrase to match (case/punctuation-insensitive), can be one or several words. */
+  match: string;
+  onClick?: () => void;
+}
+
 interface TextAnimateProps {
   children: string;
   animation?: AnimationType;
@@ -16,7 +22,8 @@ interface TextAnimateProps {
   style?: React.CSSProperties;
   duration?: number;
   delay?: number;
-  onSearchClick?: () => void;
+  /** Phrases within the sentence that render italic/underlined/clickable, same animation as the rest. */
+  highlights?: Highlight[];
   disableAnimation?: boolean;
 }
 
@@ -31,6 +38,78 @@ const motionElements: Record<string, ComponentType<any>> = {
   div: motion.div,
 };
 
+const normalizeWord = (s: string) =>
+  s.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').trim().toLowerCase();
+
+interface RenderNode {
+  text: string;
+  isSpace: boolean;
+  onClick?: () => void;
+  isHighlight?: boolean;
+}
+
+/** Groups raw word/space tokens into plain segments and multi-word highlight matches. */
+function buildRenderNodes(segments: string[], highlights: Highlight[]): RenderNode[] {
+  // Prefer longer (more specific) phrases first so a 3-word match isn't shadowed by a 1-word one.
+  const sortedHighlights = [...highlights].sort(
+    (a, b) => b.match.trim().split(/\s+/).length - a.match.trim().split(/\s+/).length
+  );
+
+  const nodes: RenderNode[] = [];
+  let i = 0;
+
+  while (i < segments.length) {
+    const segment = segments[i];
+
+    if (/^\s+$/.test(segment)) {
+      nodes.push({ text: segment, isSpace: true });
+      i++;
+      continue;
+    }
+
+    let matchedNode: RenderNode | null = null;
+    let consumedSegments = 0;
+
+    for (const highlight of sortedHighlights) {
+      const targetWords = highlight.match.trim().split(/\s+/).map(normalizeWord);
+      const collectedWords: string[] = [];
+      let segIdx = i;
+      let consumed = 0;
+
+      while (collectedWords.length < targetWords.length && segIdx < segments.length) {
+        const s = segments[segIdx];
+        if (!/^\s+$/.test(s)) collectedWords.push(normalizeWord(s));
+        consumed++;
+        segIdx++;
+      }
+
+      if (
+        collectedWords.length === targetWords.length &&
+        collectedWords.every((w, idx) => w === targetWords[idx])
+      ) {
+        matchedNode = {
+          text: segments.slice(i, i + consumed).join(''),
+          isSpace: false,
+          onClick: highlight.onClick,
+          isHighlight: true,
+        };
+        consumedSegments = consumed;
+        break;
+      }
+    }
+
+    if (matchedNode) {
+      nodes.push(matchedNode);
+      i += consumedSegments;
+    } else {
+      nodes.push({ text: segment, isSpace: false });
+      i++;
+    }
+  }
+
+  return nodes;
+}
+
 export function TextAnimate({
   children,
   animation = 'fadeIn',
@@ -40,7 +119,7 @@ export function TextAnimate({
   style = {},
   duration = 0.5,
   delay = 0,
-  onSearchClick,
+  highlights = [],
   disableAnimation = false,
 }: TextAnimateProps) {
   const ContainerComponent = motionElements[as as string] || motion.p;
@@ -54,6 +133,11 @@ export function TextAnimate({
   } else {
     segments = [children];
   }
+
+  const nodes: RenderNode[] =
+    by === 'word' && highlights.length > 0
+      ? buildRenderNodes(segments, highlights)
+      : segments.map(text => ({ text, isSpace: /^\s+$/.test(text) }));
 
   const containerVariants: Variants = {
     hidden: {},
@@ -103,24 +187,23 @@ export function TextAnimate({
       className={className}
       style={style}
     >
-      {segments.map((segment, idx) => {
-        // Render pure spaces normally to maintain natural typography flow
-        if (/^\s+$/.test(segment)) {
-          return <span key={idx}>{segment}</span>;
+      {nodes.map((node, idx) => {
+        if (node.isSpace) {
+          // A literal newline in the source string becomes a real line break, so a caller
+          // can force multi-line layout while it's still one continuous animated sentence.
+          if (node.text.includes('\n')) {
+            return <br key={idx} />;
+          }
+          return <span key={idx}>{node.text}</span>;
         }
 
-        // Clean punctuation to match "Search" and "Scan" keywords exactly
-        const cleanWord = segment.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim().toLowerCase();
-        const isSearch = cleanWord === 'search';
-        const isScan = cleanWord === 'scan';
-
-        if (isSearch) {
+        if (node.isHighlight) {
           return (
             <motion.span
               key={idx}
               variants={selectedVariants}
-              onClick={onSearchClick}
-              style={{ 
+              onClick={node.onClick}
+              style={{
                 display: 'inline-block',
                 cursor: 'pointer',
                 fontStyle: 'italic',
@@ -134,7 +217,7 @@ export function TextAnimate({
                 zIndex: 10,
               }}
             >
-              {segment}
+              {node.text}
             </motion.span>
           );
         }
@@ -143,17 +226,9 @@ export function TextAnimate({
           <motion.span
             key={idx}
             variants={selectedVariants}
-            style={{ 
-              display: 'inline-block',
-              ...(isScan ? {
-                fontStyle: 'italic',
-                color: 'var(--accent-primary)',
-                textDecoration: 'underline wavy var(--accent-primary)',
-                textDecorationThickness: '1.5px',
-              } : {})
-            }}
+            style={{ display: 'inline-block' }}
           >
-            {segment}
+            {node.text}
           </motion.span>
         );
       })}

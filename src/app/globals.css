@@ -5,13 +5,16 @@
   
   --text-primary: #111625;     /* Dark ink blue (no pure black) */
   --text-secondary: #4E5564;   /* Muted ink gray */
-  --text-tertiary: #868C9B;    /* Pencil gray */
+  --text-tertiary: #616874;    /* Pencil gray, darkened from #868C9B to meet 4.5:1 contrast on paper/sheet backgrounds */
   
   --accent-primary: #002CBC;   /* Vibrant ink blue */
   --accent-sage-light: #E8ECE9;
   --accent-terracotta: #C77966;
   --accent-terracotta-light: #F7EAE6;
-  
+  --status-amber: #D4A373;     /* "Completed" status indicator */
+  --error: #8B1E1E;            /* Delete / destructive actions */
+  --tag-bg: #EAE7D8;           /* Genre/tag pill background */
+
   --border-sketch: #111625;    /* Match dark ink text for cohesive outlines */
   --paper-shadow: 0 4px 15px rgba(17, 22, 37, 0.03), 0 2px 5px rgba(17, 22, 37, 0.01);
   --paper-shadow-hover: 0 8px 25px rgba(17, 22, 37, 0.06), 0 4px 10px rgba(17, 22, 37, 0.03);
@@ -36,7 +39,8 @@ body {
   flex-direction: column;
   color: var(--text-primary);
   /* Blue glow radial gradient at the bottom center, blending into warm parchment background */
-  background: radial-gradient(circle at 50% 100%, rgba(0, 44, 188, 0.08) 0%, var(--bg-primary) 70%);
+  background: radial-gradient(circle at 50% 100%, rgba(0, 44, 188, 0.12) 0%, var(--bg-primary) 70%);
+  background-attachment: fixed; /* Pinned to the viewport, doesn't travel with page scroll */
   font-family: var(--font-instrument-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -154,6 +158,107 @@ a {
 
 .nav-link:hover {
   color: var(--accent-primary);
+}
+
+/* Responsive book grid: fluid columns instead of a fixed 6-up grid.
+   auto-fill + a capped max (not 1fr) keeps columns at card-width even
+   when there are only a few books, instead of stretching them apart
+   to fill the row. */
+.books-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 180px));
+  justify-content: center;
+}
+
+.book-card-container {
+  width: 100%;
+  max-width: 180px;
+}
+
+.book-card-cover {
+  width: 100%;
+  aspect-ratio: 180 / 252;
+}
+
+/* Responsive BookModal: stack to a single column on narrow viewports */
+.book-modal-panel {
+  height: 480px;
+}
+
+.book-modal-content {
+  flex-direction: row;
+}
+
+.book-modal-left-col {
+  width: 150px;
+}
+
+.book-modal-cover {
+  width: 150px;
+  height: 210px;
+}
+
+/* Icon buttons (BookModal favorite/completed/delete): fill on hover, pill-style like genre tags */
+.icon-btn {
+  background: none;
+  border-radius: 50%;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.icon-btn:hover {
+  background-color: var(--tag-bg);
+}
+
+/* Plain white text field with a subtle stroke, used in location forms */
+.field-white {
+  background: #FFFFFF;
+  border: 1px solid rgba(17, 22, 37, 0.12);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field-white:focus {
+  border-color: var(--accent-primary);
+}
+
+@media (max-width: 640px) {
+  .book-modal-panel {
+    height: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .book-modal-content {
+    flex-direction: column;
+  }
+
+  .book-modal-left-col {
+    width: 100%;
+    align-items: center;
+  }
+
+  .book-modal-cover {
+    width: 140px;
+    height: 196px;
+  }
+}
+
+/* Skeleton loading shimmer, used while a scanned ISBN is being looked up */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(17, 22, 37, 0.06) 25%, rgba(17, 22, 37, 0.12) 37%, rgba(17, 22, 37, 0.06) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+    background: rgba(17, 22, 37, 0.08);
+  }
 }
 
 

@@ -1,12 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import LogoutLink from '@/components/LogoutLink';
 import BookCardModal, { Book } from '@/components/BookModal';
-import AddLocationModal from '@/components/AddLocationModal';
+import ManageLocationsModal from '@/components/ManageLocationsModal';
+import ScanBookModal from '@/components/ScanBookModal';
+import FilterPanel, { FilterMode } from '@/components/FilterPanel';
 import { createClient } from '@/lib/supabase/client';
 import { TextAnimate } from '@/registry/magicui/text-animate';
+import HeroAnimation from '@/components/HeroAnimation';
+import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 
 // Pre-loaded mock books matching the styles in the mockup
 const defaultMockBooks: Book[] = [
@@ -53,6 +57,46 @@ const defaultMockBooks: Book[] = [
     genres: ['Fiction', 'Contemporary', 'Gaming'],
     status: 'Completed',
     favorite: true,
+  },
+  {
+    id: '5',
+    title: 'Circe',
+    authors: ['Madeline Miller'],
+    published_date: '2018',
+    location: { room: 'Bedroom', bookshelf: 'Bedside Table' },
+    genres: ['Fantasy', 'Mythology'],
+    status: 'Completed',
+    favorite: true,
+  },
+  {
+    id: '6',
+    title: 'Project Hail Mary',
+    authors: ['Andy Weir'],
+    published_date: '2021',
+    location: { room: 'Living room', bookshelf: 'Short Shelf' },
+    genres: ['Science Fiction'],
+    status: 'Reading',
+    favorite: false,
+  },
+  {
+    id: '7',
+    title: 'Klara and the Sun',
+    authors: ['Kazuo Ishiguro'],
+    published_date: '2021',
+    location: { room: 'Study', bookshelf: 'Corner Shelf' },
+    genres: ['Fiction', 'Science Fiction'],
+    status: 'To Read',
+    favorite: false,
+  },
+  {
+    id: '8',
+    title: 'The Song of Achilles',
+    authors: ['Madeline Miller'],
+    published_date: '2011',
+    location: { room: 'Bedroom', bookshelf: 'Bedside Table' },
+    genres: ['Fantasy', 'Mythology', 'Romance'],
+    status: 'Completed',
+    favorite: false,
   }
 ];
 
@@ -63,8 +107,18 @@ export default function Dashboard() {
   const [hasSearched, setHasSearched] = useState(false);
   const [books, setBooks] = useState<Book[]>(defaultMockBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
+  const [isManageLocationsOpen, setIsManageLocationsOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [filterRoom, setFilterRoom] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const { scrollY } = useScroll();
+  const heroOpacity = useTransform(scrollY, [0, 150], [1, 0]);
+  const heroScale = useTransform(scrollY, [0, 150], [1, 0.95]);
+  const heroY = useTransform(scrollY, [0, 150], [-164, -194]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -77,6 +131,14 @@ export default function Dashboard() {
     }, 3000);
     return () => clearTimeout(timer);
   }, [toastMessage]);
+
+  // Fade the header title into the Search/Scan/Filter words as soon as the page starts scrolling
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY >= 150);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Close search when clicking anywhere outside of it
   useEffect(() => {
@@ -188,170 +250,301 @@ export default function Dashboard() {
     }
   };
 
+  // Unique rooms across the catalog, offered as the location sub-filter
+  const rooms = Array.from(
+    new Set(books.map(b => b.location?.room).filter((r): r is string => Boolean(r)))
+  );
+
+  const matchesFilter = (b: Book) => {
+    if (filterMode === 'favorites') return !!b.favorite;
+    if (filterMode === 'unread') return b.status === 'To Read';
+    if (filterMode === 'location') return filterRoom ? b.location?.room === filterRoom : true;
+    return true;
+  };
+
+  const filterLabel =
+    filterMode === 'favorites' ? 'Favorites'
+    : filterMode === 'unread' ? 'Unread books'
+    : filterMode === 'location' && filterRoom ? `Books in ${filterRoom}`
+    : 'Entire catalog';
+
+  const displayText = searchQuery || 'Search';
+  const pillWidth = Math.max(120, displayText.length * 16 + 40);
+  const pillLeft = -20;
+
+  const searchContent = (
+    <h1 className="display-serif" style={{ ...styles.heroTitle, whiteSpace: 'normal' }}>
+      <span id="hero-search-wrapper" style={{
+        position: 'relative',
+        display: 'inline-block',
+        verticalAlign: 'baseline',
+      }}>
+        {/* Static hidden placeholder of "Search" so the rest of the sentence is placed correctly */}
+        <span style={{
+          visibility: 'hidden',
+          fontStyle: 'italic',
+          fontFamily: 'var(--font-newsreader), Georgia, serif',
+          fontSize: '32px',
+          fontWeight: 'normal',
+          lineHeight: '1.4',
+          opacity: 0.4,
+          filter: 'blur(5px)',
+        }}>
+          Search
+        </span>
+
+        <input
+          id="hero-search-input"
+          autoFocus
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
+              const matchedCount = books.filter(b => {
+                if (!query) return true;
+                return (
+                  b.title.toLowerCase().includes(query) ||
+                  b.authors.some(a => a.toLowerCase().includes(query))
+                );
+              }).length;
+
+              if (matchedCount === 0 && query !== '') {
+                showToast(`No books match "${searchQuery}"`);
+                setSearchQuery('');
+              }
+              setIsSearching(false);
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === 'Escape') {
+              setIsSearching(false);
+              setSearchQuery('');
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          placeholder="Search"
+          style={{
+            position: 'absolute',
+            left: `${pillLeft}px`, // Offset slightly to overlap the text naturally
+            top: '-6px',
+            fontFamily: 'var(--font-newsreader), Georgia, serif',
+            fontWeight: 'normal',
+            fontSize: '32px',
+            fontStyle: 'italic',
+            color: 'var(--accent-primary)',
+            backgroundColor: 'rgba(0, 44, 188, 0.06)', // Light blue container background
+            borderRadius: '8px', // Clean capsule border radius
+            padding: '6px 20px', // More padding to the search pill
+            border: 'none',
+            outline: 'none',
+            textDecoration: 'underline wavy var(--accent-primary)',
+            textDecorationThickness: '1.5px',
+            width: `${pillWidth}px`, // Dynamic width hugs content to prevent "h" cuts
+            lineHeight: '1.4',
+            height: 'calc(100% + 12px)',
+            margin: 0,
+            boxSizing: 'border-box',
+            zIndex: 10,
+          }}
+        />
+
+        {searchQuery && (
+          <span style={{
+            position: 'absolute',
+            left: `${pillWidth - 8}px`, // Dynamic offset pushed by the input width
+            top: '50%',
+            transform: 'translateY(-55%)',
+            fontSize: '15px',
+            color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-instrument-sans), sans-serif',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            opacity: 0.8,
+            fontWeight: 'bold',
+            zIndex: 20,
+          }}>
+            press ⏎
+          </span>
+        )}
+      </span>
+      <span style={{
+        filter: 'blur(5px)',
+        opacity: 0.4,
+        transition: 'all 0.5s ease',
+        display: 'inline',
+        marginLeft: '12px',
+      }}>
+        for the books in your library. Scan to add new books.
+        <br />
+        Currently showing{' '}
+        <span
+          style={{
+            color: 'var(--accent-primary)',
+            textDecoration: 'underline wavy var(--accent-primary)',
+            textDecorationThickness: '1.5px',
+            fontStyle: 'italic',
+          }}
+        >
+          {filterLabel}
+        </span>
+        .
+      </span>
+    </h1>
+  );
+
+  const staticContent = (
+    <TextAnimate
+      animation="blurIn"
+      by="word"
+      as="h1"
+      className="display-serif"
+      style={{ ...styles.heroTitle, whiteSpace: 'normal' }}
+      highlights={[
+        { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); } },
+        { match: 'Scan', onClick: () => setIsScanModalOpen(true) },
+        { match: filterLabel, onClick: () => setIsFilterOpen(true) },
+      ]}
+      disableAnimation={hasSearched}
+    >
+      {`Search for the books in your library. Scan to add new books.\nCurrently showing ${filterLabel}.`}
+    </TextAnimate>
+  );
+
+  const heroContent = (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        opacity: isSearching ? 1 : 0,
+        filter: isSearching ? 'blur(0px)' : 'blur(10px)',
+        pointerEvents: isSearching ? 'auto' : 'none',
+        transition: 'opacity 0.6s ease, filter 0.6s ease'
+      }}>
+        {searchContent}
+      </div>
+      <div style={{
+        opacity: isSearching ? 0 : 1,
+        filter: isSearching ? 'blur(10px)' : 'blur(0px)',
+        pointerEvents: isSearching ? 'none' : 'auto',
+        transition: 'opacity 0.6s ease, filter 0.6s ease'
+      }}>
+        {staticContent}
+      </div>
+    </div>
+  );
+
   return (
     <div className="page-container" style={styles.frame}>
       {/* Design Header with Bottom Gradient Fade */}
       <header style={styles.header}>
-        <div style={styles.headerContent}>
+        <motion.div
+          style={styles.headerContent}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.8, duration: 0.8, ease: 'easeOut' }}
+        >
           <div style={styles.leftNav}>
-            <a href="#" className="nav-link">Catalog</a>
-            <a href="#" className="nav-link">Search</a>
-            <button 
-              onClick={() => setIsAddLocationOpen(true)} 
-              className="nav-link" 
+            <button
+              onClick={() => setIsManageLocationsOpen(true)}
+              className="nav-link"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
             >
-              + Add Location
+              Manage Locations
             </button>
           </div>
-          
-          {/* Using Newsreader Display Font */}
-          <h1 className="display-serif" style={styles.logo}>
-            My Personal Library
-          </h1>
-          
+
+          {/* Fades from the title into wiggly Search/Scan/Filter words (same style as the hero's) on scroll */}
+          <div style={styles.logoSlot}>
+            <AnimatePresence mode="wait">
+              {isScrolled ? (
+                <motion.div
+                  key="header-actions"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                  style={{ display: 'inline-block', pointerEvents: 'auto' }}
+                >
+                  <TextAnimate
+                    animation="blurIn"
+                    as="div"
+                    className="display-serif"
+                    style={{ ...styles.heroTitle, whiteSpace: 'nowrap' }}
+                    highlights={[
+                      { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); } },
+                      { match: 'Scan', onClick: () => setIsScanModalOpen(true) },
+                      { match: 'Filter', onClick: () => setIsFilterOpen(true) },
+                    ]}
+                  >
+                    {'Search   Scan   Filter'}
+                  </TextAnimate>
+                </motion.div>
+              ) : (
+                <motion.h1
+                  key="header-logo"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                  className="display-serif"
+                  style={{ ...styles.logo, pointerEvents: 'auto' }}
+                >
+                  My Personal Library
+                </motion.h1>
+              )}
+            </AnimatePresence>
+          </div>
+
           <div style={styles.rightNav}>
             <LogoutLink />
           </div>
-        </div>
+        </motion.div>
       </header>
 
       {/* Unified Flex Layout with Hero Centered and 6-Column Shelf Peeking at Bottom */}
       <main style={styles.mainLayout}>
         {/* Center Column (Hero Text / Action Space) */}
-        <div id="hero-search-container" style={styles.heroContainer}>
-          {isSearching ? (
-            <h1 className="display-serif" style={styles.heroTitle}>
-              <span id="hero-search-wrapper" style={{
-                position: 'relative',
-                display: 'inline-block',
-                verticalAlign: 'baseline',
-              }}>
-                {/* Static hidden placeholder of "Search" so the rest of the sentence is placed correctly */}
-                <span style={{ 
-                  visibility: 'hidden', 
-                  fontStyle: 'italic', 
-                  fontFamily: 'var(--font-newsreader), Georgia, serif', 
-                  fontSize: '32px', 
-                  fontWeight: 'normal', 
-                  lineHeight: '1.4' 
-                }}>
-                  Search
-                </span>
-                
-                {/* Absolute input with dynamic width, padding, and background */}
-                <input
-                  id="hero-search-input"
-                  autoFocus
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
-                      const matchedCount = books.filter(b => {
-                        if (!query) return true;
-                        return (
-                          b.title.toLowerCase().includes(query) ||
-                          b.authors.some(a => a.toLowerCase().includes(query))
-                        );
-                      }).length;
-
-                      if (matchedCount === 0 && query !== '') {
-                        showToast(`No books match "${searchQuery}"`);
-                      }
-                      setIsSearching(false);
-                      (e.target as HTMLInputElement).blur();
-                    } else if (e.key === 'Escape') {
-                      setIsSearching(false);
-                      setSearchQuery('');
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  placeholder="Search"
-                  style={{
-                    position: 'absolute',
-                    left: '-20px', // Adjusted offset to center the pill around "Search" word
-                    top: '-6px',
-                    fontFamily: 'var(--font-newsreader), Georgia, serif',
-                    fontWeight: 'normal',
-                    fontSize: '32px',
-                    fontStyle: 'italic',
-                    color: 'var(--accent-primary)',
-                    backgroundColor: 'rgba(0, 44, 188, 0.06)', // Light blue container background
-                    borderRadius: '8px', // Clean capsule border radius
-                    padding: '6px 20px', // More padding to the search pill
-                    border: 'none',
-                    outline: 'none',
-                    textDecoration: 'underline wavy var(--accent-primary)',
-                    textDecorationThickness: '1.5px',
-                    width: searchQuery ? `${Math.max(100, searchQuery.length * 16 + 40)}px` : '120px', // Dynamic width hugs query
-                    lineHeight: '1.4',
-                    height: 'calc(100% + 12px)',
-                    margin: 0,
-                  }}
-                />
-                
-                {/* Dynamic press enter hint */}
-                {searchQuery && (
-                  <span style={{
-                    position: 'absolute',
-                    right: '-105px', // Shifted slightly right to not overlap the larger padding search pill
-                    top: '50%',
-                    transform: 'translateY(-55%)',
-                    fontSize: '15px', // Larger
-                    color: 'var(--text-tertiary)',
-                    fontFamily: 'var(--font-instrument-sans), sans-serif',
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
-                    opacity: 0.8,
-                    fontWeight: 'bold',
-                  }}>
-                    press ⏎
-                  </span>
-                )}
-              </span>
-              <span style={{ 
-                filter: 'blur(5px)', 
-                opacity: 0.4, 
-                transition: 'all 0.3s ease',
-                display: 'inline-block',
-                marginLeft: '12px',
-                whiteSpace: 'nowrap',
-              }}>
-                for the books in your library. Scan to add new books
-              </span>
-            </h1>
-          ) : (
-            /* Using Newsreader Display Font with TextAnimate */
-            <TextAnimate
-              animation="blurIn"
-              as="h1"
-              className="display-serif"
-              style={styles.heroTitle}
-              onSearchClick={() => {
-                setIsSearching(true);
-                setHasSearched(true);
-              }}
-              disableAnimation={hasSearched}
-            >
-              Search for the books in your library. Scan to add new books
-            </TextAnimate>
-          )}
-        </div>
+        <motion.div
+          id="hero-search-container"
+          style={{
+            ...styles.heroContainer,
+            opacity: heroOpacity,
+            scale: heroScale,
+            y: heroY,
+          }}
+        >
+          <div style={{
+            filter: isSearching ? 'blur(8px)' : 'blur(0px)',
+            opacity: isSearching ? 0.4 : 1,
+            transition: 'filter 0.6s ease, opacity 0.6s ease',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+          }}>
+            <HeroAnimation />
+          </div>
+          {heroContent}
+        </motion.div>
 
         {/* 6-Column Shelf Grid Peeking above the fold */}
-        <div style={styles.booksSection}>
-          <div style={styles.booksGrid}>
+        <motion.div 
+          style={styles.booksSection}
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.5, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
+        >
+          <div style={styles.booksGrid} className="books-grid">
             <AnimatePresence>
               {books
                 .filter(b => {
                   const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
-                  if (!query) return true;
-                  return (
+                  const matchesQuery = !query || (
                     b.title.toLowerCase().includes(query) ||
                     b.authors.some(a => a.toLowerCase().includes(query))
                   );
+                  return matchesQuery && matchesFilter(b);
                 })
                 .map((book) => (
                   <motion.div
@@ -370,7 +563,7 @@ export default function Dashboard() {
                 ))}
             </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
       </main>
 
       {/* Book details overlay modal */}
@@ -385,12 +578,31 @@ export default function Dashboard() {
             onFavoriteToggle={handleFavoriteToggle}
           />
         )}
-        {isAddLocationOpen && (
-          <AddLocationModal
-            onClose={() => setIsAddLocationOpen(false)}
-            onLocationAdded={(loc) => {
-              alert(`Successfully added location: ${loc.bookshelf} in ${loc.room}!`);
+        {isManageLocationsOpen && (
+          <ManageLocationsModal onClose={() => setIsManageLocationsOpen(false)} />
+        )}
+        {isScanModalOpen && (
+          <ScanBookModal
+            onClose={() => setIsScanModalOpen(false)}
+            books={books}
+            showToast={showToast}
+            onBookAdded={(newBook) => {
+              setBooks(prev => [newBook, ...prev]);
+              setIsScanModalOpen(false);
+              showToast(`Added "${newBook.title}" to your library`);
             }}
+          />
+        )}
+        {isFilterOpen && (
+          <FilterPanel
+            mode={filterMode}
+            room={filterRoom}
+            rooms={rooms}
+            onApply={(mode, room) => {
+              setFilterMode(mode);
+              setFilterRoom(room);
+            }}
+            onClose={() => setIsFilterOpen(false)}
           />
         )}
       </AnimatePresence>
@@ -399,29 +611,28 @@ export default function Dashboard() {
       <AnimatePresence>
         {toastMessage && (
           <motion.div
-            initial={{ opacity: 0, y: 50, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: 50, x: '-50%' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             style={{
               position: 'fixed',
               bottom: '40px',
               left: '50%',
-              backgroundColor: 'var(--text-primary)',
-              color: 'var(--bg-primary)',
+              backgroundColor: 'var(--bg-primary)',
+              color: 'var(--accent-primary)',
               padding: '12px 24px',
-              borderRadius: '30px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+              borderRadius: '8px',
+              boxShadow: '0 4px 16px rgba(0, 44, 188, 0.15)',
               zIndex: 9999,
               fontFamily: 'var(--font-instrument-sans), sans-serif',
-              fontSize: '14px',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              userSelect: 'none',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              border: '1px solid var(--accent-primary)',
+              transform: 'translateX(-50%)',
             }}
           >
-            <span>📖</span> {toastMessage}
+            {toastMessage}
           </motion.div>
         )}
       </AnimatePresence>
@@ -441,9 +652,19 @@ function BookCard({ book, onClick }: BookCardProps) {
   return (
     <div
       style={styles.cardContainer}
+      className="book-card-container"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => onClick(book)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(book);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${book.title}`}
     >
       {/* Cover Image Wrapper - Enlarged Size (180px x 252px) */}
       <motion.div
@@ -455,17 +676,21 @@ function BookCard({ book, onClick }: BookCardProps) {
         }}
         transition={{ duration: 0.2 }}
         style={styles.coverWrapper}
+        className="book-card-cover"
       >
         {book.cover_url ? (
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img 
-            src={book.cover_url} 
-            alt={book.title} 
-            style={styles.coverImg} 
+          <img
+            src={book.cover_url}
+            alt={book.title}
+            style={styles.coverImg}
             draggable={false}
+            loading="lazy"
+            decoding="async"
           />
         ) : (
-          <div style={styles.placeholderCover}>
+          <div style={{ ...styles.placeholderCover, backgroundColor: getPlaceholderColor(book.title) }}>
+            <div style={{ ...styles.placeholderSpine, backgroundColor: getSpineColor(book.title) }} />
             <span className="display-serif" style={styles.placeholderText}>{book.title}</span>
           </div>
         )}
@@ -514,6 +739,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '24px 40px 36px 40px',
   },
   headerContent: {
+    position: 'relative',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -521,20 +747,28 @@ const styles: Record<string, React.CSSProperties> = {
   },
   leftNav: {
     display: 'flex',
-    gap: '30px',
-    flex: 1,
+    gap: '24px',
+  },
+  logoSlot: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    textAlign: 'center',
+    pointerEvents: 'none', // Re-enabled on the actual clickable content below
   },
   logo: {
+    display: 'inline-block', // Shrink-wraps to the text so its pointer-events:auto area doesn't span the full header width
     fontSize: '2.5rem',
     color: 'var(--accent-primary)',
     fontWeight: 'normal',
     textAlign: 'center',
-    flex: 1,
+    margin: 0,
   },
   rightNav: {
     display: 'flex',
     justifyContent: 'flex-end',
-    flex: 1,
   },
   mainLayout: {
     flex: 1,
@@ -549,13 +783,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   heroContainer: {
     textAlign: 'center',
+    width: '100%', // Stretch container to full width to prevent layout shrink
     maxWidth: '1100px',
     height: 'calc(100vh - 130px)', // Take up exact vertical viewport height below fixed header
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'column',
-    transform: 'translateY(-70px)', // Shift text slightly above the exact center
+    transform: 'translateY(-164px)', // Shift text slightly above center
   },
   heroTitle: {
     fontSize: '32px', // Exactly 32px
@@ -571,12 +806,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-secondary)',
     lineHeight: '1.6',
   },
-  wigglyLink: {
-    fontStyle: 'italic',
-    color: 'var(--accent-primary)',
-    textDecoration: 'underline wavy var(--accent-primary)',
-    textDecorationThickness: '1.5px',
-  },
   booksSection: {
     width: '95%', // Smaller margins
     maxWidth: '1400px', // Wider grid container
@@ -585,14 +814,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   booksGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(6, 1fr)',
     gap: '32px', // Comfortable spacing for larger cards
     width: '100%',
     paddingBottom: '24px',
   },
   // BookCard styles
   cardContainer: {
-    width: '180px', // Enlarged Card width
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
@@ -600,8 +827,6 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
   },
   coverWrapper: {
-    width: '180px', // Enlarged Cover Width
-    height: '252px', // Enlarged Cover Height
     borderRadius: '0px',
     border: 'none',
     overflow: 'hidden',
@@ -614,18 +839,28 @@ const styles: Record<string, React.CSSProperties> = {
     objectFit: 'cover',
   },
   placeholderCover: {
+    position: 'relative',
     width: '100%',
     height: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '12px',
+    padding: '12px 12px 12px 22px', // Extra left padding so text clears the spine strip
     textAlign: 'center',
     backgroundColor: 'var(--bg-sheet)',
+  },
+  placeholderSpine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '10px',
+    boxShadow: 'inset -2px 0 3px rgba(17, 22, 37, 0.2)',
   },
   placeholderText: {
     fontSize: '0.95rem',
     lineHeight: '1.2',
+    color: '#FFFDFB',
   },
   metaContainer: {
     height: '80px', // Increased height
@@ -644,8 +879,9 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: 'ellipsis',
   },
   bookAuthor: {
-    fontSize: '15px', // Increased author size
-    color: 'var(--text-secondary)',
+    fontSize: '18px', // Increased author size
+    fontWeight: '600', // Increased weight
+    color: 'var(--accent-primary)', // Accent blue color
     margin: '4px 0 0 0',
     textAlign: 'center',
     whiteSpace: 'nowrap',
