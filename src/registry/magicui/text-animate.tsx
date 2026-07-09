@@ -25,6 +25,10 @@ interface TextAnimateProps {
   /** Phrases within the sentence that render italic/underlined/clickable, same animation as the rest. */
   highlights?: Highlight[];
   disableAnimation?: boolean;
+  scrollOpacity1?: any;
+  scrollOpacity2?: any;
+  scrollY2?: any;
+  scrollFilter2?: any;
 }
 
 // Static lookup mapping to prevent dynamic component creation during render
@@ -121,6 +125,10 @@ export function TextAnimate({
   delay = 0,
   highlights = [],
   disableAnimation = false,
+  scrollOpacity1,
+  scrollOpacity2,
+  scrollY2,
+  scrollFilter2,
 }: TextAnimateProps) {
   const ContainerComponent = motionElements[as as string] || motion.p;
 
@@ -187,51 +195,69 @@ export function TextAnimate({
       className={className}
       style={style}
     >
-      {nodes.map((node, idx) => {
-        if (node.isSpace) {
-          // A literal newline in the source string becomes a real line break, so a caller
-          // can force multi-line layout while it's still one continuous animated sentence.
-          if (node.text.includes('\n')) {
-            return <br key={idx} />;
+      {(() => {
+        let hasSeenNewline = false;
+        return nodes.map((node, idx) => {
+          if (node.isSpace) {
+            // A literal newline in the source string becomes a real line break, so a caller
+            // can force multi-line layout while it's still one continuous animated sentence.
+            if (node.text.includes('\n')) {
+              hasSeenNewline = true;
+              return <br key={idx} />;
+            }
+            return <span key={idx}>{node.text}</span>;
           }
-          return <span key={idx}>{node.text}</span>;
-        }
 
-        if (node.isHighlight) {
+          const isLine2 = hasSeenNewline;
+          const opacityValue = isLine2 ? (scrollOpacity2 ?? 1) : (scrollOpacity1 ?? 1);
+          const yValue = isLine2 ? (scrollY2 ?? 0) : 0;
+          const filterValue = isLine2 ? scrollFilter2 : undefined;
+
+          if (node.isHighlight) {
+            return (
+              <motion.span
+                key={idx}
+                variants={selectedVariants}
+                onClick={node.onClick}
+                style={{
+                  display: 'inline-block',
+                  cursor: 'pointer',
+                  fontStyle: 'italic',
+                  color: 'var(--accent-primary)',
+                  textDecoration: 'underline wavy var(--accent-primary)',
+                  textDecorationThickness: '1.5px',
+                  // Expand click target footprint
+                  padding: '10px 14px',
+                  margin: '-10px -14px',
+                  position: 'relative',
+                  zIndex: 10,
+                  opacity: opacityValue,
+                  y: yValue,
+                  filter: filterValue,
+                  pointerEvents: 'auto',
+                }}
+              >
+                {node.text}
+              </motion.span>
+            );
+          }
+
           return (
             <motion.span
               key={idx}
               variants={selectedVariants}
-              onClick={node.onClick}
               style={{
                 display: 'inline-block',
-                cursor: 'pointer',
-                fontStyle: 'italic',
-                color: 'var(--accent-primary)',
-                textDecoration: 'underline wavy var(--accent-primary)',
-                textDecorationThickness: '1.5px',
-                // Expand click target footprint
-                padding: '10px 14px',
-                margin: '-10px -14px',
-                position: 'relative',
-                zIndex: 10,
+                opacity: opacityValue,
+                y: yValue,
+                filter: filterValue,
               }}
             >
               {node.text}
             </motion.span>
           );
-        }
-
-        return (
-          <motion.span
-            key={idx}
-            variants={selectedVariants}
-            style={{ display: 'inline-block' }}
-          >
-            {node.text}
-          </motion.span>
-        );
-      })}
+        });
+      })()}
     </ContainerComponent>
   );
 }
