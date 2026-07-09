@@ -7,6 +7,7 @@ import LogoutLink from '@/components/LogoutLink';
 import BookCardModal, { Book } from '@/components/BookModal';
 import ManageLocationsModal from '@/components/ManageLocationsModal';
 import ScanBookModal from '@/components/ScanBookModal';
+import BulkMoveModal from '@/components/BulkMoveModal';
 import FilterPanel, { FilterMode } from '@/components/FilterPanel';
 import { createClient } from '@/lib/supabase/client';
 import { TextAnimate } from '@/registry/magicui/text-animate';
@@ -347,6 +348,23 @@ export default function Dashboard() {
       await supabase.from('books').update({ location_id: locationIdVal }).eq('id', bookId);
     } catch {
       console.warn('Failed to update book location in database');
+    }
+  };
+
+  // Bulk-apply a destination location to every currently selected book, then exit Edit Mode
+  const handleBulkMove = async (locationId: string, locationObj: { room: string; bookshelf: string } | null) => {
+    const ids = Array.from(selectedBookIds);
+    const count = ids.length;
+    setBooks(prev => prev.map(b => selectedBookIds.has(b.id) ? { ...b, location: locationObj } : b));
+    setIsBulkMoveOpen(false);
+    exitEditMode();
+    showToast(`Moved ${count} book${count === 1 ? '' : 's'} to ${locationObj?.room ?? 'Unassigned'}`);
+
+    try {
+      const locationIdVal = locationId === '' ? null : locationId;
+      await supabase.from('books').update({ location_id: locationIdVal }).in('id', ids);
+    } catch {
+      console.warn('Failed to bulk update book locations in database');
     }
   };
 
@@ -844,7 +862,7 @@ export default function Dashboard() {
             aria-label="Delete selected books"
             style={styles.scanFab}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
               <path d="M10 11v6" />
@@ -922,6 +940,13 @@ export default function Dashboard() {
               setIsScanModalOpen(false);
               showToast(`Added "${newBook.title}" to your library`);
             }}
+          />
+        )}
+        {isBulkMoveOpen && (
+          <BulkMoveModal
+            count={selectedBookIds.size}
+            onClose={() => setIsBulkMoveOpen(false)}
+            onApply={handleBulkMove}
           />
         )}
         {isFilterOpen && (
@@ -1048,7 +1073,7 @@ function BookCard({ book, onClick, isMobile = false, editMode, selected, onToggl
   return (
     <div
       style={styles.cardContainer}
-      className="book-card-container"
+      className={`book-card-container ${editMode ? 'wiggle-effect' : ''}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={handleActivate}
