@@ -24,6 +24,8 @@ create table if not exists public.books (
   description text,
   cover_url text,
   location_id uuid references public.shelves(id) on delete set null,
+  status text not null default 'To Read',
+  favorite boolean not null default false,
   notes text,
   created_at timestamp with time zone not null default now()
 );
