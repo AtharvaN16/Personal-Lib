@@ -621,7 +621,14 @@ export default function Dashboard() {
       </header>
 
       {/* Unified Flex Layout with Hero Centered and 6-Column Shelf Peeking at Bottom */}
-      <main style={styles.mainLayout} className="main-layout-mobile">
+      <main
+        style={{
+          ...styles.mainLayout,
+          // On mobile: no side padding — booksSection owns its own gutters
+          ...(isMobile && { padding: '90px 0 0 0' }),
+        }}
+        className="main-layout-mobile"
+      >
         {/* Center Column (Hero Text / Action Space) */}
         <motion.div
           id="hero-search-container"
@@ -631,10 +638,9 @@ export default function Dashboard() {
             opacity: heroOpacity,
             scale: heroScale,
             y: heroY,
-            // heroOpacity only animates visual opacity — an opacity:0 element is still fully
-            // clickable/focusable otherwise, letting a stray click reopen the (invisible) hero
-            // search pill while scrolled away, alongside the header's if that's open too.
             pointerEvents: isScrolled ? 'none' : 'auto',
+            // On mobile: add side padding for the hero text
+            ...(isMobile && { padding: '24px 20px' }),
           }}
         >
           <div style={{
@@ -652,13 +658,30 @@ export default function Dashboard() {
 
         {/* 6-Column Shelf Grid Peeking above the fold */}
         <motion.div
-          style={styles.booksSection}
+          style={{
+            ...styles.booksSection,
+            // On mobile: full width with equal 20px gutters, no negative margin trick
+            ...(isMobile && {
+              width: '100%',
+              maxWidth: '100%',
+              marginTop: 0,
+              paddingTop: 0,
+              paddingLeft: '20px',
+              paddingRight: '20px',
+              boxSizing: 'border-box',
+            }),
+          }}
           className="books-section-mobile"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.85, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
         >
-          <div style={styles.booksGrid} className="books-grid">
+          <div
+            style={{
+              ...styles.booksGrid,
+            }}
+            className="books-grid"
+          >
             <AnimatePresence>
               {books
                 .filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)) && matchesFilter(b))
@@ -673,7 +696,8 @@ export default function Dashboard() {
                   >
                     <BookCard 
                       book={book} 
-                      onClick={setSelectedBook} 
+                      onClick={setSelectedBook}
+                      isMobile={isMobile}
                     />
                   </motion.div>
                 ))}
@@ -807,11 +831,43 @@ export default function Dashboard() {
 interface BookCardProps {
   book: Book;
   onClick: (book: Book) => void;
+  isMobile?: boolean;
 }
 
-function BookCard({ book, onClick }: BookCardProps) {
+function BookCard({ book, onClick, isMobile = false }: BookCardProps) {
   const [hovered, setHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const showMeta = isMobile || hovered;
+
+  const mobileMeta: React.CSSProperties = isMobile ? {
+    width: '100%',
+    maxWidth: '100%',
+    height: 'auto',
+    marginTop: '8px',
+    overflow: 'hidden',
+    boxSizing: 'border-box',
+  } : {};
+
+  const mobileTitleStyle: React.CSSProperties = isMobile ? {
+    fontSize: '0.82rem',
+    lineHeight: '1.25',
+    marginBottom: '2px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%',
+    display: 'block',
+  } : {};
+
+  const mobileAuthorStyle: React.CSSProperties = isMobile ? {
+    fontSize: '0.75rem',
+    lineHeight: '1.2',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%',
+    display: 'block',
+  } : {};
 
   return (
     <div
@@ -860,21 +916,21 @@ function BookCard({ book, onClick }: BookCardProps) {
         )}
       </motion.div>
 
-      {/* Name and author fade in cleanly underneath on hover - Larger Typography */}
-      <div style={styles.metaContainer}>
+      {/* Name and author fade in cleanly underneath on hover - Always visible on mobile */}
+      <div style={{ ...styles.metaContainer, ...mobileMeta }} className="book-card-meta">
         <AnimatePresence>
-          {hovered && (
+          {showMeta && (
             <motion.div
-              initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
-              transition={{ duration: 0.15 }}
-              style={{ pointerEvents: 'none' }}
+              initial={isMobile ? undefined : { opacity: 0, y: 6, filter: 'blur(2px)' }}
+              animate={isMobile ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={isMobile ? undefined : { opacity: 0, y: 6, filter: 'blur(2px)' }}
+              transition={isMobile ? { duration: 0 } : { duration: 0.15 }}
+              style={{ pointerEvents: 'none', width: '100%', overflow: 'hidden' }}
             >
-              <h4 style={styles.bookTitle}>
+              <h4 style={{ ...styles.bookTitle, ...mobileTitleStyle }}>
                 {book.title}
               </h4>
-              <p className="handwritten" style={styles.bookAuthor}>
+              <p className="handwritten" style={{ ...styles.bookAuthor, ...mobileAuthorStyle }}>
                 {book.authors.join(', ')}
               </p>
             </motion.div>
@@ -996,7 +1052,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   booksGrid: {
     display: 'grid',
-    gap: '32px', // Comfortable spacing for larger cards
+    // gap and grid-template-columns are handled by .books-grid CSS class and its mobile media query
     width: '100%',
     paddingBottom: '24px',
   },
@@ -1007,6 +1063,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     alignItems: 'center',
     position: 'relative',
+    width: '100%', // Always fill the grid cell — prevents asymmetric sizing
   },
   coverWrapper: {
     borderRadius: '0px',
@@ -1040,12 +1097,15 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#FFFDFB',
   },
   metaContainer: {
-    height: '80px', // Increased height
-    width: '180px',
-    marginTop: '20px', // Increased gap from cover
+    height: '80px',
+    width: '100%', // Fill the card column — never fixed px so it can't overflow narrow mobile columns
+    maxWidth: '180px',
+    marginTop: '20px',
+    overflow: 'hidden', // Clip any child that overflows
+    boxSizing: 'border-box',
   },
   bookTitle: {
-    fontSize: '18px', // Increased title size
+    fontSize: '18px',
     fontWeight: 'bold',
     color: 'var(--text-primary)',
     margin: 0,
@@ -1054,16 +1114,18 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    maxWidth: '100%',
   },
   bookAuthor: {
-    fontSize: '18px', // Increased author size
-    fontWeight: '600', // Increased weight
-    color: 'var(--accent-primary)', // Accent blue color
+    fontSize: '18px',
+    fontWeight: '600',
+    color: 'var(--accent-primary)',
     margin: '4px 0 0 0',
     textAlign: 'center',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    maxWidth: '100%',
   },
   emptySearchState: {
     gridColumn: 'span 6',

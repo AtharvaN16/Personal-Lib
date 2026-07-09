@@ -188,12 +188,12 @@ a {
   color: var(--accent-primary);
 }
 
-/* Responsive book grid: fluid columns instead of a fixed 6-up grid.
-   auto-fill + a capped max (not 1fr) keeps columns at card-width even
-   when there are only a few books, instead of stretching them apart
-   to fill the row. */
+/* Responsive book grid.
+   Desktop: fluid auto-fill columns capped at card width.
+   Mobile: strict 2-column grid with equal 1fr tracks. */
 .books-grid {
   grid-template-columns: repeat(auto-fill, minmax(140px, 180px));
+  gap: 32px;
   justify-content: center;
 }
 
@@ -205,6 +205,28 @@ a {
 .book-card-cover {
   width: 100%;
   aspect-ratio: 180 / 252;
+}
+
+@media (max-width: 640px) {
+  .books-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px 24px;
+    justify-content: stretch;
+  }
+
+  .book-card-container {
+    max-width: 100%;
+  }
+
+  .book-card-cover {
+    max-width: 120px !important;
+    margin: 0 auto !important;
+  }
+
+  body::after {
+    background: radial-gradient(ellipse 65vw 65vh at 50% 72%, rgba(0, 44, 188, 0.24) 0%, rgba(0, 44, 188, 0.06) 60%, transparent 100%) !important;
+    transform-origin: 50% 72% !important;
+  }
 }
 
 /* Responsive BookModal: stack to a single column on narrow viewports */
@@ -478,18 +500,25 @@ a {
   }
 
   .main-layout-mobile {
-    padding: 90px 20px 0 20px !important;
+    padding: 90px 0 0 0 !important; /* Remove side padding — the books section controls its own */
   }
 
   .hero-container-mobile {
     height: auto !important;
     min-height: 60vh !important;
     transform: none !important;
-    padding: 24px 0;
+    padding: 24px 20px; /* Add side padding back for hero content */
   }
 
   .books-section-mobile {
     margin-top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 20px !important; /* Equal gutters matching layout */
+    padding-right: 20px !important;
+    box-sizing: border-box !important;
   }
 }
 
