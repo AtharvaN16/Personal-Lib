@@ -57,14 +57,22 @@ create policy "Users can view their own books"
   on public.books for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own books" on public.books;
 create policy "Users can insert their own books"
   on public.books for insert
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and (location_id is null or location_id in (select id from public.shelves where user_id = auth.uid()))
+  );
 
+drop policy if exists "Users can update their own books" on public.books;
 create policy "Users can update their own books"
   on public.books for update
   using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and (location_id is null or location_id in (select id from public.shelves where user_id = auth.uid()))
+  );
 
 create policy "Users can delete their own books"
   on public.books for delete
