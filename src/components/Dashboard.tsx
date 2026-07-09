@@ -229,6 +229,11 @@ export default function Dashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
+                      setIsSearching(false);
+                      (e.target as HTMLInputElement).blur();
+                    } else if (e.key === 'Escape') {
+                      setIsSearching(false);
+                      setSearchQuery('');
                       (e.target as HTMLInputElement).blur();
                     }
                   }}
