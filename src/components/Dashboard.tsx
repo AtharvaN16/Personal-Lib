@@ -150,10 +150,6 @@ export default function Dashboard() {
     }
   };
 
-  // Distribute books between Left and Right columns to keep Center column clear
-  const leftBooks = books.filter((_, idx) => idx % 2 === 0);
-  const rightBooks = books.filter((_, idx) => idx % 2 !== 0);
-
   return (
     <div className="page-container" style={styles.frame}>
       {/* Design Header with Bottom Gradient Fade */}
@@ -181,75 +177,54 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* 3-Column Layout */}
+      {/* Unified Flex Layout with Hero Centered and 6-Column Shelf Peeking at Bottom */}
       <main style={styles.mainLayout}>
-        {/* Left Column (Masonry grid flow) */}
-        <div style={styles.sideColumn}>
-          <AnimatePresence>
-            {leftBooks.map((book) => (
-              <motion.div
-                key={book.id}
-                layout
-                initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
-                transition={{ duration: 0.3 }}
-              >
-                <BookCard 
-                  book={book} 
-                  onClick={setSelectedBook} 
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
         {/* Center Column (Hero Text / Action Space) */}
-        <div style={styles.centerColumn}>
-          <div style={styles.heroContainer}>
-            <h2 className="handwritten" style={styles.heroTitle}>
-              Your Quiet Reading Corner
-            </h2>
-            <p style={styles.heroSubtitle}>
-              Scan a book barcode to automatically log details, or explore the tabs to organize your shelves.
-            </p>
-            <button
-              onClick={() => setIsAddLocationOpen(true)}
-              className="btn-cozy sketch-border"
-              style={{
-                marginTop: '24px',
-                backgroundColor: 'var(--bg-sheet)',
-                border: '2px solid var(--border-sketch)',
-                padding: '8px 20px',
-                borderRadius: '4px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-              }}
-            >
-              + Add Location
-            </button>
-          </div>
+        <div style={styles.heroContainer}>
+          <h2 className="handwritten" style={styles.heroTitle}>
+            Your Quiet Reading Corner
+          </h2>
+          <p style={styles.heroSubtitle}>
+            Scan a book barcode to automatically log details, or explore the tabs to organize your shelves.
+          </p>
+          <button
+            onClick={() => setIsAddLocationOpen(true)}
+            className="btn-cozy"
+            style={{
+              marginTop: '20px',
+              backgroundColor: 'var(--bg-sheet)',
+              padding: '10px 24px',
+              borderRadius: '0px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
+            }}
+          >
+            + Add Location
+          </button>
         </div>
 
-        {/* Right Column (Masonry grid flow) */}
-        <div style={styles.sideColumn}>
-          <AnimatePresence>
-            {rightBooks.map((book) => (
-              <motion.div
-                key={book.id}
-                layout
-                initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
-                transition={{ duration: 0.3 }}
-              >
-                <BookCard 
-                  book={book} 
-                  onClick={setSelectedBook} 
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+        {/* 6-Column Shelf Grid Peeking above the fold */}
+        <div style={styles.booksSection}>
+          <div style={styles.booksGrid}>
+            <AnimatePresence>
+              {books.map((book) => (
+                <motion.div
+                  key={book.id}
+                  layout
+                  initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <BookCard 
+                    book={book} 
+                    onClick={setSelectedBook} 
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         </div>
       </main>
 
@@ -294,13 +269,13 @@ function BookCard({ book, onClick }: BookCardProps) {
       onMouseLeave={() => setHovered(false)}
       onClick={() => onClick(book)}
     >
-      {/* Cover Image Wrapper */}
+      {/* Cover Image Wrapper - Increased Size (150px x 210px) */}
       <motion.div
         animate={{
-          scale: hovered ? 1.03 : 1,
+          scale: hovered ? 1.04 : 1,
           boxShadow: hovered 
-            ? '0 16px 25px rgba(17, 22, 37, 0.15)' 
-            : '0 4px 10px rgba(17, 22, 37, 0.05)',
+            ? '0 20px 30px rgba(17, 22, 37, 0.18)' 
+            : '0 4px 12px rgba(17, 22, 37, 0.06)',
         }}
         transition={{ duration: 0.2 }}
         style={styles.coverWrapper}
@@ -320,14 +295,14 @@ function BookCard({ book, onClick }: BookCardProps) {
         )}
       </motion.div>
 
-      {/* Name and author fade in cleanly underneath on hover */}
+      {/* Name and author fade in cleanly underneath on hover - Larger Typography */}
       <div style={styles.metaContainer}>
         <AnimatePresence>
           {hovered && (
             <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
+              initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
               transition={{ duration: 0.15 }}
               style={{ pointerEvents: 'none' }}
             >
@@ -358,7 +333,7 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1000,
     width: '100%',
     background: 'linear-gradient(to bottom, var(--bg-primary) 75%, rgba(244, 242, 228, 0.9) 90%, rgba(244, 242, 228, 0) 100%)',
-    padding: '30px 40px 45px 40px',
+    padding: '24px 40px 36px 40px',
   },
   headerContent: {
     display: 'flex',
@@ -385,31 +360,17 @@ const styles: Record<string, React.CSSProperties> = {
   },
   mainLayout: {
     flex: 1,
-    display: 'grid',
-    gridTemplateColumns: '160px 1fr 160px',
-    gap: '40px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     width: '100%',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '0 40px 60px 40px',
-  },
-  sideColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '36px',
-    alignItems: 'center',
-    paddingTop: '20px',
-  },
-  centerColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '0 20px',
+    padding: '0 40px 0 40px',
+    overflowX: 'hidden',
   },
   heroContainer: {
     textAlign: 'center',
-    maxWidth: '500px',
+    maxWidth: '560px',
+    margin: '40px auto 20px auto',
   },
   heroTitle: {
     fontSize: '3rem',
@@ -422,9 +383,22 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-secondary)',
     lineHeight: '1.6',
   },
+  booksSection: {
+    width: '100%',
+    maxWidth: '1100px',
+    marginTop: 'auto', // Pushes section to the bottom of the viewport
+    paddingTop: '40px',
+  },
+  booksGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(6, 1fr)',
+    gap: '24px',
+    width: '100%',
+    paddingBottom: '24px',
+  },
   // BookCard styles
   cardContainer: {
-    width: '120px',
+    width: '150px', // Larger Card
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
@@ -432,8 +406,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
   },
   coverWrapper: {
-    width: '120px',
-    height: '168px',
+    width: '150px', // Larger Cover Width
+    height: '210px', // Larger Cover Height
     borderRadius: '0px',
     border: 'none',
     overflow: 'hidden',
@@ -456,29 +430,29 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'var(--bg-sheet)',
   },
   placeholderText: {
-    fontSize: '0.8rem',
+    fontSize: '0.9rem',
     lineHeight: '1.2',
   },
   metaContainer: {
-    height: '50px',
-    width: '120px',
-    marginTop: '10px',
+    height: '65px',
+    width: '150px',
+    marginTop: '12px',
   },
   bookTitle: {
-    fontSize: '0.85rem',
+    fontSize: '1rem', // Larger Font Size on Hover
     fontWeight: 'bold',
     color: 'var(--text-primary)',
     margin: 0,
-    lineHeight: '1.2',
+    lineHeight: '1.3',
     textAlign: 'center',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
   bookAuthor: {
-    fontSize: '0.75rem',
+    fontSize: '0.85rem', // Larger Font Size on Hover
     color: 'var(--text-secondary)',
-    margin: '2px 0 0 0',
+    margin: '4px 0 0 0',
     textAlign: 'center',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
