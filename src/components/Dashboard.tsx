@@ -363,14 +363,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   heroContainer: {
     textAlign: 'center',
-    maxWidth: '800px', // Wider container for full sentence flow
+    maxWidth: '1100px', // Increased width limit
     margin: 'auto auto 20px auto', // Vertical centering inside upper fold
   },
   heroTitle: {
-    fontSize: '2.5rem', // Clean sizing
+    fontSize: '32px', // Exactly 32px
     color: 'var(--text-primary)',
     lineHeight: '1.4',
-    fontWeight: 500, // Medium font weight
+    fontWeight: 'normal', // Regular weight
+    whiteSpace: 'nowrap', // Force 1 line
   },
   heroSubtitle: {
     fontSize: '1.1rem',
@@ -434,12 +435,12 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: '1.2',
   },
   metaContainer: {
-    height: '65px',
+    height: '80px', // Increased height
     width: '180px',
-    marginTop: '12px',
+    marginTop: '20px', // Increased gap from cover
   },
   bookTitle: {
-    fontSize: '1rem',
+    fontSize: '18px', // Increased title size
     fontWeight: 'bold',
     color: 'var(--text-primary)',
     margin: 0,
@@ -450,7 +451,7 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: 'ellipsis',
   },
   bookAuthor: {
-    fontSize: '0.85rem',
+    fontSize: '15px', // Increased author size
     color: 'var(--text-secondary)',
     margin: '4px 0 0 0',
     textAlign: 'center',
