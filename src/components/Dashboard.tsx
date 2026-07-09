@@ -363,8 +363,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   heroContainer: {
     textAlign: 'center',
-    maxWidth: '1100px', // Increased width limit
-    margin: 'auto auto 20px auto', // Vertical centering inside upper fold
+    maxWidth: '1100px',
+    height: 'calc(100vh - 130px)', // Take up exact vertical viewport height below fixed header
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
   },
   heroTitle: {
     fontSize: '32px', // Exactly 32px
@@ -387,7 +391,7 @@ const styles: Record<string, React.CSSProperties> = {
   booksSection: {
     width: '95%', // Smaller margins
     maxWidth: '1400px', // Wider grid container
-    marginTop: 'auto',
+    marginTop: '-80px', // Pulls the top of the covers up to peek above the fold
     paddingTop: '40px',
   },
   booksGrid: {
