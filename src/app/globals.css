@@ -378,3 +378,110 @@ a {
   }
 }
 
+/* ---------------------------------------------------------------------- */
+/* Mobile header: hamburger + MPL wordmark + search icon (≤640px only)    */
+/* ---------------------------------------------------------------------- */
+
+.mobile-header-row {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .desktop-header-row {
+    display: none !important;
+  }
+
+  .mobile-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+.mobile-logo {
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin: 0;
+}
+
+.mobile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mobile-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Mobile hero: shrink the flipbook animation + tighten surrounding space */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .hero-animation-svg {
+    width: 100px !important;
+    height: 122px !important;
+  }
+
+  .hero-title-mobile {
+    font-size: 20px !important;
+    white-space: normal !important;
+    padding: 0 12px;
+  }
+
+  .main-layout-mobile {
+    padding: 110px 20px 0 20px !important;
+  }
+
+  .hero-container-mobile {
+    height: auto !important;
+    min-height: 60vh !important;
+    transform: none !important;
+    padding: 24px 0;
+  }
+
+  .books-section-mobile {
+    margin-top: 0 !important;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Mobile modal fixes: close button clipped off-screen, touch targets     */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  /* Root cause: BookModal/FilterPanel/ScanBookModal/ManageLocationsModal position their close
+     button at top: -36px relative to the panel, inside a backdrop with only 24px padding — that
+     clips the button above the visible viewport on narrow screens. Move it inside the panel with
+     a real touch target instead. */
+  .modal-close-btn {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+
+  .icon-btn {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
