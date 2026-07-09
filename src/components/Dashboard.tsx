@@ -746,6 +746,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
+    marginTop: '12px',
+    marginBottom: '12px',
   },
   leftNav: {
     display: 'flex',
