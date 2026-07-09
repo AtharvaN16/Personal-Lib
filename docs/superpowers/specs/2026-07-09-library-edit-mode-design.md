@@ -34,12 +34,15 @@ Clicking `Edit` calls `enterEditMode()` (sets `isEditMode = true`; selection sta
 
 ### Mobile
 
-`mobile-header-actions` gains a third icon button, placed beside the existing search icon (before the hamburger), using the same `mobile-icon-btn` styling/hit-target as the search and menu icons — no separate hamburger-menu entry point, so entering/exiting edit mode never requires opening the menu.
+`mobile-header-actions` keeps its existing two-icon slot (search + second slot), but the second slot's icon/handler now depends on `headerCompact`/`isEditMode`, mirroring the desktop right-nav's Logout ↔ Edit ↔ Done swap:
 
-- Not editing: pencil/edit icon, `aria-label="Edit library"`, `onClick={enterEditMode}`.
-- Editing: the *same button slot* swaps its icon to a checkmark, `aria-label="Done editing"`, `onClick={exitEditMode}`.
+| State | Second icon slot shows |
+|---|---|
+| Not scrolled, not editing | Hamburger (unchanged, opens `MobileMenu` with Manage Locations/Logout as today) |
+| Scrolled, not editing | Pencil/edit icon, `aria-label="Edit library"`, `onClick={enterEditMode}` |
+| Editing (any scroll state) | Checkmark icon, `aria-label="Done editing"`, `onClick={exitEditMode}` |
 
-Search and hamburger icons remain visible and functional throughout — only the third icon swaps its icon/label/handler based on `isEditMode`. This replaces the earlier idea of a `MobileMenu` row and a title-replacing `Done` text button; there's no mobile `MobileMenu` change at all.
+All three render via the same `mobile-icon-btn` class/hit-target so the swap is purely icon+handler, no layout shift. The search icon (first slot) is unaffected in all three states. No changes to `MobileMenu` itself — Manage Locations/Logout remain reachable there exactly as today, only while unscrolled (matching how Logout is only reachable unscrolled on desktop too).
 
 ## Selection & Grid
 
