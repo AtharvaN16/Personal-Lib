@@ -444,7 +444,7 @@ export default function Dashboard() {
   return (
     <div className="page-container" style={styles.frame}>
       {/* Design Header with Bottom Gradient Fade */}
-      <header style={styles.header}>
+      <header style={styles.header} className="app-header">
         <motion.div
           className="desktop-header-row"
           style={styles.headerContent}

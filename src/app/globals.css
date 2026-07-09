@@ -331,7 +331,7 @@ a {
   .mobile-menu-panel {
     width: 100%;
     max-width: 100%;
-    margin-top: 110px; /* clears the fixed header */
+    margin-top: 90px; /* clears the fixed header */
     background: transparent; /* let the cinematic blurred backdrop show through */
     display: flex;
     flex-direction: column;
@@ -361,7 +361,7 @@ a {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    margin-top: 110px; /* clears the fixed header, matches the mobile menu's offset */
+    margin-top: 90px; /* clears the fixed header, matches the mobile menu's offset */
     padding: 16px 20px;
     display: flex;
     align-items: center;
@@ -418,6 +418,10 @@ a {
 }
 
 @media (max-width: 640px) {
+  .app-header {
+    padding: 20px 16px 20px 16px !important;
+  }
+
   .desktop-header-row {
     display: none !important;
   }
@@ -474,7 +478,7 @@ a {
   }
 
   .main-layout-mobile {
-    padding: 110px 20px 0 20px !important;
+    padding: 90px 20px 0 20px !important;
   }
 
   .hero-container-mobile {
