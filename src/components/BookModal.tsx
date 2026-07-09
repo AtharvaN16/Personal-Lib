@@ -130,63 +130,6 @@ export default function BookModal({
         style={styles.modal}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Floating Actions inside card - Shifted back to standard position */}
-        <div style={styles.modalActions}>
-          {/* Favorite Toggle Button (Heart) */}
-          <button 
-            onClick={handleFavoriteClick} 
-            style={{
-              ...styles.squareBtn,
-              color: book.favorite ? '#C77966' : 'var(--text-primary)'
-            }}
-            title="Favorites"
-          >
-            <span 
-              className="material-symbols-outlined" 
-              style={{ 
-                fontSize: '22px', // Larger
-                fontVariationSettings: book.favorite ? "'FILL' 1" : "'FILL' 0" 
-              }}
-            >
-              favorite
-            </span>
-          </button>
-
-          {/* Completed Toggle Button (Trophy) */}
-          <button 
-            onClick={handleCompletedClick} 
-            style={{
-              ...styles.squareBtn,
-              color: book.status === 'Completed' ? '#D4A373' : 'var(--text-primary)'
-            }}
-            title="Completed status"
-          >
-            <span 
-              className="material-symbols-outlined" 
-              style={{ 
-                fontSize: '22px', // Larger
-                fontVariationSettings: book.status === 'Completed' ? "'FILL' 1" : "'FILL' 0" 
-              }}
-            >
-              trophy
-            </span>
-          </button>
-
-          {/* Delete Button (Trash) */}
-          <button 
-            onClick={handleDeleteClick} 
-            style={{
-              ...styles.squareBtn,
-              color: '#8B1E1E'
-            }}
-            title="Delete book"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
-              delete
-            </span>
-          </button>
-        </div>
-
         {/* Close Button - Positioned above the card on the top right */}
         <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
           CLOSE
@@ -209,6 +152,64 @@ export default function BookModal({
 
           {/* Right Column - Scrollable Information */}
           <div style={styles.rightCol}>
+            
+            {/* Inline Action Buttons Row - Avoids title overlaps, makes buttons larger */}
+            <div style={styles.actionButtonsRow}>
+              {/* Favorite Toggle Button (Heart) */}
+              <button 
+                onClick={handleFavoriteClick} 
+                style={{
+                  ...styles.squareBtn,
+                  color: book.favorite ? '#C77966' : 'var(--text-primary)'
+                }}
+                title="Favorites"
+              >
+                <span 
+                  className="material-symbols-outlined" 
+                  style={{ 
+                    fontSize: '24px', // Bigger
+                    fontVariationSettings: book.favorite ? "'FILL' 1" : "'FILL' 0" 
+                  }}
+                >
+                  favorite
+                </span>
+              </button>
+
+              {/* Completed Toggle Button (Trophy) */}
+              <button 
+                onClick={handleCompletedClick} 
+                style={{
+                  ...styles.squareBtn,
+                  color: book.status === 'Completed' ? '#D4A373' : 'var(--text-primary)'
+                }}
+                title="Completed status"
+              >
+                <span 
+                  className="material-symbols-outlined" 
+                  style={{ 
+                    fontSize: '24px', // Bigger
+                    fontVariationSettings: book.status === 'Completed' ? "'FILL' 1" : "'FILL' 0" 
+                  }}
+                >
+                  trophy
+                </span>
+              </button>
+
+              {/* Delete Button (Trash) */}
+              <button 
+                onClick={handleDeleteClick} 
+                style={{
+                  ...styles.squareBtn,
+                  color: '#8B1E1E'
+                }}
+                title="Delete book"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                  delete
+                </span>
+              </button>
+            </div>
+
             <div style={styles.headerInfo}>
               <h2 style={styles.title}>
                 {book.title}
@@ -415,16 +416,14 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'opacity 0.2s ease',
     padding: 0,
   },
-  modalActions: {
-    position: 'absolute',
-    top: '20px',
-    right: '20px', // Standard position inside card
+  actionButtonsRow: {
     display: 'flex',
-    gap: '8px',
+    gap: '12px',
+    marginBottom: '8px',
   },
   squareBtn: {
-    width: '40px', // Larger button
-    height: '40px', // Larger button
+    width: '44px', // Bigger button target
+    height: '44px', // Bigger button target
     border: 'none',
     backgroundColor: 'var(--bg-sheet)',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
@@ -454,7 +453,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '210px',
     borderRadius: '0px',
     overflow: 'hidden',
-    boxShadow: '0 10px 25px rgba(17, 22, 37, 0.12)', // Softened, non-harsh drop shadow
+    boxShadow: '0 10px 25px rgba(17, 22, 37, 0.12)', // Softened drop shadow
     border: 'none',
     backgroundColor: 'var(--bg-sheet)',
   },
@@ -476,7 +475,7 @@ const styles: Record<string, React.CSSProperties> = {
   rightCol: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px',
+    gap: '20px',
     flex: 1,
     overflowY: 'auto',
     paddingRight: '8px',
@@ -491,7 +490,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 'bold',
     color: 'var(--accent-primary)', // Accent primary blue
     lineHeight: '1.2',
-    maxWidth: '380px', // Prevents overlapping with actions
+    maxWidth: '420px', // Clean maximum width
   },
   author: {
     fontSize: '1.25rem',
