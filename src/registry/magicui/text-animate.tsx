@@ -10,6 +10,8 @@ type AnimationType = 'blurIn' | 'fadeIn' | 'slideUp';
 export interface Highlight {
   match: string;
   onClick?: () => void;
+  /** Renders a small dot immediately before this word, e.g. to indicate an active/applied state. */
+  badge?: boolean;
 }
 
 interface TextAnimateProps {
@@ -44,6 +46,7 @@ interface RenderNode {
   isSpace: boolean;
   onClick?: () => void;
   isHighlight?: boolean;
+  badge?: boolean;
 }
 
 /** Groups raw word/space segments into plain nodes and multi-word highlight matches. */
@@ -90,6 +93,7 @@ function buildRenderNodes(segments: string[], highlights: Highlight[]): RenderNo
           isSpace: false,
           onClick: highlight.onClick,
           isHighlight: true,
+          badge: highlight.badge,
         };
         consumedSegments = consumed;
         break;
@@ -201,24 +205,39 @@ export function TextAnimate({
             <motion.span
               key={idx}
               variants={selectedVariants}
-              onClick={node.onClick}
-              style={{
-                display: 'inline-block',
-                fontStyle: 'italic',
-                color: 'var(--accent-primary)',
-                textDecoration: 'underline wavy var(--accent-primary)',
-                textDecorationThickness: '1.5px',
-                position: 'relative',
-                ...(isClickable ? {
-                  cursor: 'pointer',
-                  // Expand click target footprint
-                  padding: '10px 14px',
-                  margin: '-10px -14px',
-                  zIndex: 10,
-                } : {})
-              }}
+              style={{ display: 'inline-block' }}
             >
-              {node.text}
+              {node.badge && (
+                <span style={{
+                  display: 'inline-block',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--accent-primary)',
+                  marginRight: '12px',
+                  verticalAlign: 'middle',
+                }} />
+              )}
+              <span
+                onClick={node.onClick}
+                style={{
+                  display: 'inline-block',
+                  fontStyle: 'italic',
+                  color: 'var(--accent-primary)',
+                  textDecoration: 'underline wavy var(--accent-primary)',
+                  textDecorationThickness: '1.5px',
+                  position: 'relative',
+                  ...(isClickable ? {
+                    cursor: 'pointer',
+                    // Expand click target footprint
+                    padding: '10px 14px',
+                    margin: '-10px -14px',
+                    zIndex: 10,
+                  } : {})
+                }}
+              >
+                {node.text}
+              </span>
             </motion.span>
           );
         }

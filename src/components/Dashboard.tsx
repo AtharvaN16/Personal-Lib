@@ -139,6 +139,10 @@ export default function Dashboard() {
   const [isSearching, setIsSearching] = useState(false);
   const [isHeaderSearching, setIsHeaderSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // The query actually applied to the grid/"Currently showing" — only updated on a confirmed
+  // (Enter) search, so an unconfirmed/abandoned query never leaves the grid stuck empty. See
+  // `appliedQuery` below.
+  const [committedQuery, setCommittedQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [books, setBooks] = useState<Book[]>(defaultMockBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
@@ -196,7 +200,18 @@ export default function Dashboard() {
     if (matchedCount === 0 && query !== '') {
       showToast(`No books match "${searchQuery}"`);
       setSearchQuery('');
+      setCommittedQuery('');
+    } else {
+      setCommittedQuery(searchQuery);
     }
+  };
+
+  // Clearing (the pill's × button, or the header's "Clear search") resets both the typed text and
+  // whatever's actually applied to the grid — unlike Escape/outside-click, which only abandon an
+  // unconfirmed edit and deliberately leave a previously committed search in place.
+  const clearSearch = () => {
+    setSearchQuery('');
+    setCommittedQuery('');
   };
 
   // Load books from Supabase on mount
@@ -306,12 +321,24 @@ export default function Dashboard() {
     : filterMode === 'location' && filterRoom ? `Books in ${filterRoom}`
     : 'Entire catalog';
 
-  // Once a search is committed (Enter pressed, at least one match found), "Currently showing"
-  // reflects the matched book instead of the active filter, until the search is cleared.
-  const activeSearchMatches = searchQuery
-    ? books.filter(b => bookMatchesQuery(b, normalizeQuery(searchQuery)))
+  // While a search pill is open, the grid/"Currently showing" live-preview whatever is typed.
+  // Once closed, they fall back to the last *confirmed* (Enter) query instead of the raw typed
+  // text — so abandoning a zero-match search (Escape/outside-click) can't leave the grid stuck
+  // empty. The typed text itself (searchQuery) is untouched either way, so reopening the pill
+  // shows exactly what was left there.
+  const appliedQuery = (isSearching || isHeaderSearching) ? searchQuery : committedQuery;
+
+  // Once a search is applied (at least one match found), "Currently showing" reflects the
+  // matched book(s) instead of the active filter, until the search is cleared. The grid itself
+  // already shows every match — this label just needs to stop implying there's only one.
+  const activeSearchMatches = appliedQuery
+    ? books.filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)))
     : [];
-  const displayLabel = activeSearchMatches.length > 0 ? activeSearchMatches[0].title : filterLabel;
+  const otherMatchCount = activeSearchMatches.length - 1;
+  const displayLabel =
+    activeSearchMatches.length === 0 ? filterLabel
+    : activeSearchMatches.length === 1 ? activeSearchMatches[0].title
+    : `${activeSearchMatches[0].title} and ${otherMatchCount} other${otherMatchCount === 1 ? '' : 's'}`;
 
   const searchContent = (
     <h1 className="display-serif" style={{ ...styles.heroTitle, whiteSpace: 'normal' }}>
@@ -320,7 +347,8 @@ export default function Dashboard() {
         value={searchQuery}
         onChange={setSearchQuery}
         onEnter={() => { commitSearch(); setIsSearching(false); }}
-        onEscape={() => { setIsSearching(false); setSearchQuery(''); }}
+        onEscape={() => setIsSearching(false)}
+        onClear={clearSearch}
         fontSize={32}
         autoFocus
       />
@@ -357,7 +385,7 @@ export default function Dashboard() {
       className="display-serif"
       style={{ ...styles.heroTitle, whiteSpace: 'normal' }}
       highlights={[
-        { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); } },
+        { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); }, badge: !!committedQuery },
         { match: 'Scan', onClick: () => setIsScanModalOpen(true) },
         { match: displayLabel, onClick: () => setIsFilterOpen(true) },
       ]}
@@ -420,7 +448,8 @@ export default function Dashboard() {
                     value={searchQuery}
                     onChange={setSearchQuery}
                     onEnter={() => { commitSearch(); setIsHeaderSearching(false); }}
-                    onEscape={() => { setIsHeaderSearching(false); setSearchQuery(''); }}
+                    onEscape={() => setIsHeaderSearching(false)}
+                    onClear={clearSearch}
                     fontSize={32}
                     autoFocus
                   />
@@ -445,7 +474,7 @@ export default function Dashboard() {
                   animate={{ opacity: 1, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
-                  onClick={() => searchQuery ? setSearchQuery('') : setIsHeaderSearching(true)}
+                  onClick={() => committedQuery ? clearSearch() : setIsHeaderSearching(true)}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -459,7 +488,7 @@ export default function Dashboard() {
                     textDecorationThickness: '1.5px',
                   }}
                 >
-                  {searchQuery ? 'Clear search' : 'Search'}
+                  {committedQuery ? 'Clear search' : 'Search'}
                 </motion.button>
               )}
             </AnimatePresence>
@@ -552,7 +581,7 @@ export default function Dashboard() {
           <div style={styles.booksGrid} className="books-grid">
             <AnimatePresence>
               {books
-                .filter(b => bookMatchesQuery(b, normalizeQuery(searchQuery)) && matchesFilter(b))
+                .filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)) && matchesFilter(b))
                 .map((book) => (
                   <motion.div
                     key={book.id}

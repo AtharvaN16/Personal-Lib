@@ -58,3 +58,44 @@ collapses at `scrollY >= 150`, but only re-expands at `scrollY <= 30`. A clamp-i
 dip from grid reflow lands in the dead zone between 30 and 150 and no longer flips
 the state. This is the same technique flagged as the fix for the hero-height issue
 above; worth applying there too when that one is picked up.
+
+## Hero text visibly jumps when entering/leaving search (not fixed)
+
+**Where:** `src/components/Dashboard.tsx:330-407` (`searchContent`, `staticContent`,
+`heroContent`), and `src/registry/magicui/text-animate.tsx`.
+
+`staticContent` and `searchContent` look like two states of the same sentence
+crossfading, but they're actually two **structurally different** DOM trees, overlaid
+and toggled via `opacity`/`filter: blur()` (`heroContent`, `Dashboard.tsx:384-407`):
+
+- `staticContent` renders via `TextAnimate` with `by="word"`, which splits the whole
+  sentence into individual `motion.span` elements (one per word, `display:inline-block`).
+- `searchContent` renders the trailing text ("for the books in your library...") as one
+  continuous `<span>` with `opacity:0.4, filter:blur(5px)` — not word-split at all, and
+  styled differently (always-dimmed vs `TextAnimate`'s per-word stagger-in).
+
+Per-word `inline-block` spans and one continuous text run don't lay out pixel-identically
+— kerning, wrap points, and word positions drift slightly between the two trees. So the
+"crossfade" isn't smoothly morphing one sentence into another; it's fading out one layout
+and fading in a *different* one that happens to occupy roughly the same space. The visible
+jump when clicking "Search"/closing search is that structural mismatch, not a missing
+CSS transition — no amount of easing/duration tuning on the existing crossfade fixes it.
+
+**Real fix (not yet implemented):** extend `TextAnimate`'s `highlights` API with an
+optional custom-render override (e.g. `{ match: 'Search', render: () => <SearchPill .../> }`)
+so the "Search" word can swap to the pill *within the same tree* `TextAnimate` already
+builds, and move the "rest of sentence" dimming into `TextAnimate` itself (a per-word
+opacity/blur applied to every span except the active one) rather than a separately
+structured `<span>`. End state: one `TextAnimate` instance rendered the whole time in the
+hero — only the first word's content changes between "clickable text" and "pill" — instead
+of two independently-built trees crossfading. This is real scope: it changes the shared
+`TextAnimate` component's public API, not just `Dashboard.tsx`.
+
+**Lighter mitigation (not yet tried):** without touching `TextAnimate`, get
+`searchContent`'s trailing `<span>` to match `staticContent`'s per-word `inline-block`
+span structure as closely as possible (same word-splitting, same stagger styling, just
+permanently dimmed). Lower risk, but doesn't eliminate the two-tree crossfade or
+guarantee pixel parity — treat as a stopgap, not the real fix.
+
+**Status:** open, not started. User chose to log this rather than implement either
+option yet.
