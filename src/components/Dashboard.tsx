@@ -891,7 +891,7 @@ export default function Dashboard() {
           </motion.button>
         )}
 
-        {isDeleteConfirming && (
+        {isDeleteConfirming && selectedBookIds.size > 0 && (
           <motion.div
             key="delete-confirm-card"
             initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
