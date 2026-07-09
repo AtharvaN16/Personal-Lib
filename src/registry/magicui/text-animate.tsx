@@ -127,6 +127,11 @@ export function TextAnimate({
                 color: 'var(--accent-primary)',
                 textDecoration: 'underline wavy var(--accent-primary)',
                 textDecorationThickness: '1.5px',
+                // Expand click target footprint
+                padding: '10px 14px',
+                margin: '-10px -14px',
+                position: 'relative',
+                zIndex: 10,
               }}
             >
               {segment}

@@ -70,8 +70,8 @@ export default function Dashboard() {
     if (!isSearching) return;
 
     const handleOutsideClick = (e: MouseEvent) => {
-      const hero = document.getElementById('hero-search-container');
-      if (hero && !hero.contains(e.target as Node)) {
+      const input = document.getElementById('hero-search-input');
+      if (input && !input.contains(e.target as Node)) {
         setIsSearching(false);
       }
     };
@@ -222,6 +222,7 @@ export default function Dashboard() {
                   Search
                 </span>
                 <input
+                  id="hero-search-input"
                   autoFocus
                   type="text"
                   value={searchQuery}
@@ -258,10 +259,10 @@ export default function Dashboard() {
                 {searchQuery && (
                   <span style={{
                     position: 'absolute',
-                    left: `${Math.max(105, searchQuery.length * 15 + 10)}px`,
-                    top: '55%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
+                    left: `${Math.max(105, searchQuery.length * 15 + 12)}px`,
+                    top: '50%',
+                    transform: 'translateY(-55%)',
+                    fontSize: '15px', // Larger
                     color: 'var(--text-tertiary)',
                     fontFamily: 'var(--font-instrument-sans), sans-serif',
                     whiteSpace: 'nowrap',
@@ -494,6 +495,8 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: '1.4',
     fontWeight: 'normal', // Regular weight
     whiteSpace: 'nowrap', // Force 1 line
+    userSelect: 'none', // Prevent browser selection highlight on click
+    WebkitUserSelect: 'none',
   },
   heroSubtitle: {
     fontSize: '1.1rem',
