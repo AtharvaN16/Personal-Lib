@@ -156,7 +156,7 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button - CLOSE text in all caps */}
-        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
+        <button onClick={onClose} style={styles.closeBtn} className="modal-close-btn" aria-label="Close">
           CLOSE
         </button>
 

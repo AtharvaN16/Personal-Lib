@@ -222,7 +222,7 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button - Positioned above the card on the top right, matching BookModal */}
-        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
+        <button onClick={onClose} style={styles.closeBtn} className="modal-close-btn" aria-label="Close">
           CLOSE
         </button>
 

@@ -90,7 +90,7 @@ export default function FilterPanel({ mode, room, rooms, onApply, onClose }: Fil
         style={{ ...styles.modal, outline: 'none' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
+        <button onClick={onClose} style={styles.closeBtn} className="modal-close-btn" aria-label="Close">
           CLOSE
         </button>
 

@@ -258,7 +258,7 @@ export default function BookModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button - Positioned above the card on the top right */}
-        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
+        <button onClick={onClose} style={styles.closeBtn} className="modal-close-btn" aria-label="Close">
           CLOSE
         </button>
 
