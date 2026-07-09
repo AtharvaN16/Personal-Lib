@@ -70,8 +70,8 @@ export default function Dashboard() {
     if (!isSearching) return;
 
     const handleOutsideClick = (e: MouseEvent) => {
-      const input = document.getElementById('hero-search-input');
-      if (input && !input.contains(e.target as Node)) {
+      const wrapper = document.getElementById('hero-search-wrapper');
+      if (wrapper && !wrapper.contains(e.target as Node)) {
         setIsSearching(false);
       }
     };
@@ -209,8 +209,17 @@ export default function Dashboard() {
         <div id="hero-search-container" style={styles.heroContainer}>
           {isSearching ? (
             <h1 className="display-serif" style={{ ...styles.heroTitle, position: 'relative' }}>
-              <span style={{ position: 'relative', display: 'inline-block', verticalAlign: 'baseline' }}>
-                {/* Bounding box matches exact dimensions of input text */}
+              <span id="hero-search-wrapper" style={{
+                position: 'relative',
+                display: 'inline-block',
+                backgroundColor: 'rgba(0, 44, 188, 0.06)',
+                borderRadius: '4px',
+                padding: '0 8px',
+                margin: '0 -8px',
+                transition: 'background-color 0.2s ease',
+                verticalAlign: 'baseline',
+              }}>
+                {/* Dynamically matches input text size so the blue container wraps exactly */}
                 <span style={{ 
                   visibility: 'hidden', 
                   fontStyle: 'italic', 
@@ -219,7 +228,7 @@ export default function Dashboard() {
                   fontWeight: 'normal', 
                   lineHeight: '1.4' 
                 }}>
-                  Search
+                  {searchQuery || 'Search'}
                 </span>
                 <input
                   id="hero-search-input"
@@ -240,8 +249,9 @@ export default function Dashboard() {
                   placeholder="Search"
                   style={{
                     position: 'absolute',
-                    left: 0,
+                    left: '8px',
                     top: 0,
+                    width: 'calc(100% - 16px)', // Hugs wrapper size exactly
                     fontFamily: 'var(--font-newsreader), Georgia, serif',
                     fontWeight: 'normal',
                     fontSize: '32px',
@@ -252,7 +262,6 @@ export default function Dashboard() {
                     outline: 'none',
                     textDecoration: 'underline wavy var(--accent-primary)',
                     textDecorationThickness: '1.5px',
-                    width: '600px', // Static wide width sits over text without expanding/pushing layout
                     lineHeight: '1.4',
                     height: '100%',
                     padding: 0,
@@ -264,7 +273,7 @@ export default function Dashboard() {
                 {searchQuery && (
                   <span style={{
                     position: 'absolute',
-                    left: `${Math.max(105, searchQuery.length * 15 + 12)}px`,
+                    right: '-75px', // Situate next to dynamic text end
                     top: '50%',
                     transform: 'translateY(-55%)',
                     fontSize: '15px', // Larger
@@ -280,12 +289,15 @@ export default function Dashboard() {
                 )}
               </span>
               <span style={{ 
+                position: 'absolute',
+                left: '130px', // Stationary position offset
+                top: 0,
                 filter: 'blur(5px)', 
                 opacity: 0.4, 
                 transition: 'all 0.3s ease',
                 display: 'inline-block',
-                marginLeft: '12px',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none', // Click through blurred text to input
               }}>
                 for the books in your library. Scan to add new books
               </span>
@@ -312,30 +324,48 @@ export default function Dashboard() {
         <div style={styles.booksSection}>
           <div style={styles.booksGrid}>
             <AnimatePresence>
-              {books
-                .filter(b => {
-                  const query = searchQuery.toLowerCase().trim();
-                  if (!query) return true;
-                  return (
-                    b.title.toLowerCase().includes(query) ||
-                    b.authors.some(a => a.toLowerCase().includes(query))
-                  );
-                })
-                .map((book) => (
-                  <motion.div
-                    key={book.id}
-                    layout
-                    initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <BookCard 
-                      book={book} 
-                      onClick={setSelectedBook} 
-                    />
-                  </motion.div>
-                ))}
+              {books.filter(b => {
+                const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
+                if (!query) return true;
+                return (
+                  b.title.toLowerCase().includes(query) ||
+                  b.authors.some(a => a.toLowerCase().includes(query))
+                );
+              }).length > 0 ? (
+                books
+                  .filter(b => {
+                    const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
+                    if (!query) return true;
+                    return (
+                      b.title.toLowerCase().includes(query) ||
+                      b.authors.some(a => a.toLowerCase().includes(query))
+                    );
+                  })
+                  .map((book) => (
+                    <motion.div
+                      key={book.id}
+                      layout
+                      initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <BookCard 
+                        book={book} 
+                        onClick={setSelectedBook} 
+                      />
+                    </motion.div>
+                  ))
+              ) : (
+                <div style={styles.emptySearchState}>
+                  <p className="display-serif" style={{ fontSize: '22px', color: 'var(--text-secondary)' }}>
+                    No books matched your search
+                  </p>
+                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '6px', fontFamily: 'var(--font-instrument-sans), sans-serif' }}>
+                    Try checking for typos or searching for a different title or author.
+                  </p>
+                </div>
+              )}
             </AnimatePresence>
           </div>
         </div>
@@ -588,5 +618,14 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+  },
+  emptySearchState: {
+    gridColumn: 'span 6',
+    textAlign: 'center',
+    padding: '60px 20px',
+    backgroundColor: 'var(--bg-sheet)',
+    borderRadius: '0px',
+    boxShadow: '0 4px 15px rgba(17, 22, 37, 0.03)',
+    width: '100%',
   },
 };
