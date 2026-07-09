@@ -324,6 +324,7 @@ a {
     -webkit-backdrop-filter: blur(32px);
     z-index: 10000;
     display: flex;
+    align-items: flex-start; /* anchor content near the top instead of stretching full-height */
     justify-content: center;
   }
 
@@ -331,8 +332,7 @@ a {
     width: 100%;
     max-width: 100%;
     margin-top: 110px; /* clears the fixed header */
-    background: var(--bg-sheet);
-    box-shadow: 0 12px 30px rgba(17, 22, 37, 0.15);
+    background: transparent; /* let the cinematic blurred backdrop show through */
     display: flex;
     flex-direction: column;
     padding: 8px 0;
@@ -358,17 +358,19 @@ a {
 
   .mobile-search-panel {
     width: 100%;
-    margin-top: 90px; /* clears the fixed header */
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 110px; /* clears the fixed header, matches the mobile menu's offset */
     padding: 16px 20px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: var(--bg-sheet);
-    box-shadow: 0 12px 30px rgba(17, 22, 37, 0.15);
+    gap: 8px;
+    background: transparent; /* let the cinematic blurred backdrop show through */
   }
 
   .mobile-search-input {
     flex: 1;
+    min-width: 0; /* allow the input to shrink below its content size instead of overflowing the row */
     min-height: 44px;
     padding: 8px 14px;
     border: none;
@@ -381,6 +383,7 @@ a {
   }
 
   .mobile-search-clear {
+    flex-shrink: 0;
     min-width: 44px;
     min-height: 44px;
     background: none;
@@ -392,6 +395,7 @@ a {
   }
 
   .mobile-search-close {
+    flex-shrink: 0;
     min-height: 44px;
     padding: 0 4px;
     background: none;
