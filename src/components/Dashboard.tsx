@@ -118,7 +118,7 @@ export default function Dashboard() {
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 150], [1, 0]);
   const heroScale = useTransform(scrollY, [0, 150], [1, 0.95]);
-  const heroY = useTransform(scrollY, [0, 150], [-164, -194]);
+  const heroY = useTransform(scrollY, [0, 150], [-134, -164]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -648,6 +648,7 @@ interface BookCardProps {
 
 function BookCard({ book, onClick }: BookCardProps) {
   const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div
@@ -678,7 +679,7 @@ function BookCard({ book, onClick }: BookCardProps) {
         style={styles.coverWrapper}
         className="book-card-cover"
       >
-        {book.cover_url ? (
+        {book.cover_url && !imgError ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={book.cover_url}
@@ -687,6 +688,7 @@ function BookCard({ book, onClick }: BookCardProps) {
             draggable={false}
             loading="lazy"
             decoding="async"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div style={{ ...styles.placeholderCover, backgroundColor: getPlaceholderColor(book.title) }}>
@@ -736,7 +738,7 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1000,
     width: '100%',
     background: 'linear-gradient(to bottom, var(--bg-primary) 75%, rgba(244, 242, 228, 0.9) 90%, rgba(244, 242, 228, 0) 100%)',
-    padding: '24px 40px 36px 40px',
+    padding: '36px 40px 40px 40px',
   },
   headerContent: {
     position: 'relative',
@@ -744,6 +746,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
+    marginTop: '16px',
   },
   leftNav: {
     display: 'flex',
@@ -778,7 +781,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between', // Push grid to bottom edge
     width: '100%',
     minHeight: '100vh', // Make mainLayout fill height
-    padding: '130px 40px 0 40px', // Added 130px padding-top for fixed header offset
+    padding: '170px 40px 0 40px', // Added 170px padding-top for fixed header offset
     overflowX: 'hidden',
   },
   heroContainer: {
@@ -790,7 +793,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'column',
-    transform: 'translateY(-164px)', // Shift text slightly above center
+    transform: 'translateY(-134px)', // Shift text slightly above center
   },
   heroTitle: {
     fontSize: '32px', // Exactly 32px

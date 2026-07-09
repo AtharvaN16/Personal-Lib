@@ -67,6 +67,7 @@ export default function BookModal({
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isEditingAuthor, setIsEditingAuthor] = useState(false);
   const [authorDraft, setAuthorDraft] = useState('');
+  const [imgError, setImgError] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -356,9 +357,14 @@ export default function BookModal({
           {/* Left Column - Cover */}
           <div style={styles.leftCol} className="book-modal-left-col">
             <div style={styles.coverWrapper} className="book-modal-cover">
-              {book.cover_url ? (
+              {book.cover_url && !imgError ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={book.cover_url} alt={book.title} style={styles.coverImg} />
+                <img
+                  src={book.cover_url}
+                  alt={book.title}
+                  style={styles.coverImg}
+                  onError={() => setImgError(true)}
+                />
               ) : (
                 <div style={{ ...styles.placeholderCover, backgroundColor: getPlaceholderColor(book.title) }}>
                   <div style={{ ...styles.placeholderSpine, backgroundColor: getSpineColor(book.title) }} />

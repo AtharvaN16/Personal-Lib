@@ -191,7 +191,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     maxWidth: '360px',
     backgroundColor: 'var(--bg-sheet)',
-    padding: '28px 24px 24px 24px',
+    padding: '40px 24px 24px 24px',
     position: 'relative',
     maxHeight: '85vh',
     overflowY: 'auto',
@@ -200,12 +200,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   closeBtn: {
     position: 'absolute',
-    top: '-36px', // Positioned above the card, matching BookModal
-    right: '0px',
+    top: '20px',
+    right: '20px',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: 'var(--bg-sheet)', // Crisp white on dark backdrop
+    color: 'var(--text-secondary)',
     fontSize: '0.85rem',
     fontWeight: 'bold',
     letterSpacing: '0.1em',
