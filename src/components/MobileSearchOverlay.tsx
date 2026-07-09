@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface MobileSearchOverlayProps {
   value: string;
@@ -44,6 +44,22 @@ export default function MobileSearchOverlay({ value, onChange, onEnter, onClear,
         transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
         onClick={(e) => e.stopPropagation()}
       >
+        <AnimatePresence>
+          {value && (
+            <motion.button
+              className="mobile-search-clear"
+              onClick={onClear}
+              aria-label="Clear search"
+              initial={{ opacity: 0, width: 0, marginRight: 0, scale: 0.5 }}
+              animate={{ opacity: 1, width: '44px', marginRight: '8px', scale: 1 }}
+              exit={{ opacity: 0, width: 0, marginRight: 0, scale: 0.5 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ×
+            </motion.button>
+          )}
+        </AnimatePresence>
         <input
           ref={inputRef}
           type="text"
@@ -58,13 +74,8 @@ export default function MobileSearchOverlay({ value, onChange, onEnter, onClear,
           placeholder="Search your library"
           className="mobile-search-input"
         />
-        {value && (
-          <button className="mobile-search-clear" onClick={onClear} aria-label="Clear search">
-            ×
-          </button>
-        )}
         <button className="mobile-search-close" onClick={onClose} aria-label="Close search">
-          Cancel
+          Close
         </button>
       </motion.div>
     </div>

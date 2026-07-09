@@ -208,15 +208,18 @@ export function TextAnimate({
               style={{ display: 'inline-block' }}
             >
               {node.badge && (
-                <span style={{
-                  display: 'inline-block',
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--accent-primary)',
-                  marginRight: '12px',
-                  verticalAlign: 'middle',
-                }} />
+                <span
+                  className="text-animate-badge"
+                  style={{
+                    display: 'inline-block',
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--accent-primary)',
+                    marginRight: '12px',
+                    verticalAlign: 'middle',
+                  }}
+                />
               )}
               <span
                 onClick={node.onClick}
