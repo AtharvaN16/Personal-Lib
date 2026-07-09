@@ -329,6 +329,52 @@ a {
   .mobile-menu-row:active {
     background-color: var(--tag-bg);
   }
-}
 
+  .mobile-search-panel {
+    width: 100%;
+    margin-top: 90px; /* clears the fixed header */
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-sheet);
+    box-shadow: 0 12px 30px rgba(17, 22, 37, 0.15);
+  }
+
+  .mobile-search-input {
+    flex: 1;
+    min-height: 44px;
+    padding: 8px 14px;
+    border: none;
+    outline: none;
+    border-radius: 8px;
+    background: rgba(0, 44, 188, 0.06);
+    font-family: var(--font-instrument-sans), sans-serif;
+    font-size: 1rem;
+    color: var(--accent-primary);
+  }
+
+  .mobile-search-clear {
+    min-width: 44px;
+    min-height: 44px;
+    background: none;
+    border: none;
+    color: var(--accent-primary);
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .mobile-search-close {
+    min-height: 44px;
+    padding: 0 4px;
+    background: none;
+    border: none;
+    font-family: var(--font-instrument-sans), sans-serif;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+}
 
