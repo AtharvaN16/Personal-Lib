@@ -119,10 +119,6 @@ export default function Dashboard() {
   const heroOpacity = useTransform(scrollY, [0, 150], [1, 0]);
   const heroScale = useTransform(scrollY, [0, 150], [1, 0.95]);
   const heroY = useTransform(scrollY, [0, 150], [-134, -164]);
-  const filterOpacity = useTransform(scrollY, [0, 150], [0.4, 1.0]);
-  const filterBlurVal = useTransform(scrollY, [0, 150], [5, 0]);
-  const filterBlur = useTransform(filterBlurVal, (v) => v === 0 ? 'none' : `blur(${v}px)`);
-  const filterY = useTransform(scrollY, [0, 150], [0, -120]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -278,136 +274,121 @@ export default function Dashboard() {
 
   const searchContent = (
     <h1 className="display-serif" style={{ ...styles.heroTitle, whiteSpace: 'normal' }}>
-      <motion.span style={{ opacity: heroOpacity, display: 'inline' }}>
-        <span id="hero-search-wrapper" style={{
-          position: 'relative',
-          display: 'inline-block',
-          verticalAlign: 'baseline',
-          width: '280px',
-          height: '46px',
-        }}>
-          {/* Static hidden placeholder of "Search" so the rest of the sentence is placed correctly */}
-          <span style={{
-            visibility: 'hidden',
-            fontStyle: 'italic',
-            fontFamily: 'var(--font-newsreader), Georgia, serif',
-            fontSize: '32px',
-            fontWeight: 'normal',
-            lineHeight: '1.4',
-            opacity: 0.4,
-            filter: 'blur(5px)',
-          }}>
-            Search
-          </span>
-
-          <input
-            id="hero-search-input"
-            autoFocus
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
-                const matchedCount = books.filter(b => {
-                  if (!query) return true;
-                  return (
-                    b.title.toLowerCase().includes(query) ||
-                    b.authors.some(a => a.toLowerCase().includes(query))
-                  );
-                }).length;
-
-                if (matchedCount === 0 && query !== '') {
-                  showToast(`No books match "${searchQuery}"`);
-                  setSearchQuery('');
-                }
-                setIsSearching(false);
-                (e.target as HTMLInputElement).blur();
-              } else if (e.key === 'Escape') {
-                setIsSearching(false);
-                setSearchQuery('');
-                (e.target as HTMLInputElement).blur();
-              }
-            }}
-            placeholder="Search"
-            style={{
-              position: 'absolute',
-              left: `${pillLeft}px`, // Offset slightly to overlap the text naturally
-              top: '-6px',
-              fontFamily: 'var(--font-newsreader), Georgia, serif',
-              fontWeight: 'normal',
-              fontSize: '32px',
-              fontStyle: 'italic',
-              color: 'var(--accent-primary)',
-              backgroundColor: 'rgba(0, 44, 188, 0.06)', // Light blue container background
-              borderRadius: '8px', // Clean capsule border radius
-              padding: '6px 20px', // More padding to the search pill
-              border: 'none',
-              outline: 'none',
-              textDecoration: 'underline wavy var(--accent-primary)',
-              textDecorationThickness: '1.5px',
-              width: `${pillWidth}px`, // Dynamic width hugs content to prevent "h" cuts
-              lineHeight: '1.4',
-              height: 'calc(100% + 12px)',
-              margin: 0,
-              boxSizing: 'border-box',
-              zIndex: 10,
-            }}
-          />
-
-          {searchQuery && (
-            <span style={{
-              position: 'absolute',
-              left: `${pillWidth - 8}px`, // Dynamic offset pushed by the input width
-              top: '50%',
-              transform: 'translateY(-55%)',
-              fontSize: '15px',
-              color: 'var(--text-tertiary)',
-              fontFamily: 'var(--font-instrument-sans), sans-serif',
-              whiteSpace: 'nowrap',
-              pointerEvents: 'none',
-              opacity: 0.8,
-              fontWeight: 'bold',
-              zIndex: 20,
-            }}>
-              press ⏎
-            </span>
-          )}
-        </span>
-        <span style={{
-          filter: 'blur(5px)',
-          opacity: 0.4,
-          transition: 'all 0.5s ease',
-          display: 'inline',
-          marginLeft: '12px',
-        }}>
-          for the books in your library. Scan to add new books.
-        </span>
-      </motion.span>
-      <br />
-      <motion.span style={{
-        opacity: filterOpacity,
-        filter: filterBlur,
-        y: filterY,
+      <span id="hero-search-wrapper" style={{
+        position: 'relative',
         display: 'inline-block',
-        pointerEvents: 'auto',
+        verticalAlign: 'baseline',
       }}>
+        {/* Static hidden placeholder of "Search" so the rest of the sentence is placed correctly */}
+        <span style={{
+          visibility: 'hidden',
+          fontStyle: 'italic',
+          fontFamily: 'var(--font-newsreader), Georgia, serif',
+          fontSize: '32px',
+          fontWeight: 'normal',
+          lineHeight: '1.4',
+          opacity: 0.4,
+          filter: 'blur(5px)',
+        }}>
+          Search
+        </span>
+
+        <input
+          id="hero-search-input"
+          autoFocus
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
+              const matchedCount = books.filter(b => {
+                if (!query) return true;
+                return (
+                  b.title.toLowerCase().includes(query) ||
+                  b.authors.some(a => a.toLowerCase().includes(query))
+                );
+              }).length;
+
+              if (matchedCount === 0 && query !== '') {
+                showToast(`No books match "${searchQuery}"`);
+                setSearchQuery('');
+              }
+              setIsSearching(false);
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === 'Escape') {
+              setIsSearching(false);
+              setSearchQuery('');
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          placeholder="Search"
+          style={{
+            position: 'absolute',
+            left: `${pillLeft}px`, // Offset slightly to overlap the text naturally
+            top: '-6px',
+            fontFamily: 'var(--font-newsreader), Georgia, serif',
+            fontWeight: 'normal',
+            fontSize: '32px',
+            fontStyle: 'italic',
+            color: 'var(--accent-primary)',
+            backgroundColor: 'rgba(0, 44, 188, 0.06)', // Light blue container background
+            borderRadius: '8px', // Clean capsule border radius
+            padding: '6px 20px', // More padding to the search pill
+            border: 'none',
+            outline: 'none',
+            textDecoration: 'underline wavy var(--accent-primary)',
+            textDecorationThickness: '1.5px',
+            width: `${pillWidth}px`, // Dynamic width hugs content to prevent "h" cuts
+            lineHeight: '1.4',
+            height: 'calc(100% + 12px)',
+            margin: 0,
+            boxSizing: 'border-box',
+            zIndex: 10,
+          }}
+        />
+
+        {searchQuery && (
+          <span style={{
+            position: 'absolute',
+            left: `${pillWidth - 8}px`, // Dynamic offset pushed by the input width
+            top: '50%',
+            transform: 'translateY(-55%)',
+            fontSize: '15px',
+            color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-instrument-sans), sans-serif',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            opacity: 0.8,
+            fontWeight: 'bold',
+            zIndex: 20,
+          }}>
+            press ⏎
+          </span>
+        )}
+      </span>
+      <span style={{
+        filter: 'blur(5px)',
+        opacity: 0.4,
+        transition: 'all 0.5s ease',
+        display: 'inline',
+        marginLeft: '12px',
+      }}>
+        for the books in your library. Scan to add new books.
+        <br />
         Currently showing{' '}
         <span
-          onClick={() => setIsFilterOpen(true)}
           style={{
             color: 'var(--accent-primary)',
             textDecoration: 'underline wavy var(--accent-primary)',
             textDecorationThickness: '1.5px',
             fontStyle: 'italic',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
           }}
         >
           {filterLabel}
         </span>
         .
-      </motion.span>
+      </span>
     </h1>
   );
 
@@ -424,10 +405,6 @@ export default function Dashboard() {
         { match: filterLabel, onClick: () => setIsFilterOpen(true) },
       ]}
       disableAnimation={hasSearched}
-      scrollOpacity1={heroOpacity}
-      scrollOpacity2={filterOpacity}
-      scrollY2={filterY}
-      scrollFilter2={filterBlur}
     >
       {`Search for the books in your library. Scan to add new books.\nCurrently showing ${filterLabel}.`}
     </TextAnimate>
@@ -533,24 +510,21 @@ export default function Dashboard() {
           id="hero-search-container"
           style={{
             ...styles.heroContainer,
+            opacity: heroOpacity,
             scale: heroScale,
             y: heroY,
-            zIndex: 100, // Sits above grid so sticky title is visible
-            pointerEvents: isScrolled ? 'none' : 'auto', // Fall through clicks to books
           }}
         >
-          <motion.div style={{ opacity: heroOpacity, width: '100%' }}>
-            <div style={{
-              filter: isSearching ? 'blur(8px)' : 'blur(0px)',
-              opacity: isSearching ? 0.4 : 1,
-              transition: 'filter 0.6s ease, opacity 0.6s ease',
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-            }}>
-              <HeroAnimation />
-            </div>
-          </motion.div>
+          <div style={{
+            filter: isSearching ? 'blur(8px)' : 'blur(0px)',
+            opacity: isSearching ? 0.4 : 1,
+            transition: 'filter 0.6s ease, opacity 0.6s ease',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+          }}>
+            <HeroAnimation />
+          </div>
           {heroContent}
         </motion.div>
 
@@ -561,6 +535,38 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.5, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
         >
+          <AnimatePresence>
+            {isScrolled && (
+              <motion.div
+                key="scroll-filter-status"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                style={{
+                  textAlign: 'center',
+                  marginBottom: '40px',
+                  fontFamily: 'var(--font-newsreader), Georgia, serif',
+                  fontSize: '22px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Currently showing{' '}
+                <span
+                  style={{
+                    color: 'var(--accent-primary)',
+                    textDecoration: 'underline wavy var(--accent-primary)',
+                    textDecorationThickness: '1px',
+                    textUnderlineOffset: '4px',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {filterLabel}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div style={styles.booksGrid} className="books-grid">
             <AnimatePresence>
               {books
