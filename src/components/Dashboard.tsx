@@ -58,6 +58,8 @@ const defaultMockBooks: Book[] = [
 
 export default function Dashboard() {
   const supabase = createClient();
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [books, setBooks] = useState<Book[]>(defaultMockBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
@@ -183,36 +185,92 @@ export default function Dashboard() {
       <main style={styles.mainLayout}>
         {/* Center Column (Hero Text / Action Space) */}
         <div style={styles.heroContainer}>
-          {/* Using Newsreader Display Font with TextAnimate */}
-          <TextAnimate
-            animation="blurIn"
-            as="h1"
-            className="display-serif"
-            style={styles.heroTitle}
-          >
-            Search for the books in your library. Scan to add new books
-          </TextAnimate>
+          {isSearching ? (
+            <h1 className="display-serif" style={styles.heroTitle}>
+              <input
+                autoFocus
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onBlur={() => {
+                  if (!searchQuery) setIsSearching(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                placeholder="Search"
+                style={{
+                  fontFamily: 'var(--font-newsreader), Georgia, serif',
+                  fontWeight: 'normal',
+                  fontSize: '32px',
+                  fontStyle: 'italic',
+                  color: 'var(--accent-primary)',
+                  background: 'none',
+                  border: 'none',
+                  outline: 'none',
+                  textDecoration: 'underline wavy var(--accent-primary)',
+                  textDecorationThickness: '1.5px',
+                  width: searchQuery ? `${Math.max(100, searchQuery.length * 16)}px` : '100px',
+                  transition: 'width 0.1s ease',
+                  padding: 0,
+                  margin: 0,
+                }}
+              />
+              <span style={{ 
+                filter: 'blur(5px)', 
+                opacity: 0.4, 
+                transition: 'all 0.3s ease',
+                display: 'inline-block',
+                marginLeft: '12px',
+                whiteSpace: 'nowrap'
+              }}>
+                for the books in your library. Scan to add new books
+              </span>
+            </h1>
+          ) : (
+            /* Using Newsreader Display Font with TextAnimate */
+            <TextAnimate
+              animation="blurIn"
+              as="h1"
+              className="display-serif"
+              style={styles.heroTitle}
+              onSearchClick={() => setIsSearching(true)}
+            >
+              Search for the books in your library. Scan to add new books
+            </TextAnimate>
+          )}
         </div>
 
         {/* 6-Column Shelf Grid Peeking above the fold */}
         <div style={styles.booksSection}>
           <div style={styles.booksGrid}>
             <AnimatePresence>
-              {books.map((book) => (
-                <motion.div
-                  key={book.id}
-                  layout
-                  initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <BookCard 
-                    book={book} 
-                    onClick={setSelectedBook} 
-                  />
-                </motion.div>
-              ))}
+              {books
+                .filter(b => {
+                  const query = searchQuery.toLowerCase().trim();
+                  if (!query) return true;
+                  return (
+                    b.title.toLowerCase().includes(query) ||
+                    b.authors.some(a => a.toLowerCase().includes(query))
+                  );
+                })
+                .map((book) => (
+                  <motion.div
+                    key={book.id}
+                    layout
+                    initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <BookCard 
+                      book={book} 
+                      onClick={setSelectedBook} 
+                    />
+                  </motion.div>
+                ))}
             </AnimatePresence>
           </div>
         </div>

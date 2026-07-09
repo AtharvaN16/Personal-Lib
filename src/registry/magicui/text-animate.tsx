@@ -16,6 +16,7 @@ interface TextAnimateProps {
   style?: React.CSSProperties;
   duration?: number;
   delay?: number;
+  onSearchClick?: () => void;
 }
 
 // Static lookup mapping to prevent dynamic component creation during render
@@ -38,6 +39,7 @@ export function TextAnimate({
   style = {},
   duration = 0.5,
   delay = 0,
+  onSearchClick,
 }: TextAnimateProps) {
   const ContainerComponent = motionElements[as as string] || motion.p;
 
@@ -106,7 +108,28 @@ export function TextAnimate({
 
         // Clean punctuation to match "Search" and "Scan" keywords exactly
         const cleanWord = segment.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim().toLowerCase();
-        const isSearchOrScan = cleanWord === 'search' || cleanWord === 'scan';
+        const isSearch = cleanWord === 'search';
+        const isScan = cleanWord === 'scan';
+
+        if (isSearch) {
+          return (
+            <motion.span
+              key={idx}
+              variants={selectedVariants}
+              onClick={onSearchClick}
+              style={{ 
+                display: 'inline-block',
+                cursor: 'pointer',
+                fontStyle: 'italic',
+                color: 'var(--accent-primary)',
+                textDecoration: 'underline wavy var(--accent-primary)',
+                textDecorationThickness: '1.5px',
+              }}
+            >
+              {segment}
+            </motion.span>
+          );
+        }
 
         return (
           <motion.span
@@ -114,7 +137,7 @@ export function TextAnimate({
             variants={selectedVariants}
             style={{ 
               display: 'inline-block',
-              ...(isSearchOrScan ? {
+              ...(isScan ? {
                 fontStyle: 'italic',
                 color: 'var(--accent-primary)',
                 textDecoration: 'underline wavy var(--accent-primary)',
