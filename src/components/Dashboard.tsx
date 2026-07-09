@@ -65,6 +65,27 @@ export default function Dashboard() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
 
+  // Close search when clicking anywhere outside of it
+  useEffect(() => {
+    if (!isSearching) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      const hero = document.getElementById('hero-search-container');
+      if (hero && !hero.contains(e.target as Node)) {
+        setIsSearching(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [isSearching]);
+
   // Load books from Supabase on mount
   useEffect(() => {
     async function loadBooks() {
@@ -185,19 +206,26 @@ export default function Dashboard() {
       {/* Unified Flex Layout with Hero Centered and 6-Column Shelf Peeking at Bottom */}
       <main style={styles.mainLayout}>
         {/* Center Column (Hero Text / Action Space) */}
-        <div style={styles.heroContainer}>
+        <div id="hero-search-container" style={styles.heroContainer}>
           {isSearching ? (
             <h1 className="display-serif" style={{ ...styles.heroTitle, position: 'relative' }}>
-              <span style={{ position: 'relative', display: 'inline-block' }}>
-                <span style={{ visibility: 'hidden' }}>Search</span>
+              <span style={{ position: 'relative', display: 'inline-block', verticalAlign: 'baseline' }}>
+                {/* Bounding box matches exact dimensions of input text */}
+                <span style={{ 
+                  visibility: 'hidden', 
+                  fontStyle: 'italic', 
+                  fontFamily: 'var(--font-newsreader), Georgia, serif', 
+                  fontSize: '32px', 
+                  fontWeight: 'normal', 
+                  lineHeight: '1.4' 
+                }}>
+                  Search
+                </span>
                 <input
                   autoFocus
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onBlur={() => {
-                    if (!searchQuery) setIsSearching(false);
-                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       (e.target as HTMLInputElement).blur();
@@ -218,11 +246,32 @@ export default function Dashboard() {
                     outline: 'none',
                     textDecoration: 'underline wavy var(--accent-primary)',
                     textDecorationThickness: '1.5px',
-                    width: '600px', // Sits over text without expanding/pushing layout
+                    width: '600px', // Static wide width sits over text without expanding/pushing layout
+                    lineHeight: '1.4',
+                    height: '100%',
                     padding: 0,
                     margin: 0,
                   }}
                 />
+                
+                {/* Dynamic press enter hint */}
+                {searchQuery && (
+                  <span style={{
+                    position: 'absolute',
+                    left: `${Math.max(105, searchQuery.length * 15 + 10)}px`,
+                    top: '55%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '12px',
+                    color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-instrument-sans), sans-serif',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    opacity: 0.8,
+                    fontWeight: 'bold',
+                  }}>
+                    press ⏎
+                  </span>
+                )}
               </span>
               <span style={{ 
                 filter: 'blur(5px)', 
