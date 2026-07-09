@@ -10,7 +10,41 @@ import FilterPanel, { FilterMode } from '@/components/FilterPanel';
 import { createClient } from '@/lib/supabase/client';
 import { TextAnimate } from '@/registry/magicui/text-animate';
 import HeroAnimation from '@/components/HeroAnimation';
+import SearchPill from '@/components/SearchPill';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
+
+/** Closes an open search pill when the user clicks anywhere outside its wrapper element. */
+function useCloseOnOutsideClick(active: boolean, wrapperId: string, onClose: () => void) {
+  useEffect(() => {
+    if (!active) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      const wrapper = document.getElementById(wrapperId);
+      if (wrapper && !wrapper.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [active, wrapperId, onClose]);
+}
+
+const normalizeQuery = (query: string) => query.toLowerCase().trim().replace(/\s+/g, ' ');
+
+const bookMatchesQuery = (book: Book, normalizedQuery: string) => {
+  if (!normalizedQuery) return true;
+  return (
+    book.title.toLowerCase().includes(normalizedQuery) ||
+    book.authors.some(a => a.toLowerCase().includes(normalizedQuery))
+  );
+};
 
 // Pre-loaded mock books matching the styles in the mockup
 const defaultMockBooks: Book[] = [
@@ -103,6 +137,7 @@ const defaultMockBooks: Book[] = [
 export default function Dashboard() {
   const supabase = createClient();
   const [isSearching, setIsSearching] = useState(false);
+  const [isHeaderSearching, setIsHeaderSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [books, setBooks] = useState<Book[]>(defaultMockBooks);
@@ -132,7 +167,7 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
-  // Fade the header title into the Search/Scan/Filter words as soon as the page starts scrolling
+  // Fade the header title into the "Currently showing X" status as soon as the page starts scrolling
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY >= 150);
     handleScroll();
@@ -140,26 +175,20 @@ export default function Dashboard() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close search when clicking anywhere outside of it
-  useEffect(() => {
-    if (!isSearching) return;
+  // Close either search pill when clicking anywhere outside of it
+  useCloseOnOutsideClick(isSearching, 'hero-search-wrapper', () => setIsSearching(false));
+  useCloseOnOutsideClick(isHeaderSearching, 'header-search-wrapper', () => setIsHeaderSearching(false));
 
-    const handleOutsideClick = (e: MouseEvent) => {
-      const wrapper = document.getElementById('hero-search-wrapper');
-      if (wrapper && !wrapper.contains(e.target as Node)) {
-        setIsSearching(false);
-      }
-    };
+  // Shared Enter-to-search logic for both the hero and header search pills
+  const commitSearch = () => {
+    const query = normalizeQuery(searchQuery);
+    const matchedCount = books.filter(b => bookMatchesQuery(b, query)).length;
 
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleOutsideClick);
-    }, 50);
-
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('click', handleOutsideClick);
-    };
-  }, [isSearching]);
+    if (matchedCount === 0 && query !== '') {
+      showToast(`No books match "${searchQuery}"`);
+      setSearchQuery('');
+    }
+  };
 
   // Load books from Supabase on mount
   useEffect(() => {
@@ -268,105 +297,24 @@ export default function Dashboard() {
     : filterMode === 'location' && filterRoom ? `Books in ${filterRoom}`
     : 'Entire catalog';
 
-  const displayText = searchQuery || 'Search';
-  const pillWidth = Math.max(120, displayText.length * 16 + 40);
-  const pillLeft = -20;
+  // Once a search is committed (Enter pressed, at least one match found), "Currently showing"
+  // reflects the matched book instead of the active filter, until the search is cleared.
+  const activeSearchMatches = searchQuery
+    ? books.filter(b => bookMatchesQuery(b, normalizeQuery(searchQuery)))
+    : [];
+  const displayLabel = activeSearchMatches.length > 0 ? activeSearchMatches[0].title : filterLabel;
 
   const searchContent = (
     <h1 className="display-serif" style={{ ...styles.heroTitle, whiteSpace: 'normal' }}>
-      <span id="hero-search-wrapper" style={{
-        position: 'relative',
-        display: 'inline-block',
-        verticalAlign: 'baseline',
-      }}>
-        {/* Static hidden placeholder of "Search" so the rest of the sentence is placed correctly */}
-        <span style={{
-          visibility: 'hidden',
-          fontStyle: 'italic',
-          fontFamily: 'var(--font-newsreader), Georgia, serif',
-          fontSize: '32px',
-          fontWeight: 'normal',
-          lineHeight: '1.4',
-          opacity: 0.4,
-          filter: 'blur(5px)',
-        }}>
-          Search
-        </span>
-
-        <input
-          id="hero-search-input"
-          autoFocus
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
-              const matchedCount = books.filter(b => {
-                if (!query) return true;
-                return (
-                  b.title.toLowerCase().includes(query) ||
-                  b.authors.some(a => a.toLowerCase().includes(query))
-                );
-              }).length;
-
-              if (matchedCount === 0 && query !== '') {
-                showToast(`No books match "${searchQuery}"`);
-                setSearchQuery('');
-              }
-              setIsSearching(false);
-              (e.target as HTMLInputElement).blur();
-            } else if (e.key === 'Escape') {
-              setIsSearching(false);
-              setSearchQuery('');
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
-          placeholder="Search"
-          style={{
-            position: 'absolute',
-            left: `${pillLeft}px`, // Offset slightly to overlap the text naturally
-            top: '-6px',
-            fontFamily: 'var(--font-newsreader), Georgia, serif',
-            fontWeight: 'normal',
-            fontSize: '32px',
-            fontStyle: 'italic',
-            color: 'var(--accent-primary)',
-            backgroundColor: 'rgba(0, 44, 188, 0.06)', // Light blue container background
-            borderRadius: '8px', // Clean capsule border radius
-            padding: '6px 20px', // More padding to the search pill
-            border: 'none',
-            outline: 'none',
-            textDecoration: 'underline wavy var(--accent-primary)',
-            textDecorationThickness: '1.5px',
-            width: `${pillWidth}px`, // Dynamic width hugs content to prevent "h" cuts
-            lineHeight: '1.4',
-            height: 'calc(100% + 12px)',
-            margin: 0,
-            boxSizing: 'border-box',
-            zIndex: 10,
-          }}
-        />
-
-        {searchQuery && (
-          <span style={{
-            position: 'absolute',
-            left: `${pillWidth - 8}px`, // Dynamic offset pushed by the input width
-            top: '50%',
-            transform: 'translateY(-55%)',
-            fontSize: '15px',
-            color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-instrument-sans), sans-serif',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            opacity: 0.8,
-            fontWeight: 'bold',
-            zIndex: 20,
-          }}>
-            press ⏎
-          </span>
-        )}
-      </span>
+      <SearchPill
+        id="hero-search-wrapper"
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onEnter={() => { commitSearch(); setIsSearching(false); }}
+        onEscape={() => { setIsSearching(false); setSearchQuery(''); }}
+        fontSize={32}
+        autoFocus
+      />
       <span style={{
         filter: 'blur(5px)',
         opacity: 0.4,
@@ -385,7 +333,7 @@ export default function Dashboard() {
             fontStyle: 'italic',
           }}
         >
-          {filterLabel}
+          {displayLabel}
         </span>
         .
       </span>
@@ -402,11 +350,11 @@ export default function Dashboard() {
       highlights={[
         { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); } },
         { match: 'Scan', onClick: () => setIsScanModalOpen(true) },
-        { match: filterLabel, onClick: () => setIsFilterOpen(true) },
+        { match: displayLabel, onClick: () => setIsFilterOpen(true) },
       ]}
       disableAnimation={hasSearched}
     >
-      {`Search for the books in your library. Scan to add new books.\nCurrently showing ${filterLabel}.`}
+      {`Search for the books in your library. Scan to add new books.\nCurrently showing ${displayLabel}.`}
     </TextAnimate>
   );
 
@@ -446,19 +394,72 @@ export default function Dashboard() {
           transition={{ delay: 1.8, duration: 0.8, ease: 'easeOut' }}
         >
           <div style={styles.leftNav}>
-            <button
-              onClick={() => setIsManageLocationsOpen(true)}
-              className="nav-link"
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-            >
-              Manage Locations
-            </button>
+            <AnimatePresence mode="wait">
+              {isHeaderSearching ? (
+                // Checked first: once a header search session is open, only Escape/outside-click/Enter
+                // (handled inside SearchPill) may close it. An incidental scroll-position change caused
+                // by the grid reflowing as results are live-filtered must never evict it.
+                <motion.div
+                  key="header-search-pill"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <SearchPill
+                    id="header-search-wrapper"
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    onEnter={() => { commitSearch(); setIsHeaderSearching(false); }}
+                    onEscape={() => { setIsHeaderSearching(false); setSearchQuery(''); }}
+                    fontSize={32}
+                    autoFocus
+                  />
+                </motion.div>
+              ) : !isScrolled ? (
+                <motion.button
+                  key="manage-locations"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                  onClick={() => setIsManageLocationsOpen(true)}
+                  className="nav-link"
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                >
+                  Manage Locations
+                </motion.button>
+              ) : (
+                <motion.button
+                  key="header-search-trigger"
+                  initial={{ opacity: 0, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.25 }}
+                  onClick={() => searchQuery ? setSearchQuery('') : setIsHeaderSearching(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-newsreader), Georgia, serif',
+                    fontStyle: 'italic',
+                    fontSize: '32px',
+                    color: 'var(--accent-primary)',
+                    textDecoration: 'underline wavy var(--accent-primary)',
+                    textDecorationThickness: '1.5px',
+                  }}
+                >
+                  {searchQuery ? 'Clear search' : 'Search'}
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Fades from the title into the "Currently showing X" status (same style as the hero's) on scroll */}
           <div style={styles.logoSlot}>
             <AnimatePresence mode="wait">
-              {isScrolled ? (
+              {isScrolled || isHeaderSearching ? (
                 <motion.div
                   key="header-actions"
                   initial={{ opacity: 0, filter: 'blur(6px)' }}
@@ -467,17 +468,23 @@ export default function Dashboard() {
                   transition={{ duration: 0.25 }}
                   style={{ display: 'inline-block', pointerEvents: 'auto' }}
                 >
-                  <TextAnimate
-                    animation="blurIn"
-                    as="div"
-                    className="display-serif"
-                    style={{ ...styles.heroTitle, whiteSpace: 'nowrap' }}
-                    highlights={[
-                      { match: filterLabel, onClick: () => setIsFilterOpen(true) },
-                    ]}
-                  >
-                    {`Currently showing ${filterLabel}.`}
-                  </TextAnimate>
+                  <div style={{
+                    filter: isHeaderSearching ? 'blur(5px)' : 'blur(0px)',
+                    opacity: isHeaderSearching ? 0.4 : 1,
+                    transition: 'all 0.5s ease',
+                  }}>
+                    <TextAnimate
+                      animation="blurIn"
+                      as="div"
+                      className="display-serif"
+                      style={{ ...styles.heroTitle, whiteSpace: 'nowrap' }}
+                      highlights={[
+                        { match: displayLabel, onClick: () => setIsFilterOpen(true) },
+                      ]}
+                    >
+                      {`Currently showing ${displayLabel}.`}
+                    </TextAnimate>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.h1
@@ -536,14 +543,7 @@ export default function Dashboard() {
           <div style={styles.booksGrid} className="books-grid">
             <AnimatePresence>
               {books
-                .filter(b => {
-                  const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
-                  const matchesQuery = !query || (
-                    b.title.toLowerCase().includes(query) ||
-                    b.authors.some(a => a.toLowerCase().includes(query))
-                  );
-                  return matchesQuery && matchesFilter(b);
-                })
+                .filter(b => bookMatchesQuery(b, normalizeQuery(searchQuery)) && matchesFilter(b))
                 .map((book) => (
                   <motion.div
                     key={book.id}
@@ -563,6 +563,32 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </main>
+
+      {/* Scan FAB, only surfaces once the hero has scrolled out of view */}
+      <AnimatePresence>
+        {(isScrolled || isHeaderSearching) && (
+          <motion.button
+            key="scan-fab"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            onClick={() => setIsScanModalOpen(true)}
+            aria-label="Scan a book"
+            style={styles.scanFab}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <line x1="14" y1="14" x2="14" y2="21" />
+              <line x1="21" y1="14" x2="21" y2="21" />
+              <line x1="17.5" y1="14" x2="17.5" y2="21" />
+              <line x1="14" y1="17.5" x2="21" y2="17.5" />
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Book details overlay modal */}
       <AnimatePresence>
@@ -606,34 +632,40 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Toast Notification Container */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            style={{
-              position: 'fixed',
-              bottom: '40px',
-              left: '50%',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--accent-primary)',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 16px rgba(0, 44, 188, 0.15)',
-              zIndex: 9999,
-              fontFamily: 'var(--font-instrument-sans), sans-serif',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              border: '1px solid var(--accent-primary)',
-              transform: 'translateX(-50%)',
-            }}
-          >
-            {toastMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div style={{
+        position: 'fixed',
+        bottom: '40px',
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+        zIndex: 9999,
+      }}>
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 48 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 48 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--accent-primary)',
+                padding: '12px 24px',
+                borderRadius: '9999px',
+                boxShadow: '0 4px 16px rgba(0, 44, 188, 0.15)',
+                fontFamily: 'var(--font-instrument-sans), sans-serif',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                pointerEvents: 'auto',
+              }}
+            >
+              {toastMessage}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -771,6 +803,22 @@ const styles: Record<string, React.CSSProperties> = {
   rightNav: {
     display: 'flex',
     justifyContent: 'flex-end',
+  },
+  scanFab: {
+    position: 'fixed',
+    right: '32px',
+    bottom: '32px',
+    width: '56px',
+    height: '56px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--bg-sheet)',
+    border: 'none',
+    boxShadow: '0 4px 16px rgba(17, 22, 37, 0.18)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    zIndex: 900,
   },
   mainLayout: {
     flex: 1,
