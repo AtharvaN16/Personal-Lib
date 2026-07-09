@@ -316,6 +316,21 @@ export default function Dashboard() {
     }
   };
 
+  // Bulk-delete every currently selected book, then exit Edit Mode
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedBookIds);
+    const count = ids.length;
+    setBooks(prev => prev.filter(b => !selectedBookIds.has(b.id)));
+    exitEditMode();
+    showToast(`Deleted ${count} book${count === 1 ? '' : 's'}`);
+
+    try {
+      await supabase.from('books').delete().in('id', ids);
+    } catch {
+      console.warn('Failed to bulk delete books from Supabase');
+    }
+  };
+
   // Handle location picker update inside BookModal
   const handleLocationChange = async (
     bookId: string, 
@@ -793,9 +808,9 @@ export default function Dashboard() {
         </motion.div>
       </main>
 
-      {/* Scan FAB, only surfaces once the hero has scrolled out of view */}
+      {/* Scan FAB (unchanged) until a selection exists in Edit Mode, then it swaps for Delete + Move */}
       <AnimatePresence>
-        {(isScrolled || isHeaderSearching) && (
+        {(headerCompact || isHeaderSearching) && selectedBookIds.size === 0 && (
           <motion.button
             key="scan-fab"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -816,6 +831,69 @@ export default function Dashboard() {
               <line x1="14" y1="17.5" x2="21" y2="17.5" />
             </svg>
           </motion.button>
+        )}
+
+        {isEditMode && selectedBookIds.size > 0 && (
+          <motion.button
+            key="delete-fab"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            onClick={() => setIsDeleteConfirming(true)}
+            aria-label="Delete selected books"
+            style={styles.scanFab}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </motion.button>
+        )}
+
+        {isEditMode && selectedBookIds.size > 0 && (
+          <motion.button
+            key="move-fab"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            onClick={() => setIsBulkMoveOpen(true)}
+            aria-label="Move selected books"
+            style={{ ...styles.scanFab, bottom: '104px' }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="12" height="10" rx="1" />
+              <path d="M17 7h4v4" />
+              <path d="M21 7l-7 7" />
+            </svg>
+          </motion.button>
+        )}
+
+        {isDeleteConfirming && (
+          <motion.div
+            key="delete-confirm-card"
+            initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+            transition={{ duration: 0.2 }}
+            style={styles.deleteConfirmCard}
+          >
+            <span style={styles.deleteConfirmText}>
+              Delete {selectedBookIds.size} book{selectedBookIds.size === 1 ? '' : 's'}?
+            </span>
+            <div style={styles.deleteConfirmActions}>
+              <button onClick={() => setIsDeleteConfirming(false)} style={styles.deleteConfirmCancelBtn}>
+                Cancel
+              </button>
+              <button onClick={handleBulkDelete} style={styles.deleteConfirmDeleteBtn}>
+                Delete
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -1126,6 +1204,50 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     cursor: 'pointer',
     zIndex: 900,
+  },
+  deleteConfirmCard: {
+    position: 'fixed',
+    right: '32px',
+    bottom: '172px',
+    backgroundColor: 'var(--bg-sheet)',
+    boxShadow: '0 12px 30px rgba(17, 22, 37, 0.18)',
+    padding: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    maxWidth: '220px',
+    zIndex: 950,
+  },
+  deleteConfirmText: {
+    fontSize: '0.9rem',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  deleteConfirmActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+  },
+  deleteConfirmCancelBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    padding: 0,
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  deleteConfirmDeleteBtn: {
+    background: 'none',
+    border: 'none',
+    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
+    backgroundColor: 'var(--bg-sheet)',
+    color: 'var(--error)',
+    fontWeight: 'bold',
+    fontSize: '0.9rem',
+    padding: '6px 14px',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   mainLayout: {
     flex: 1,
