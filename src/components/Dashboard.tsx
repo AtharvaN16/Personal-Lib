@@ -778,10 +778,13 @@ export default function Dashboard() {
                     exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
                     transition={{ duration: 0.3 }}
                   >
-                    <BookCard 
-                      book={book} 
+                    <BookCard
+                      book={book}
                       onClick={setSelectedBook}
                       isMobile={isMobile}
+                      editMode={isEditMode}
+                      selected={selectedBookIds.has(book.id)}
+                      onToggleSelect={toggleBookSelected}
                     />
                   </motion.div>
                 ))}
@@ -916,12 +919,23 @@ interface BookCardProps {
   book: Book;
   onClick: (book: Book) => void;
   isMobile?: boolean;
+  editMode: boolean;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
 }
 
-function BookCard({ book, onClick, isMobile = false }: BookCardProps) {
+function BookCard({ book, onClick, isMobile = false, editMode, selected, onToggleSelect }: BookCardProps) {
   const [hovered, setHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
   const showMeta = isMobile || hovered;
+
+  const handleActivate = () => {
+    if (editMode) {
+      onToggleSelect(book.id);
+    } else {
+      onClick(book);
+    }
+  };
 
   const mobileMeta: React.CSSProperties = isMobile ? {
     width: '100%',
@@ -959,29 +973,38 @@ function BookCard({ book, onClick, isMobile = false }: BookCardProps) {
       className="book-card-container"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onClick(book)}
+      onClick={handleActivate}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClick(book);
+          handleActivate();
         }
       }}
       role="button"
       tabIndex={0}
-      aria-label={`Open ${book.title}`}
+      aria-label={editMode ? `${selected ? 'Deselect' : 'Select'} ${book.title}` : `Open ${book.title}`}
+      aria-pressed={editMode ? selected : undefined}
     >
       {/* Cover Image Wrapper - Enlarged Size (180px x 252px) */}
       <motion.div
         animate={{
           scale: hovered ? 1.04 : 1,
-          boxShadow: hovered 
-            ? '0 20px 30px rgba(17, 22, 37, 0.18)' 
+          boxShadow: hovered
+            ? '0 20px 30px rgba(17, 22, 37, 0.18)'
             : '0 4px 12px rgba(17, 22, 37, 0.06)',
+          outline: selected ? '3px solid var(--accent-primary)' : '3px solid transparent',
         }}
         transition={{ duration: 0.2 }}
-        style={styles.coverWrapper}
+        style={{ ...styles.coverWrapper, outlineOffset: '2px' }}
         className="book-card-cover"
       >
+        {selected && (
+          <div style={styles.selectionBadge}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFDFB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        )}
         {book.cover_url && !imgError ? (
           <Image
             src={book.cover_url}
@@ -1167,6 +1190,20 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     backgroundColor: 'var(--bg-sheet)',
     position: 'relative',
+  },
+  selectionBadge: {
+    position: 'absolute',
+    top: '8px',
+    right: '8px',
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--accent-primary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.25)',
+    zIndex: 2,
   },
   placeholderCover: {
     position: 'relative',
