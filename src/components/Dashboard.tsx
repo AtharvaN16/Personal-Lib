@@ -6,6 +6,7 @@ import LogoutLink from '@/components/LogoutLink';
 import BookCardModal, { Book } from '@/components/BookModal';
 import AddLocationModal from '@/components/AddLocationModal';
 import { createClient } from '@/lib/supabase/client';
+import { TextAnimate } from '@/registry/magicui/text-animate';
 
 // Pre-loaded mock books matching the styles in the mockup
 const defaultMockBooks: Book[] = [
@@ -182,12 +183,17 @@ export default function Dashboard() {
       <main style={styles.mainLayout}>
         {/* Center Column (Hero Text / Action Space) */}
         <div style={styles.heroContainer}>
-          {/* Using Newsreader Display Font */}
-          <h2 className="display-serif" style={styles.heroTitle}>
+          {/* Using Newsreader Display Font with TextAnimate */}
+          <TextAnimate
+            animation="blurIn"
+            as="h2"
+            className="display-serif"
+            style={styles.heroTitle}
+          >
             Your Quiet Reading Corner
-          </h2>
+          </TextAnimate>
           <p style={styles.heroSubtitle}>
-            Scan a book barcode to automatically log details, or explore the shelves to organize your library.
+            <span style={styles.wigglyLink}>Search</span> for the books in your library. <span style={styles.wigglyLink}>Scan</span> to add new books
           </p>
           <button
             onClick={() => setIsAddLocationOpen(true)}
@@ -383,11 +389,18 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     marginBottom: '16px',
     lineHeight: '1.2',
+    fontWeight: 500, // Medium font weight
   },
   heroSubtitle: {
     fontSize: '1.1rem',
     color: 'var(--text-secondary)',
     lineHeight: '1.6',
+  },
+  wigglyLink: {
+    fontStyle: 'italic',
+    color: 'var(--accent-primary)',
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textDecorationThickness: '1.5px',
   },
   booksSection: {
     width: '95%', // Smaller margins
