@@ -369,6 +369,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'column',
+    transform: 'translateY(-50px)', // Shift text slightly above the exact center
   },
   heroTitle: {
     fontSize: '32px', // Exactly 32px
