@@ -99,44 +99,48 @@ export default function FilterPanel({ mode, room, rooms, onApply, onClose }: Fil
         <div style={styles.optionsList}>
           <label style={styles.optionRow}>
             <input
-              type="checkbox"
+              type="radio"
+              name="filterMode"
               checked={draftMode === 'all'}
               onChange={() => selectMode('all')}
-              style={styles.checkbox}
+              style={styles.radioButton}
             />
             <span style={styles.optionLabel}>Show all</span>
           </label>
-
+ 
           <label style={styles.optionRow}>
             <input
-              type="checkbox"
+              type="radio"
+              name="filterMode"
               checked={draftMode === 'favorites'}
               onChange={() => selectMode('favorites')}
-              style={styles.checkbox}
+              style={styles.radioButton}
             />
             <span style={styles.optionLabel}>Show favorites</span>
           </label>
-
+ 
           <label style={styles.optionRow}>
             <input
-              type="checkbox"
+              type="radio"
+              name="filterMode"
               checked={draftMode === 'unread'}
               onChange={() => selectMode('unread')}
-              style={styles.checkbox}
+              style={styles.radioButton}
             />
             <span style={styles.optionLabel}>Show unread</span>
           </label>
-
+ 
           <label style={styles.optionRow}>
             <input
-              type="checkbox"
+              type="radio"
+              name="filterMode"
               checked={draftMode === 'location'}
               onChange={() => selectMode('location')}
-              style={styles.checkbox}
+              style={styles.radioButton}
             />
             <span style={styles.optionLabel}>Show based on Location</span>
           </label>
-
+ 
           {draftMode === 'location' && (
             <div style={styles.roomsList}>
               {rooms.length === 0 ? (
@@ -145,10 +149,11 @@ export default function FilterPanel({ mode, room, rooms, onApply, onClose }: Fil
                 rooms.map((r) => (
                   <label key={r} style={styles.roomRow}>
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="filterRoom"
                       checked={draftRoom === r}
                       onChange={() => selectRoom(r)}
-                      style={styles.checkbox}
+                      style={styles.radioButton}
                     />
                     <span style={styles.roomLabel}>{r}</span>
                   </label>
@@ -232,7 +237,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px',
     cursor: 'pointer',
   },
-  checkbox: {
+  radioButton: {
     width: '18px',
     height: '18px',
     accentColor: 'var(--accent-primary)',
