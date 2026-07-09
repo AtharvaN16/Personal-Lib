@@ -179,6 +179,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100vw',
     height: '100vh',
     backgroundColor: 'rgba(17, 22, 37, 0.25)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
