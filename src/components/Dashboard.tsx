@@ -330,8 +330,10 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
   },
   header: {
-    position: 'sticky',
+    position: 'fixed',
     top: 0,
+    left: 0,
+    right: 0,
     zIndex: 1000,
     width: '100%',
     background: 'linear-gradient(to bottom, var(--bg-primary) 75%, rgba(244, 242, 228, 0.9) 90%, rgba(244, 242, 228, 0) 100%)',
@@ -367,8 +369,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between', // Push grid to bottom edge
     width: '100%',
-    minHeight: 'calc(100vh - 100px)', // Make mainLayout fill height
-    padding: '0 40px 0 40px',
+    minHeight: '100vh', // Make mainLayout fill height
+    padding: '130px 40px 0 40px', // Added 130px padding-top for fixed header offset
     overflowX: 'hidden',
   },
   heroContainer: {
