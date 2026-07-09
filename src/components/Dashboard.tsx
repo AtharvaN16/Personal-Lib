@@ -186,30 +186,12 @@ export default function Dashboard() {
           {/* Using Newsreader Display Font with TextAnimate */}
           <TextAnimate
             animation="blurIn"
-            as="h2"
+            as="h1"
             className="display-serif"
             style={styles.heroTitle}
           >
-            Your Quiet Reading Corner
+            Search for the books in your library. Scan to add new books
           </TextAnimate>
-          <p style={styles.heroSubtitle}>
-            <span style={styles.wigglyLink}>Search</span> for the books in your library. <span style={styles.wigglyLink}>Scan</span> to add new books
-          </p>
-          <button
-            onClick={() => setIsAddLocationOpen(true)}
-            className="btn-cozy"
-            style={{
-              marginTop: '20px',
-              backgroundColor: 'var(--bg-sheet)',
-              padding: '10px 24px',
-              borderRadius: '0px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
-            }}
-          >
-            + Add Location
-          </button>
         </div>
 
         {/* 6-Column Shelf Grid Peeking above the fold */}
@@ -381,14 +363,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   heroContainer: {
     textAlign: 'center',
-    maxWidth: '560px',
+    maxWidth: '800px', // Wider container for full sentence flow
     margin: 'auto auto 20px auto', // Vertical centering inside upper fold
   },
   heroTitle: {
-    fontSize: '3rem',
+    fontSize: '2.5rem', // Clean sizing
     color: 'var(--text-primary)',
-    marginBottom: '16px',
-    lineHeight: '1.2',
+    lineHeight: '1.4',
     fontWeight: 500, // Medium font weight
   },
   heroSubtitle: {

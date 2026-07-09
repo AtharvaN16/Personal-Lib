@@ -103,11 +103,24 @@ export function TextAnimate({
         if (/^\s+$/.test(segment)) {
           return <span key={idx}>{segment}</span>;
         }
+
+        // Clean punctuation to match "Search" and "Scan" keywords exactly
+        const cleanWord = segment.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim().toLowerCase();
+        const isSearchOrScan = cleanWord === 'search' || cleanWord === 'scan';
+
         return (
           <motion.span
             key={idx}
             variants={selectedVariants}
-            style={{ display: 'inline-block' }}
+            style={{ 
+              display: 'inline-block',
+              ...(isSearchOrScan ? {
+                fontStyle: 'italic',
+                color: 'var(--accent-primary)',
+                textDecoration: 'underline wavy var(--accent-primary)',
+                textDecorationThickness: '1.5px',
+              } : {})
+            }}
           >
             {segment}
           </motion.span>
