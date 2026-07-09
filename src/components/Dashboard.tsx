@@ -737,7 +737,7 @@ const styles: Record<string, React.CSSProperties> = {
     right: 0,
     zIndex: 1000,
     width: '100%',
-    background: 'linear-gradient(to bottom, var(--bg-primary) 40%, rgba(244, 242, 228, 0.9) 65%, rgba(244, 242, 228, 0.6) 80%, rgba(244, 242, 228, 0.2) 93%, rgba(244, 242, 228, 0) 100%)',
+    background: 'linear-gradient(to bottom, var(--bg-primary) 65%, rgba(244, 242, 228, 0.9) 80%, rgba(244, 242, 228, 0.6) 90%, rgba(244, 242, 228, 0.2) 97%, rgba(244, 242, 228, 0) 100%)',
     padding: '36px 40px 40px 40px',
   },
   headerContent: {
@@ -746,7 +746,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: '12px',
+    marginTop: '8px',
     marginBottom: '12px',
   },
   leftNav: {
