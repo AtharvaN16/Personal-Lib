@@ -353,6 +353,8 @@ export default function Dashboard() {
         onClear={clearSearch}
         fontSize={32}
         autoFocus
+        floatClearButton
+        active={isSearching}
       />
       <span style={{
         filter: 'blur(5px)',
