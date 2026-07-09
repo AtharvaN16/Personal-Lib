@@ -247,6 +247,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: '440px',
     padding: '40px 32px 36px 32px',
     position: 'relative',
+    zIndex: 10000,
     display: 'flex',
     flexDirection: 'column',
     gap: '24px',
