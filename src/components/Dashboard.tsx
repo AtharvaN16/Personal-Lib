@@ -118,7 +118,10 @@ export default function Dashboard() {
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 150], [1, 0]);
   const heroScale = useTransform(scrollY, [0, 150], [1, 0.95]);
-  const heroY = useTransform(scrollY, [0, 150], [-134, -164]);
+  const heroY = useTransform(scrollY, [0, 150], [0, -40]);
+  const filterOpacity = useTransform(scrollY, [0, 150], [0.4, 1.0]);
+  const filterBlurVal = useTransform(scrollY, [0, 150], [5, 0]);
+  const filterBlur = useTransform(filterBlurVal, (v) => v === 0 ? 'none' : `blur(${v}px)`);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -375,19 +378,6 @@ export default function Dashboard() {
         marginLeft: '12px',
       }}>
         for the books in your library. Scan to add new books.
-        <br />
-        Currently showing{' '}
-        <span
-          style={{
-            color: 'var(--accent-primary)',
-            textDecoration: 'underline wavy var(--accent-primary)',
-            textDecorationThickness: '1.5px',
-            fontStyle: 'italic',
-          }}
-        >
-          {filterLabel}
-        </span>
-        .
       </span>
     </h1>
   );
@@ -402,11 +392,10 @@ export default function Dashboard() {
       highlights={[
         { match: 'Search', onClick: () => { setIsSearching(true); setHasSearched(true); } },
         { match: 'Scan', onClick: () => setIsScanModalOpen(true) },
-        { match: filterLabel, onClick: () => setIsFilterOpen(true) },
       ]}
       disableAnimation={hasSearched}
     >
-      {`Search for the books in your library. Scan to add new books.\nCurrently showing ${filterLabel}.`}
+      {`Search for the books in your library. Scan to add new books.`}
     </TextAnimate>
   );
 
@@ -526,6 +515,26 @@ export default function Dashboard() {
             <HeroAnimation />
           </div>
           {heroContent}
+        </motion.div>
+
+        {/* Sticky Filter Line */}
+        <motion.div
+          style={{
+            ...styles.filterStickyBar,
+            opacity: filterOpacity,
+            filter: filterBlur,
+          }}
+        >
+          <span className="display-serif" style={styles.filterText}>
+            Currently showing{' '}
+            <span
+              onClick={() => setIsFilterOpen(true)}
+              style={styles.filterLabelLink}
+            >
+              {filterLabel}
+            </span>
+            .
+          </span>
         </motion.div>
 
         {/* 6-Column Shelf Grid Peeking above the fold */}
@@ -789,12 +798,12 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: 'center',
     width: '100%', // Stretch container to full width to prevent layout shrink
     maxWidth: '1100px',
-    height: 'calc(100vh - 130px)', // Take up exact vertical viewport height below fixed header
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'column',
-    transform: 'translateY(-134px)', // Shift text slightly above center
+    marginTop: '60px', // Centered vertically at start
+    marginBottom: '20px',
   },
   heroTitle: {
     fontSize: '32px', // Exactly 32px
@@ -813,8 +822,37 @@ const styles: Record<string, React.CSSProperties> = {
   booksSection: {
     width: '95%', // Smaller margins
     maxWidth: '1400px', // Wider grid container
-    marginTop: '-190px', // Pulls the top of the covers up to peek above the fold
-    paddingTop: '40px',
+    marginTop: '30px', // Sit directly below the sticky filter bar
+    paddingTop: '20px',
+    paddingBottom: '80px',
+  },
+  filterStickyBar: {
+    position: 'sticky',
+    top: '112px', // Sticky position below fixed header
+    zIndex: 90,
+    width: '100%',
+    textAlign: 'center',
+    padding: '12px 0 20px 0',
+    background: 'linear-gradient(to bottom, var(--bg-primary) 70%, rgba(244, 242, 228, 0) 100%)',
+    pointerEvents: 'none',
+  },
+  filterText: {
+    fontSize: '32px',
+    color: 'var(--text-primary)',
+    lineHeight: '1.4',
+    fontWeight: 'normal',
+    fontFamily: 'var(--font-newsreader), Georgia, serif',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    pointerEvents: 'auto',
+  },
+  filterLabelLink: {
+    color: 'var(--accent-primary)',
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textDecorationThickness: '1.5px',
+    fontStyle: 'italic',
+    cursor: 'pointer',
+    pointerEvents: 'auto',
   },
   booksGrid: {
     display: 'grid',
