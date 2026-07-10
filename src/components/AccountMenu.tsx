@@ -89,9 +89,14 @@ export default function AccountMenu({ email, themeColor, onThemeColorChange, isO
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
-                    style={{ overflow: 'hidden' }}
+                    style={{
+                      overflow: 'hidden',
+                      marginTop: '-10px',
+                      marginLeft: '-6px',
+                      marginRight: '-6px',
+                    }}
                   >
-                    <div style={{ marginTop: '-10px', marginLeft: '-6px', padding: '10px 6px' }}>
+                    <div style={{ padding: '10px 6px' }}>
                       <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
                     </div>
                   </motion.div>

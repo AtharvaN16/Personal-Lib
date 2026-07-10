@@ -112,7 +112,7 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
               <div style={{
                 display: 'flex',
                 justifyContent: 'flex-end',
-                padding: '4px 24px 16px 24px',
+                padding: '6px 24px 16px 24px',
               }}>
                 <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
               </div>
