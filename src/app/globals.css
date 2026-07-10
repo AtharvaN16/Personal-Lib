@@ -231,7 +231,7 @@ a {
 
 /* Responsive BookModal: stack to a single column on narrow viewports */
 .book-modal-panel {
-  height: 480px;
+  height: 540px;
 }
 
 .book-modal-content {
