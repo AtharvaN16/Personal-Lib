@@ -664,6 +664,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           CLOSE
         </button>
 
+        {locationSetupOpen && (
+          <button onClick={handleCancelSetup} style={styles.backBtn} aria-label="Go back">
+            <span className="material-symbols-outlined" style={styles.backIcon}>arrow_back</span>
+          </button>
+        )}
+
         {/* Reserves the same vertical space BookModal's action-icon row occupies, so the
             cover/content below lines up exactly once this swaps into the real BookModal. */}
         <div style={styles.actionRowSpacer} />
@@ -720,22 +726,14 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
               <div style={styles.promptContent}>
                 {locationSetupOpen ? (
                   <>
-                    {locationSetupOpen && (
-                      <button onClick={handleCancelSetup} style={styles.backBtn} aria-label="Back">
-                        <span className="material-symbols-outlined">arrow_back</span>
-                      </button>
-                    )}
-                    <span 
-                      className="material-symbols-outlined" 
-                      style={{ ...styles.promptIcon, fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
-                    >
+                    <span className="material-symbols-outlined" style={styles.promptIcon}>
                       location_on
                     </span>
                     <h2 style={styles.promptTitle}>Choose a default location</h2>
                     <p style={styles.promptText}>
                       Every book you scan will be assigned here until you change it.
                     </p>
-                    <div style={{ ...styles.setupForm, marginTop: '30px' }}>
+                    <div style={styles.setupForm}>
                       <select
                         aria-label="Select room"
                         value={setupRoom}
@@ -762,18 +760,15 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                           ))}
                         </select>
                       )}
-                      <div style={styles.setupActions}>
-                        {setupRoom && (
-                          <button
-                            type="button"
-                            onClick={handleStartScanning}
-                            style={styles.formSaveBtn}
-                          >
-                            Start Scanning
-                          </button>
-                        )}
-                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleStartScanning}
+                      disabled={!setupRoom}
+                      style={{ ...styles.formSaveBtn, opacity: setupRoom ? 1 : 0.5 }}
+                    >
+                      Start Scanning
+                    </button>
                   </>
                 ) : (
                   <>
@@ -860,19 +855,22 @@ const styles: Record<string, React.CSSProperties> = {
   },
   backBtn: {
     position: 'absolute',
-    top: '40px',
+    top: '24px',
     left: '36px',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
     color: 'var(--text-secondary)',
-    padding: 0,
-    zIndex: 10,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '24px',
-    height: '24px',
+    padding: '4px',
+    transition: 'opacity 0.2s ease',
+    zIndex: 10,
+  },
+  backIcon: {
+    fontSize: '24px',
+    fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
   },
   actionRowSpacer: {
     height: '40px', // Matches BookModal's iconBtn height
@@ -896,6 +894,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '40px',
     color: 'var(--accent-primary)',
     marginBottom: '8px',
+    fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
   },
   promptTitle: {
     fontSize: '22px',
@@ -949,6 +948,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px',
     width: '100%',
     maxWidth: '260px',
+    marginTop: '60px',
   },
   setupActions: {
     display: 'flex',
@@ -976,11 +976,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   formSaveBtn: {
+    position: 'absolute',
+    bottom: '36px',
+    right: '36px',
     backgroundColor: 'var(--accent-primary)',
     border: 'none',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
     color: 'var(--bg-sheet)',
-    padding: '4px 12px',
+    padding: '8px 16px',
     cursor: 'pointer',
     fontSize: '0.9rem',
     fontWeight: 'bold',
