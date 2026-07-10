@@ -477,6 +477,15 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
             CLOSE
           </button>
 
+          <button
+            onClick={() => { setMode('single'); setLocationSetupOpen(true); }}
+            style={styles.backBtn}
+            aria-label="Go back to location setup"
+          >
+            <span className="material-symbols-outlined" style={styles.backIcon}>chevron_left</span>
+            <span style={styles.backText}>Back</span>
+          </button>
+
           <div style={styles.queueHeader}>
             <p style={styles.scanningLabel}>Scanning into:</p>
             <AnimatePresence mode="wait">
@@ -870,11 +879,11 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 10,
   },
   backIcon: {
-    fontSize: '24px',
+    fontSize: '26px',
     fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
   },
   backText: {
-    fontSize: '0.95rem',
+    fontSize: '1.05rem',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     color: 'var(--text-secondary)',
     marginLeft: '2px',
@@ -987,8 +996,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   formSaveBtn: {
     position: 'absolute',
-    bottom: '36px',
-    right: '36px',
+    bottom: '24px',
+    right: '24px',
     backgroundColor: 'var(--accent-primary)',
     border: 'none',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
