@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import AddLocationModal from '@/components/AddLocationModal';
@@ -408,12 +407,10 @@ export default function BookModal({
           <div style={styles.leftCol} className="book-modal-left-col">
             <div style={styles.coverWrapper} className="book-modal-cover">
               {book.cover_url && !imgError ? (
-                <Image
+                <img
                   src={book.cover_url}
                   alt={book.title}
-                  fill
-                  sizes="150px"
-                  style={{ objectFit: 'cover' }}
+                  style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0, objectFit: 'cover' }}
                   onError={() => setImgError(true)}
                 />
               ) : (

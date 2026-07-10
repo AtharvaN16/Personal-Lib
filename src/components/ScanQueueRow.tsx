@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useState } from 'react';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 import type { QueuedBook, Shelf } from '@/components/ScanBookModal';
@@ -42,12 +41,10 @@ export default function ScanQueueRow({
     <div style={styles.row} className="scan-queue-row">
       <div style={styles.coverWrapper}>
         {book.cover_url && !imgError ? (
-          <Image
+          <img
             src={book.cover_url}
             alt={book.title}
-            fill
-            sizes="40px"
-            style={{ objectFit: 'cover' }}
+            style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0, right: 0, bottom: 0, objectFit: 'cover' }}
             onError={() => setImgError(true)}
           />
         ) : (
