@@ -447,7 +447,7 @@ export default function Dashboard() {
             color: 'var(--accent-primary)',
             textDecoration: 'underline wavy var(--accent-primary)',
             textDecorationThickness: '1.5px',
-            textUnderlineOffset: '6px',
+            textUnderlineOffset: isMobile ? '2px' : '6px',
             fontStyle: 'italic',
           }}
         >
@@ -579,7 +579,7 @@ export default function Dashboard() {
                     color: 'var(--accent-primary)',
                     textDecoration: 'underline wavy var(--accent-primary)',
                     textDecorationThickness: '1.5px',
-                    textUnderlineOffset: '6px',
+                    textUnderlineOffset: isMobile ? '2px' : '6px',
                   }}
                 >
                   {committedQuery ? 'Clear search' : 'Search'}
@@ -644,7 +644,7 @@ export default function Dashboard() {
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={exitEditMode}
-                  style={styles.editModeTrigger}
+                  style={{ ...styles.editModeTrigger, textUnderlineOffset: isMobile ? '2px' : '6px' }}
                 >
                   Done
                 </motion.button>
@@ -656,7 +656,7 @@ export default function Dashboard() {
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={enterEditMode}
-                  style={styles.editModeTrigger}
+                  style={{ ...styles.editModeTrigger, textUnderlineOffset: isMobile ? '2px' : '6px' }}
                 >
                   Edit
                 </motion.button>

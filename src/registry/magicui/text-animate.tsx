@@ -4,6 +4,7 @@
 
 import { motion, Variants } from 'framer-motion';
 import { ElementType, ComponentType } from 'react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 type AnimationType = 'blurIn' | 'fadeIn' | 'slideUp';
 
@@ -124,6 +125,7 @@ export function TextAnimate({
   highlights = [],
   disableAnimation = false,
 }: TextAnimateProps) {
+  const isMobile = useIsMobile();
   const ContainerComponent = motionElements[as as string] || motion.p;
 
   // Segment splitter
@@ -229,7 +231,7 @@ export function TextAnimate({
                   color: 'var(--accent-primary)',
                   textDecoration: 'underline wavy var(--accent-primary)',
                   textDecorationThickness: '1.5px',
-                  textUnderlineOffset: '6px',
+                  textUnderlineOffset: isMobile ? '2px' : '6px',
                   position: 'relative',
                   ...(isClickable ? {
                     cursor: 'pointer',
