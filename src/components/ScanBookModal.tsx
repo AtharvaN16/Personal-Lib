@@ -7,6 +7,7 @@ import BookModal, { Book } from '@/components/BookModal';
 import ScanQueueRow from '@/components/ScanQueueRow';
 import { fetchBookByIsbn } from '@/lib/openLibrary';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 export interface Shelf {
   id: string;
@@ -59,6 +60,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   const [editingDefault, setEditingDefault] = useState(false);
   const [queue, setQueue] = useState<QueuedBook[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Focus trap / Escape / body scroll lock for the idle/loading/error chrome.
   // The 'loaded' state renders the real BookModal, which manages all of this itself.
@@ -777,6 +779,21 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                           ))}
                         </select>
                       )}
+                      {isMobile && setupRoom && mode === 'single' && (
+                        <button
+                          type="button"
+                          onClick={handleStartScanning}
+                          style={{
+                            ...styles.formSaveBtn,
+                            position: 'static',
+                            marginTop: '16px',
+                            width: '100%',
+                            textAlign: 'center',
+                          }}
+                        >
+                          Start Scanning
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -815,7 +832,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           )}
         </AnimatePresence>
 
-        {locationSetupOpen && setupRoom && mode === 'single' && (
+        {!isMobile && locationSetupOpen && setupRoom && mode === 'single' && (
           <button
             type="button"
             onClick={handleStartScanning}
