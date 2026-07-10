@@ -138,7 +138,12 @@ const defaultMockBooks: Book[] = [
   }
 ];
 
-export default function Dashboard() {
+interface DashboardProps {
+  isGuest?: boolean;
+  initialGuestBooks?: Book[];
+}
+
+export default function Dashboard({ isGuest = false, initialGuestBooks = [] }: DashboardProps = {}) {
   const supabase = createClient();
   const [isSearching, setIsSearching] = useState(false);
   const [isHeaderSearching, setIsHeaderSearching] = useState(false);

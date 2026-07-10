@@ -70,6 +70,12 @@ function LoginForm() {
     }
   };
 
+  const handleSkip = () => {
+    document.cookie = 'guest_session=true; path=/; max-age=86400; SameSite=Lax';
+    router.push('/');
+    router.refresh();
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.backgroundBlob1} />
@@ -181,6 +187,13 @@ function LoginForm() {
             style={styles.toggleBtn}
           >
             {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
+          </button>
+          <div style={styles.dividerText}>OR</div>
+          <button
+            onClick={handleSkip}
+            style={styles.guestBtn}
+          >
+            Skip and explore as guest
           </button>
         </div>
       </motion.div>
@@ -351,12 +364,34 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '12px',
     borderTop: '1px solid rgba(17, 22, 37, 0.08)',
     paddingTop: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '12px',
   },
   toggleBtn: {
     background: 'none',
     border: 'none',
     color: 'var(--text-secondary)',
     fontSize: '0.85rem',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  dividerText: {
+    fontSize: '0.75rem',
+    color: 'var(--text-secondary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    margin: '4px 0',
+  },
+  guestBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--accent-primary)',
+    fontSize: '0.9rem',
+    fontWeight: '500',
     cursor: 'pointer',
     textDecoration: 'underline',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
