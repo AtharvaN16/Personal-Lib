@@ -325,7 +325,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     )));
   };
 
-  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
+  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room))).filter(Boolean);
   const setupShelvesInRoom = shelves.filter(s => s.room === setupRoom && s.bookshelf !== '');
 
   const runLookup = useCallback(async (isbn: string) => {
@@ -531,9 +531,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           </button>
 
           <button
-            onClick={() => { setMode('single'); setLocationSetupOpen(true); }}
+            onClick={() => { setMode('single'); setLocationSetupOpen(false); }}
             style={styles.backBtn}
-            aria-label="Go back to location setup"
+            aria-label="Go back to single scan"
           >
             <span className="material-symbols-outlined" style={styles.backIcon}>chevron_left</span>
             <span style={styles.backText}>Back</span>
@@ -634,8 +634,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                       {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
                     </span>
                     <span style={styles.bigLocationText}>
-                      {defaultLocationObj?.room}
-                      {defaultLocationObj?.bookshelf ? ` • ${defaultLocationObj.bookshelf}` : ''}
+                      {defaultLocationObj
+                        ? `${defaultLocationObj.room}${defaultLocationObj.bookshelf ? ` • ${defaultLocationObj.bookshelf}` : ''}`
+                        : 'Unassigned'}
                     </span>
                   </div>
                   <button type="button" onClick={handleStartEditDefault} style={styles.editLink}>
