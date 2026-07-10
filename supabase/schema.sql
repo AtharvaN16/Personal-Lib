@@ -175,3 +175,27 @@ create index if not exists books_user_id_idx on public.books(user_id);
 create index if not exists books_isbn_idx on public.books(isbn);
 create index if not exists books_location_id_idx on public.books(location_id);
 create index if not exists book_lookup_daily_usage_date_idx on public.book_lookup_daily_usage(lookup_date);
+
+-- Per-user preferences: theme color and default scan location. One row per user,
+-- created via upsert on first write rather than a signup trigger.
+create table if not exists public.profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  theme_color text not null default '#002CBC',
+  default_location_id uuid references public.shelves(id) on delete set null,
+  updated_at timestamp with time zone not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+create policy "Users can view their own profile"
+  on public.profiles for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own profile"
+  on public.profiles for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own profile"
+  on public.profiles for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);

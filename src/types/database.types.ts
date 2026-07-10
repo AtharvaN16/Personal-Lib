@@ -172,6 +172,42 @@ export interface Database {
           }
         ]
       }
+      profiles: {
+        Row: {
+          user_id: string
+          theme_color: string
+          default_location_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          theme_color?: string
+          default_location_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          theme_color?: string
+          default_location_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_default_location_id_fkey"
+            columns: ["default_location_id"]
+            isOneToOne: false
+            referencedRelation: "shelves"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
