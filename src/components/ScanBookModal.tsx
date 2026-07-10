@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import BookModal, { Book } from '@/components/BookModal';
 import ScanQueueRow from '@/components/ScanQueueRow';
-import { fetchBookByIsbn } from '@/lib/openLibrary';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { GUEST_SHELVES } from '@/lib/guestData';
 
 export interface Shelf {
   id: string;
@@ -34,6 +34,41 @@ export interface QueuedBook {
 type ScanMode = 'single' | 'location';
 
 type ScanState = 'idle' | 'loading' | 'error' | 'loaded';
+
+interface BookLookupResult {
+  title: string;
+  authors: string[];
+  isbn: string;
+  publisher: string | null;
+  published_date: string | null;
+  description: string | null;
+  cover_url: string | null;
+}
+
+class BookLookupLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BookLookupLimitError';
+  }
+}
+
+async function fetchBookByIsbn(isbn: string): Promise<BookLookupResult | null> {
+  const res = await fetch(`/api/book-lookup?isbn=${encodeURIComponent(isbn)}`);
+
+  if (res.status === 404) return null;
+
+  if (res.status === 429) {
+    const data = await res.json().catch(() => null) as { error?: string } | null;
+    throw new BookLookupLimitError(data?.error || 'Daily scan lookup limit reached.');
+  }
+
+  if (!res.ok) {
+    throw new Error('Book lookup failed');
+  }
+
+  const data = await res.json() as { book?: BookLookupResult | null };
+  return data.book || null;
+}
 
 interface ScanBookModalProps {
   onClose: () => void;
@@ -115,12 +150,8 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
           if (stored) {
             setShelves(JSON.parse(stored));
           } else {
-            const mockShelves = [
-              { id: 'guest-shelf-1', room: 'Living room', bookshelf: 'Tall shelf' },
-              { id: 'guest-shelf-2', room: 'Bedroom', bookshelf: 'Bedside table' }
-            ];
-            setShelves(mockShelves);
-            localStorage.setItem('guest_shelves', JSON.stringify(mockShelves));
+            setShelves(GUEST_SHELVES);
+            localStorage.setItem('guest_shelves', JSON.stringify(GUEST_SHELVES));
           }
         } catch (e) {
           console.warn('Failed to load guest shelves list:', e);
@@ -203,7 +234,24 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     return { id: '', room, bookshelf: '' };
   }, [shelves, supabase, isGuest]);
 
+  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room))).filter(Boolean);
+  const setupRoomIsSelected = uniqueRooms.includes(setupRoom);
+  const currentRoomIsSelected = uniqueRooms.includes(currentRoom);
+  const setupShelvesInRoom = setupRoomIsSelected
+    ? shelves.filter(s => s.room === setupRoom && s.bookshelf !== '')
+    : [];
+  const currentShelvesInRoom = currentRoomIsSelected
+    ? shelves.filter(s => s.room === currentRoom && s.bookshelf !== '')
+    : [];
+
   const handleStartMultiScan = async () => {
+    if (!currentRoom || !uniqueRooms.includes(currentRoom)) {
+      setDefaultLocationId('');
+      setDefaultLocationObj(null);
+      setMode('location');
+      return;
+    }
+
     const resolved = await resolveLocationSelection(currentRoom, currentShelfId);
     if (resolved) {
       setDefaultLocationId(resolved.id);
@@ -232,7 +280,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   };
 
   const handleConfirmDefaultChange = async () => {
-    if (!setupRoom) {
+    if (!setupRoom || !uniqueRooms.includes(setupRoom)) {
       setDefaultLocationId('');
       setDefaultLocationObj(null);
       setEditingDefault(false);
@@ -246,7 +294,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   };
 
   const handleSaveDefaultLocation = async () => {
-    if (!setupRoom) {
+    if (!setupRoom || !uniqueRooms.includes(setupRoom)) {
       setPersistentDefaultLocationId('');
       setPersistentDefaultLocationObj(null);
       localStorage.removeItem('defaultLocationId');
@@ -387,7 +435,20 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   };
 
   const handleConfirmQueueLocation = async (id: string, room: string, shelfId: string) => {
-    if (!room) return;
+    if (!room || !uniqueRooms.includes(room)) {
+      setQueue(prev => prev.map(q => (
+        q.id === id
+          ? {
+              ...q,
+              locationId: '',
+              location: null,
+              overridden: true,
+              editingLocation: false,
+            }
+          : q
+      )));
+      return;
+    }
     const resolved = await resolveLocationSelection(room, shelfId);
     if (!resolved) return;
     setQueue(prev => prev.map(q => (
@@ -402,9 +463,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
         : q
     )));
   };
-
-  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room))).filter(Boolean);
-  const setupShelvesInRoom = shelves.filter(s => s.room === setupRoom && s.bookshelf !== '');
 
   const runLookup = useCallback(async (isbn: string) => {
     setState('loading');
@@ -461,7 +519,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
         return;
       }
 
-      const resolved = await resolveLocationSelection(currentRoom, currentShelfId);
+      const resolved = currentRoomIsSelected
+        ? await resolveLocationSelection(currentRoom, currentShelfId)
+        : null;
       setDraftBook({
         id: 'draft',
         title: result.title,
@@ -477,7 +537,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       });
       setDraftLocationId(resolved ? resolved.id : '');
       setState('loaded');
-    } catch {
+    } catch (err) {
+      if (err instanceof BookLookupLimitError) {
+        showToast(err.message);
+        setState('idle');
+        return;
+      }
       if (mode === 'location') {
         showToast(`Couldn't find that book — ISBN "${isbn}"`);
         setState('idle');
@@ -486,7 +551,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       setFailedIsbn(isbn);
       setState('error');
     }
-  }, [mode, books, queue, defaultLocationId, defaultLocationObj, showToast, currentRoom, currentShelfId, resolveLocationSelection]);
+  }, [mode, books, queue, defaultLocationId, defaultLocationObj, showToast, currentRoom, currentShelfId, currentRoomIsSelected, resolveLocationSelection]);
 
   // Hardware scanner only listens while waiting for a scan — not mid-lookup or once loaded
   useHardwareScanner(state === 'idle' && !locationSetupOpen && !editingDefault, (code) => {
@@ -652,7 +717,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           <option key={i} value={r}>{r}</option>
                         ))}
                       </select>
-                      {setupRoom && (
+                      {setupRoomIsSelected && (
                         <select
                           aria-label="Select shelf"
                           value={setupShelfId}
@@ -661,7 +726,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           className="book-modal-select"
                         >
                           <option value="">Unassigned</option>
-                          {shelves.filter(s => s.room === setupRoom && s.bookshelf !== '').map((s) => (
+                          {setupShelvesInRoom.map((s) => (
                             <option key={s.id} value={s.id}>{s.bookshelf}</option>
                           ))}
                         </select>
@@ -896,7 +961,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           <option key={i} value={r}>{r}</option>
                         ))}
                       </select>
-                      {setupRoom && (
+                      {setupRoomIsSelected && (
                         <select
                           aria-label="Select shelf"
                           value={setupShelfId}
@@ -954,13 +1019,13 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                         style={styles.selectField}
                         className="book-modal-select"
                       >
-                        <option value="">-- Select Room (Unassigned) --</option>
+                        <option value="">Unassigned</option>
                         {uniqueRooms.map((r, i) => (
                           <option key={i} value={r}>{r}</option>
                         ))}
                       </select>
                       
-                      {currentRoom && (
+                      {currentRoomIsSelected && (
                         <select
                           aria-label="Select Shelf"
                           value={currentShelfId}
@@ -969,7 +1034,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           className="book-modal-select"
                         >
                           <option value="">Unassigned</option>
-                          {shelves.filter(s => s.room === currentRoom && s.bookshelf !== '').map((s) => (
+                          {currentShelvesInRoom.map((s) => (
                             <option key={s.id} value={s.id}>{s.bookshelf}</option>
                           ))}
                         </select>

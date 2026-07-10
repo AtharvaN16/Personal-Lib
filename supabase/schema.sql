@@ -30,9 +30,34 @@ create table if not exists public.books (
   created_at timestamp with time zone not null default now()
 );
 
+-- Shared ISBN lookup cache, used by the server-side scan lookup route before calling
+-- external book APIs. Results are not user-specific.
+create table if not exists public.book_lookup_cache (
+  isbn text primary key,
+  title text not null,
+  authors text[] not null default '{}',
+  publisher text,
+  published_date text,
+  description text,
+  cover_url text,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+
+-- Per-user counter for cache-miss lookups that may spend external API quota.
+create table if not exists public.book_lookup_daily_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  lookup_date date not null,
+  lookup_count integer not null default 0,
+  updated_at timestamp with time zone not null default now(),
+  primary key (user_id, lookup_date)
+);
+
 -- Enable Row Level Security (RLS)
 alter table public.shelves enable row level security;
 alter table public.books enable row level security;
+alter table public.book_lookup_cache enable row level security;
+alter table public.book_lookup_daily_usage enable row level security;
 
 -- Shelves Policies
 create policy "Users can view their own shelves"
@@ -78,8 +103,75 @@ create policy "Users can delete their own books"
   on public.books for delete
   using (auth.uid() = user_id);
 
+-- Book lookup cache policies
+create policy "Authenticated users can read cached book lookups"
+  on public.book_lookup_cache for select
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can add cached book lookups"
+  on public.book_lookup_cache for insert
+  with check (auth.role() = 'authenticated');
+
+create policy "Authenticated users can update cached book lookups"
+  on public.book_lookup_cache for update
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+-- Daily usage policies
+create policy "Users can view their own lookup usage"
+  on public.book_lookup_daily_usage for select
+  using (auth.uid() = user_id);
+
+-- Atomically consume one cache-miss lookup from the current user's daily budget.
+create or replace function public.consume_book_lookup_quota(
+  p_lookup_date date,
+  p_max_lookups integer
+)
+returns table(allowed boolean, lookup_count integer)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  current_count integer;
+  was_consumed boolean := false;
+begin
+  if current_user_id is null then
+    allowed := false;
+    lookup_count := 0;
+    return next;
+    return;
+  end if;
+
+  insert into public.book_lookup_daily_usage (user_id, lookup_date, lookup_count)
+  values (current_user_id, p_lookup_date, 1)
+  on conflict (user_id, lookup_date)
+  do update
+    set lookup_count = public.book_lookup_daily_usage.lookup_count + 1,
+        updated_at = now()
+    where public.book_lookup_daily_usage.lookup_count < p_max_lookups
+  returning public.book_lookup_daily_usage.lookup_count into current_count;
+
+  was_consumed := current_count is not null;
+
+  if current_count is null then
+    select public.book_lookup_daily_usage.lookup_count
+      into current_count
+      from public.book_lookup_daily_usage
+      where user_id = current_user_id
+        and public.book_lookup_daily_usage.lookup_date = p_lookup_date;
+  end if;
+
+  allowed := was_consumed;
+  lookup_count := current_count;
+  return next;
+end;
+$$;
+
 -- Indexes for performance
 create index if not exists shelves_user_id_idx on public.shelves(user_id);
 create index if not exists books_user_id_idx on public.books(user_id);
 create index if not exists books_isbn_idx on public.books(isbn);
 create index if not exists books_location_id_idx on public.books(location_id);
+create index if not exists book_lookup_daily_usage_date_idx on public.book_lookup_daily_usage(lookup_date);

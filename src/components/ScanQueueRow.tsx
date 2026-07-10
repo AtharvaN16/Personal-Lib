@@ -34,8 +34,11 @@ export default function ScanQueueRow({
     onStartEditLocation(book.id);
   };
 
-  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
-  const shelvesInRoom = shelves.filter(s => s.room === editRoom && s.bookshelf !== '');
+  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room))).filter(Boolean);
+  const editRoomIsKnown = uniqueRooms.includes(editRoom);
+  const shelvesInRoom = editRoomIsKnown
+    ? shelves.filter(s => s.room === editRoom && s.bookshelf !== '')
+    : [];
 
   return (
     <div style={styles.row} className="scan-queue-row">
@@ -66,12 +69,12 @@ export default function ScanQueueRow({
               style={styles.miniSelect}
               className="book-modal-select"
             >
-              <option value="">-- Select Room --</option>
+              <option value="">Unassigned</option>
               {uniqueRooms.map((r, i) => (
                 <option key={i} value={r}>{r}</option>
               ))}
             </select>
-            {editRoom && (
+            {editRoomIsKnown && (
               <select
                 aria-label="Select shelf"
                 value={editShelfId}
@@ -88,9 +91,8 @@ export default function ScanQueueRow({
             <button
               type="button"
               onClick={() => onConfirmLocation(book.id, editRoom, editShelfId)}
-              disabled={!editRoom}
               className="icon-btn"
-              style={{ ...styles.rowIconBtn, opacity: editRoom ? 1 : 0.5, color: 'var(--accent-primary)' }}
+              style={{ ...styles.rowIconBtn, color: 'var(--accent-primary)' }}
               title="Save location change"
               aria-label="Save location change"
             >

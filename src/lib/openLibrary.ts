@@ -1,3 +1,7 @@
+import 'server-only';
+import { upgradeGoogleBooksCover } from '@/lib/googleBooksCover';
+import { stripHtml } from '@/lib/stripHtml';
+
 export interface BookLookupResult {
   title: string;
   authors: string[];
@@ -73,9 +77,11 @@ async function fetchWorkDetails(workKey: string): Promise<WorkDetails> {
     if (!res.ok) return { description: null, authorKeys: [] };
     const data: OpenLibraryWorkResponse = await res.json();
 
-    const description = !data.description
-      ? null
-      : typeof data.description === 'string' ? data.description : data.description.value;
+    const description = stripHtml(
+      !data.description
+        ? null
+        : typeof data.description === 'string' ? data.description : data.description.value
+    );
 
     const authorKeys = (data.authors || []).map(a => a.author?.key).filter((k): k is string => Boolean(k));
 
@@ -87,10 +93,9 @@ async function fetchWorkDetails(workKey: string): Promise<WorkDetails> {
 
 async function fetchBookFromGoogle(isbn: string): Promise<BookLookupResult | null> {
   try {
-    // Unauthenticated requests share a global daily quota across every anonymous caller on the
-    // internet and are effectively always exhausted — a free key raises this app's own limit to
-    // 1000/day. See https://console.cloud.google.com/apis/credentials (restrict by HTTP referrer).
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY;
+    // Keep this server-side so every browser session does not expose or directly spend the
+    // Google Books API key; /api/book-lookup owns caching and per-user quota checks.
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
     const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&hl=en${apiKey ? `&key=${apiKey}` : ''}`;
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -106,8 +111,8 @@ async function fetchBookFromGoogle(isbn: string): Promise<BookLookupResult | nul
       isbn,
       publisher: volumeInfo.publisher || null,
       published_date: volumeInfo.publishedDate || null,
-      description: volumeInfo.description || null,
-      cover_url: coverUrl ? coverUrl.replace('http://', 'https://') : null,
+      description: stripHtml(volumeInfo.description),
+      cover_url: upgradeGoogleBooksCover(coverUrl),
     };
   } catch (err) {
     console.warn('Google Books fallback query failed:', err);

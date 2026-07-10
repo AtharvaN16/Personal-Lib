@@ -16,6 +16,7 @@ import MobileMenu from '@/components/MobileMenu';
 import MobileSearchOverlay from '@/components/MobileSearchOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
+import { GUEST_SHELVES, GUEST_DATA_VERSION } from '@/lib/guestData';
 
 /** Closes an open search pill when the user clicks anywhere outside its wrapper element. */
 function useCloseOnOutsideClick(active: boolean, wrapperId: string, onClose: () => void) {
@@ -258,9 +259,23 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     async function loadBooks() {
       if (isGuest) {
         try {
+          // Reseed everything when the curated guest catalog/shelf set has changed since this
+          // browser last cached it, so guests don't get stuck on data from an older version.
+          const isStale = localStorage.getItem('guest_data_version') !== GUEST_DATA_VERSION;
+          if (isStale) {
+            localStorage.removeItem('guest_books');
+            localStorage.removeItem('guest_shelves');
+            localStorage.setItem('guest_data_version', GUEST_DATA_VERSION);
+          }
+
+          if (!localStorage.getItem('guest_shelves')) {
+            localStorage.setItem('guest_shelves', JSON.stringify(GUEST_SHELVES));
+          }
+
           const stored = localStorage.getItem('guest_books');
-          if (stored) {
-            setBooks(JSON.parse(stored));
+          const storedBooks = stored ? JSON.parse(stored) : [];
+          if (storedBooks.length > 0) {
+            setBooks(storedBooks);
           } else if (initialGuestBooks && initialGuestBooks.length > 0) {
             setBooks(initialGuestBooks);
             localStorage.setItem('guest_books', JSON.stringify(initialGuestBooks));

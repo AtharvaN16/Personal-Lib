@@ -107,12 +107,86 @@ export interface Database {
           }
         ]
       }
+      book_lookup_cache: {
+        Row: {
+          isbn: string
+          title: string
+          authors: string[]
+          publisher: string | null
+          published_date: string | null
+          description: string | null
+          cover_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          isbn: string
+          title: string
+          authors?: string[]
+          publisher?: string | null
+          published_date?: string | null
+          description?: string | null
+          cover_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          isbn?: string
+          title?: string
+          authors?: string[]
+          publisher?: string | null
+          published_date?: string | null
+          description?: string | null
+          cover_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      book_lookup_daily_usage: {
+        Row: {
+          user_id: string
+          lookup_date: string
+          lookup_count: number
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          lookup_date: string
+          lookup_count?: number
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          lookup_date?: string
+          lookup_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_lookup_daily_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_book_lookup_quota: {
+        Args: {
+          p_lookup_date: string
+          p_max_lookups: number
+        }
+        Returns: {
+          allowed: boolean
+          lookup_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

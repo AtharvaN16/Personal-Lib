@@ -79,8 +79,11 @@ export default function BulkMoveModal({ count, onClose, onApply, isGuest = false
     loadShelves();
   }, [supabase, isGuest]);
 
-  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
-  const shelvesInRoom = shelves.filter(s => s.room === selectedRoom && s.bookshelf !== '');
+  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room))).filter(Boolean);
+  const selectedRoomIsKnown = uniqueRooms.includes(selectedRoom);
+  const shelvesInRoom = selectedRoomIsKnown
+    ? shelves.filter(s => s.room === selectedRoom && s.bookshelf !== '')
+    : [];
 
   const handleApply = async () => {
     const selectedShelf = shelves.find(s => s.id === selectedShelfId);
@@ -89,7 +92,10 @@ export default function BulkMoveModal({ count, onClose, onApply, isGuest = false
       return;
     }
 
-    if (!selectedRoom) return;
+    if (!selectedRoom || !selectedRoomIsKnown) {
+      onApply('', null);
+      return;
+    }
 
     // Room chosen without a specific shelf — find or create a "room only" entry (bookshelf: '')
     const roomOnlyShelf = shelves.find(s => s.room === selectedRoom && s.bookshelf === '');
@@ -180,14 +186,14 @@ export default function BulkMoveModal({ count, onClose, onApply, isGuest = false
               style={styles.selectField}
               className="book-modal-select"
             >
-              <option value="">-- Select Room --</option>
+              <option value="">Unassigned</option>
               {uniqueRooms.map((r, i) => (
                 <option key={i} value={r}>{r}</option>
               ))}
             </select>
           </div>
 
-          {selectedRoom && (
+          {selectedRoomIsKnown && (
             <div style={styles.inputGroup}>
               <label htmlFor="bulk-move-shelf" style={styles.label}>Shelf</label>
               <select
@@ -213,8 +219,8 @@ export default function BulkMoveModal({ count, onClose, onApply, isGuest = false
             <button
               type="button"
               onClick={handleApply}
-              disabled={loading || !selectedRoom}
-              style={{ ...styles.submitBtn, opacity: (loading || !selectedRoom) ? 0.6 : 1 }}
+              disabled={loading}
+              style={{ ...styles.submitBtn, opacity: loading ? 0.6 : 1 }}
             >
               {loading ? 'Moving...' : 'Move'}
             </button>
