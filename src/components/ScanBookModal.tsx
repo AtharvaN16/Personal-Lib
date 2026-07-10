@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import BookModal, { Book } from '@/components/BookModal';
+import ScanQueueRow from '@/components/ScanQueueRow';
 import { fetchBookByIsbn } from '@/lib/openLibrary';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
 
@@ -172,6 +173,74 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     setDefaultLocationId(resolved.id);
     setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
     setEditingDefault(false);
+  };
+
+  const persistQueuedBook = useCallback(async (row: QueuedBook) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user session');
+
+      const { data, error } = await supabase
+        .from('books')
+        .insert([{
+          user_id: user.id,
+          title: row.title,
+          authors: row.authors,
+          isbn: row.isbn || null,
+          publisher: row.publisher || null,
+          published_date: row.published_date || null,
+          description: row.description || null,
+          cover_url: row.cover_url || null,
+          location_id: row.locationId || null,
+          status: 'To Read',
+        }])
+        .select();
+
+      if (error) throw error;
+
+      onBookAdded({
+        id: data && data[0] ? data[0].id : row.id,
+        title: row.title,
+        authors: row.authors,
+        isbn: row.isbn,
+        publisher: row.publisher,
+        published_date: row.published_date,
+        description: row.description,
+        cover_url: row.cover_url,
+        location: row.location,
+        status: 'To Read',
+        favorite: false,
+      });
+    } catch {
+      console.warn('Failed to save queued book to Supabase, adding locally instead');
+      const mockId = Math.random().toString(36).substring(7);
+      onBookAdded({
+        id: mockId,
+        title: row.title,
+        authors: row.authors,
+        isbn: row.isbn,
+        publisher: row.publisher,
+        published_date: row.published_date,
+        description: row.description,
+        cover_url: row.cover_url,
+        location: row.location,
+        status: 'To Read',
+        favorite: false,
+      });
+    }
+  }, [supabase, onBookAdded]);
+
+  const handleSaveQueueRow = async (id: string) => {
+    const row = queue.find(q => q.id === id);
+    if (!row) return;
+    setQueue(prev => prev.map(q => (q.id === id ? { ...q, rowState: 'saving' } : q)));
+    await persistQueuedBook(row);
+    setQueue(prev => prev.filter(q => q.id !== id));
+    showToast(`Added "${row.title}" to your library`);
+  };
+
+  const handleRemoveFromQueue = (id: string) => {
+    setQueue(prev => prev.filter(q => q.id !== id));
   };
 
   const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
@@ -472,9 +541,14 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
             {queue.length === 0 ? (
               <p style={styles.emptyQueueText}>No books scanned yet — scan or type an ISBN above.</p>
             ) : (
-              <p style={styles.emptyQueueText}>
-                {queue.length} book{queue.length === 1 ? '' : 's'} queued.
-              </p>
+              queue.map((book) => (
+                <ScanQueueRow
+                  key={book.id}
+                  book={book}
+                  onSave={handleSaveQueueRow}
+                  onRemove={handleRemoveFromQueue}
+                />
+              ))
             )}
           </div>
 
