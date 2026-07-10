@@ -221,5 +221,5 @@ export default async function Home() {
     redirect('/login');
   }
 
-  return <Dashboard />;
+  return <Dashboard userEmail={user.email ?? null} />;
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import LogoutLink from '@/components/LogoutLink';
+import AccountMenu from '@/components/AccountMenu';
 import BookCardModal, { Book } from '@/components/BookModal';
 import ManageLocationsModal from '@/components/ManageLocationsModal';
 import ScanBookModal from '@/components/ScanBookModal';
@@ -145,9 +145,10 @@ const EMPTY_GUEST_BOOKS: Book[] = [];
 interface DashboardProps {
   isGuest?: boolean;
   initialGuestBooks?: Book[];
+  userEmail?: string | null;
 }
 
-export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_GUEST_BOOKS }: DashboardProps = {}) {
+export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_GUEST_BOOKS, userEmail = null }: DashboardProps = {}) {
   const supabase = createClient();
   const [isSearching, setIsSearching] = useState(false);
   const [isHeaderSearching, setIsHeaderSearching] = useState(false);
@@ -167,13 +168,13 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const [filterRoom, setFilterRoom] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
   const isMobile = useIsMobile();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { themeColor, setThemeColor } = useThemeColor(isGuest);
 
   // The header visually locks into its compact/scrolled appearance while editing — regardless of
@@ -234,6 +235,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   // Close either search pill when clicking anywhere outside of it
   useCloseOnOutsideClick(isSearching, 'hero-search-wrapper', () => setIsSearching(false));
   useCloseOnOutsideClick(isHeaderSearching, 'header-search-wrapper', () => setIsHeaderSearching(false));
+  useCloseOnOutsideClick(isAccountMenuOpen, 'account-menu-wrapper', () => setIsAccountMenuOpen(false));
 
   // Shared Enter-to-search logic for both the hero and header search pills
   const commitSearch = () => {
@@ -792,31 +794,20 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                 </motion.button>
               ) : (
                 <motion.div
-                  key="logout-link"
+                  key="account-menu"
                   initial={{ opacity: 0, filter: 'blur(6px)' }}
                   animate={{ opacity: 1, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                 >
-                  {isGuest ? (
-                    <button
-                      onClick={() => {
-                        document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-                        window.location.href = '/login';
-                      }}
-                      className="nav-link"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Sign in to save your books
-                    </button>
-                  ) : (
-                    <LogoutLink />
-                  )}
+                  <AccountMenu
+                    email={userEmail}
+                    themeColor={themeColor}
+                    onThemeColorChange={setThemeColor}
+                    isOpen={isAccountMenuOpen}
+                    onOpenChange={setIsAccountMenuOpen}
+                    isGuest={isGuest}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
