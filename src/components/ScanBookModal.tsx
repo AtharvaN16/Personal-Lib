@@ -936,7 +936,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                         type="text"
                         inputMode="numeric"
                         className="field-white"
-                        placeholder="Or type an ISBN"
+                        placeholder="OR enter ISBN number"
                         value={manualIsbn}
                         onChange={(e) => setManualIsbn(e.target.value)}
                         aria-label="Manually enter ISBN"
