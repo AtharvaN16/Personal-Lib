@@ -786,21 +786,13 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                         document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
                         window.location.href = '/login';
                       }}
+                      className="nav-link"
                       style={{
                         background: 'none',
                         border: 'none',
                         padding: 0,
-                        fontFamily: 'var(--font-instrument-sans), sans-serif',
-                        fontSize: '1.05rem',
-                        fontWeight: '600',
-                        color: 'var(--accent-primary)',
                         cursor: 'pointer',
-                        transition: 'opacity 0.2s ease',
-                        textDecoration: 'underline wavy var(--accent-primary)',
-                        textUnderlineOffset: '4px',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                     >
                       Sign in to save your books
                     </button>
