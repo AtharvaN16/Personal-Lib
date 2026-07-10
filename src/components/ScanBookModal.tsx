@@ -330,6 +330,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
             editingLocation: false,
           },
         ]);
+        setManualIsbn('');
         setState('idle');
         return;
       }
@@ -361,7 +362,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   }, [mode, books, queue, defaultLocationId, defaultLocationObj, showToast]);
 
   // Hardware scanner only listens while waiting for a scan — not mid-lookup or once loaded
-  useHardwareScanner(state === 'idle' && !locationSetupOpen, (code) => {
+  useHardwareScanner(state === 'idle' && !locationSetupOpen && !editingDefault, (code) => {
     runLookup(code);
   });
 
