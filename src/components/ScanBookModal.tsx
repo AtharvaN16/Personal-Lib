@@ -7,6 +7,30 @@ import BookModal, { Book } from '@/components/BookModal';
 import { fetchBookByIsbn } from '@/lib/openLibrary';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
 
+export interface Shelf {
+  id: string;
+  room: string;
+  bookshelf: string;
+}
+
+export interface QueuedBook {
+  id: string;
+  title: string;
+  authors: string[];
+  isbn?: string | null;
+  publisher?: string | null;
+  published_date?: string | null;
+  description?: string | null;
+  cover_url?: string | null;
+  locationId: string;
+  location: { room: string; bookshelf: string } | null;
+  overridden: boolean;
+  rowState: 'idle' | 'saving';
+  editingLocation: boolean;
+}
+
+type ScanMode = 'single' | 'location';
+
 type ScanState = 'idle' | 'loading' | 'error' | 'loaded';
 
 interface ScanBookModalProps {
@@ -24,6 +48,15 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   const [draftBook, setDraftBook] = useState<Book | null>(null);
   const [draftLocationId, setDraftLocationId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [mode, setMode] = useState<ScanMode>('single');
+  const [locationSetupOpen, setLocationSetupOpen] = useState(false);
+  const [shelves, setShelves] = useState<Shelf[]>([]);
+  const [setupRoom, setSetupRoom] = useState('');
+  const [setupShelfId, setSetupShelfId] = useState('');
+  const [defaultLocationId, setDefaultLocationId] = useState('');
+  const [defaultLocationObj, setDefaultLocationObj] = useState<{ room: string; bookshelf: string } | null>(null);
+  const [editingDefault, setEditingDefault] = useState(false);
+  const [queue, setQueue] = useState<QueuedBook[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Focus trap / Escape / body scroll lock for the idle/loading/error chrome.
@@ -66,6 +99,65 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     };
   }, [onClose, state]);
 
+  useEffect(() => {
+    async function loadShelves() {
+      try {
+        const { data } = await supabase.from('shelves').select('id, room, bookshelf');
+        if (data) setShelves(data);
+      } catch {
+        console.warn('Failed to load shelves list');
+      }
+    }
+    loadShelves();
+  }, [supabase]);
+
+  const resolveLocationSelection = useCallback(async (
+    room: string,
+    shelfId: string
+  ): Promise<{ id: string; room: string; bookshelf: string } | null> => {
+    const selectedShelf = shelves.find(s => s.id === shelfId);
+    if (selectedShelf) return selectedShelf;
+    if (!room) return null;
+
+    const roomOnlyShelf = shelves.find(s => s.room === room && s.bookshelf === '');
+    if (roomOnlyShelf) return roomOnlyShelf;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('shelves')
+        .insert([{ room, bookshelf: '', user_id: user?.id }])
+        .select();
+      if (error) throw error;
+      if (data && data[0]) {
+        setShelves(prev => [...prev, data[0]]);
+        return data[0];
+      }
+    } catch {
+      console.warn('Failed to save room-only location');
+    }
+    return { id: '', room, bookshelf: '' };
+  }, [shelves, supabase]);
+
+  const handleStartScanning = async () => {
+    if (!setupRoom) return;
+    const resolved = await resolveLocationSelection(setupRoom, setupShelfId);
+    if (!resolved) return;
+    setDefaultLocationId(resolved.id);
+    setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
+    setMode('location');
+    setLocationSetupOpen(false);
+  };
+
+  const handleCancelSetup = () => {
+    setLocationSetupOpen(false);
+    setSetupRoom('');
+    setSetupShelfId('');
+  };
+
+  const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
+  const setupShelvesInRoom = shelves.filter(s => s.room === setupRoom && s.bookshelf !== '');
+
   const runLookup = useCallback(async (isbn: string) => {
     setState('loading');
     try {
@@ -97,7 +189,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   }, []);
 
   // Hardware scanner only listens while waiting for a scan — not mid-lookup or once loaded
-  useHardwareScanner(state === 'idle', (code) => {
+  useHardwareScanner(state === 'idle' && !locationSetupOpen, (code) => {
     runLookup(code);
   });
 
@@ -191,6 +283,76 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     }
   };
 
+  if (mode === 'location') {
+    return (
+      <div style={styles.backdrop} onClick={onClose}>
+        <motion.div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Scan by location"
+          tabIndex={-1}
+          initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
+          transition={{ duration: 0.3 }}
+          style={{ ...styles.queueModal, outline: 'none' }}
+          className="scan-queue-modal"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button onClick={onClose} style={styles.closeBtn} className="modal-close-btn" aria-label="Close">
+            CLOSE
+          </button>
+
+          <div style={styles.queueHeader}>
+            <div style={styles.defaultLocationRow}>
+              <span style={styles.defaultLocationText}>
+                Scanning into: <strong>
+                  {defaultLocationObj?.room}
+                  {defaultLocationObj?.bookshelf ? ` • ${defaultLocationObj.bookshelf}` : ''}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          <div style={styles.queueScannerRow}>
+            <span className="material-symbols-outlined" style={styles.scannerIcon}>
+              qr_code_scanner
+            </span>
+            <form onSubmit={handleManualSubmit} style={styles.queueManualForm}>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="field-white"
+                placeholder="Or type an ISBN"
+                value={manualIsbn}
+                onChange={(e) => setManualIsbn(e.target.value)}
+                aria-label="Manually enter ISBN"
+                style={styles.manualInput}
+              />
+            </form>
+          </div>
+
+          <div style={styles.queueList}>
+            {queue.length === 0 ? (
+              <p style={styles.emptyQueueText}>No books scanned yet — scan or type an ISBN above.</p>
+            ) : (
+              <p style={styles.emptyQueueText}>
+                {queue.length} book{queue.length === 1 ? '' : 's'} queued.
+              </p>
+            )}
+          </div>
+
+          <div style={styles.saveAllRow}>
+            <button type="button" disabled style={{ ...styles.saveAllBtn, opacity: 0.5 }}>
+              Save All
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (state === 'loaded' && draftBook) {
     return (
       <BookModal
@@ -281,26 +443,88 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
               style={styles.promptWrapper}
             >
               <div style={styles.promptContent}>
-                <span className="material-symbols-outlined" style={styles.promptIcon}>
-                  qr_code_scanner
-                </span>
-                <h2 style={styles.promptTitle}>Scan the book</h2>
-                <p style={styles.promptText}>
-                  Scan the barcode to add it to your library.
-                </p>
-                <form onSubmit={handleManualSubmit} style={styles.manualForm}>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="field-white"
-                    placeholder="Or type an ISBN"
-                    value={manualIsbn}
-                    onChange={(e) => setManualIsbn(e.target.value)}
-                    aria-label="Manually enter ISBN"
-                    style={styles.manualInput}
-                  />
-                </form>
-                {manualIsbn && <span style={styles.enterHint}>press ⏎ to search</span>}
+                {locationSetupOpen ? (
+                  <>
+                    <span className="material-symbols-outlined" style={styles.promptIcon}>
+                      location_on
+                    </span>
+                    <h2 style={styles.promptTitle}>Choose a default location</h2>
+                    <p style={styles.promptText}>
+                      Every book you scan will be assigned here until you change it.
+                    </p>
+                    <div style={styles.setupForm}>
+                      <select
+                        aria-label="Select room"
+                        value={setupRoom}
+                        onChange={(e) => { setSetupRoom(e.target.value); setSetupShelfId(''); }}
+                        style={styles.selectField}
+                        className="book-modal-select"
+                      >
+                        <option value="">-- Select Room --</option>
+                        {uniqueRooms.map((r, i) => (
+                          <option key={i} value={r}>{r}</option>
+                        ))}
+                      </select>
+                      {setupRoom && (
+                        <select
+                          aria-label="Select shelf"
+                          value={setupShelfId}
+                          onChange={(e) => setSetupShelfId(e.target.value)}
+                          style={styles.selectField}
+                          className="book-modal-select"
+                        >
+                          <option value="">Unassigned</option>
+                          {setupShelvesInRoom.map((s) => (
+                            <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                          ))}
+                        </select>
+                      )}
+                      <div style={styles.setupActions}>
+                        <button type="button" onClick={handleCancelSetup} style={styles.formCancelBtn}>
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleStartScanning}
+                          disabled={!setupRoom}
+                          style={{ ...styles.formSaveBtn, opacity: setupRoom ? 1 : 0.5 }}
+                        >
+                          Start Scanning
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined" style={styles.promptIcon}>
+                      qr_code_scanner
+                    </span>
+                    <h2 style={styles.promptTitle}>Scan the book</h2>
+                    <p style={styles.promptText}>
+                      Scan the barcode to add it to your library.
+                    </p>
+                    <form onSubmit={handleManualSubmit} style={styles.manualForm}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className="field-white"
+                        placeholder="Or type an ISBN"
+                        value={manualIsbn}
+                        onChange={(e) => setManualIsbn(e.target.value)}
+                        aria-label="Manually enter ISBN"
+                        style={styles.manualInput}
+                      />
+                    </form>
+                    {manualIsbn && <span style={styles.enterHint}>press ⏎ to search</span>}
+                    <button
+                      type="button"
+                      onClick={() => setLocationSetupOpen(true)}
+                      style={styles.scanByLocationLink}
+                    >
+                      Scan by Location →
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           )}
@@ -407,6 +631,138 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     marginTop: '4px',
+  },
+  scanByLocationLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--accent-primary)',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    padding: 0,
+    marginTop: '14px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  setupForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    width: '100%',
+    maxWidth: '260px',
+  },
+  setupActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    marginTop: '4px',
+  },
+  selectField: {
+    padding: '8px 12px',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
+    borderRadius: '0px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    backgroundColor: '#FFFFFF',
+    color: 'var(--text-primary)',
+    boxShadow: 'none',
+    outline: 'none',
+    width: '100%',
+  },
+  formCancelBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  formSaveBtn: {
+    backgroundColor: 'var(--accent-primary)',
+    border: 'none',
+    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
+    color: 'var(--bg-sheet)',
+    padding: '4px 12px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  queueModal: {
+    width: '100%',
+    maxWidth: '680px',
+    maxHeight: 'min(720px, 85svh)',
+    backgroundColor: 'var(--bg-sheet)',
+    padding: '40px 36px 36px 36px',
+    position: 'relative',
+    borderRadius: '0px',
+    border: 'none',
+    boxShadow: '0 12px 35px rgba(17, 22, 37, 0.15)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  queueHeader: {
+    flexShrink: 0,
+    marginBottom: '16px',
+  },
+  defaultLocationRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  defaultLocationText: {
+    fontSize: '15px',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  queueScannerRow: {
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    paddingBottom: '20px',
+    marginBottom: '16px',
+    borderBottom: '1px solid rgba(17, 22, 37, 0.08)',
+  },
+  scannerIcon: {
+    fontSize: '32px',
+    color: 'var(--accent-primary)',
+    flexShrink: 0,
+  },
+  queueManualForm: {
+    flex: 1,
+    maxWidth: '220px',
+  },
+  queueList: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    paddingRight: '4px',
+  },
+  emptyQueueText: {
+    fontSize: '0.9rem',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  saveAllRow: {
+    flexShrink: 0,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: '16px',
+  },
+  saveAllBtn: {
+    backgroundColor: 'var(--accent-primary)',
+    border: 'none',
+    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
+    color: 'var(--bg-sheet)',
+    padding: '8px 18px',
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   retryBtn: {
     backgroundColor: 'var(--accent-primary)',
