@@ -15,6 +15,7 @@
 - No persistence beyond the mounted lifetime of `ScanBookModal` — no localStorage, no context, no server-side session. Unmounting clears all queue/default state implicitly via React state teardown.
 - Do not extract a shared `LocationPicker` component. Duplicate the room/shelf `<select>` markup inline, matching how `BulkMoveModal` already duplicates it from `BookModal`.
 - No automated test framework exists in this repo and none should be added as part of this feature. Every task's verification step is `bun run lint` + `bun run build` (type-checks the whole app) + a concrete manual walkthrough in the browser.
+- **Mobile is in scope.** This app has a shipped 640px mobile breakpoint convention in `src/app/globals.css` (six `@media (max-width: 640px)` blocks, e.g. `.book-modal-panel`, `.book-modal-select`, `.modal-close-btn`). New interactive elements must reach the same touch-target floor: 44×44px per Apple HIG, 16px font on `<select>`/`<input>` to avoid iOS Safari auto-zoom. Every `<select>` added in this plan already carries `className="book-modal-select"`, which the existing mobile block already resizes to 44px/16px — do not remove that className from any select. `className="modal-close-btn"` on the queue view's CLOSE button already gets the existing off-screen-clipping fix for free — do not rename it. Task 7 adds the remaining mobile-specific CSS (queue-row stacking, action-button touch targets) that has no existing class to piggyback on.
 
 ---
 
@@ -22,7 +23,7 @@
 
 - **Modify:** `src/components/ScanBookModal.tsx` — all state, the `mode === 'location'` branch, `runLookup` branching, save/remove/override handlers. This is the owner of `Shelf` and `QueuedBook` types (exported for `ScanQueueRow` to consume, matching how `BookModal.tsx` exports `Book` for `ScanBookModal` to consume today).
 - **Create:** `src/components/ScanQueueRow.tsx` — presentational row (thumbnail, title, author, location text, Save/Change/Remove), plus its inline location-override editing UI. Imports `Shelf`/`QueuedBook` types from `ScanBookModal.tsx`.
-- **Modify:** `src/app/globals.css` — one small `@keyframes spin` + `.spin-icon` utility for the in-progress lookup icon (Task 3).
+- **Modify:** `src/app/globals.css` — one small `@keyframes spin` + `.spin-icon` utility for the in-progress lookup icon (Task 3), plus a mobile `@media (max-width: 640px)` block for the queue view and queue rows (Task 7).
 
 ---
 
@@ -269,6 +270,7 @@ Immediately above the existing `if (state === 'loaded' && draftBook) {` block (c
           exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
           transition={{ duration: 0.3 }}
           style={{ ...styles.queueModal, outline: 'none' }}
+          className="scan-queue-modal"
           onClick={(e) => e.stopPropagation()}
         >
           <button onClick={onClose} style={styles.closeBtn} className="modal-close-btn" aria-label="Close">
@@ -472,7 +474,7 @@ Run:
 bun run lint
 bun run build
 ```
-Expected: both succeed with no errors (the `queue`, `editingDefault`, `overridden`, `rowState`, `editingLocation` fields are currently unused outside their own state hooks, which is fine — TypeScript won't flag unused struct fields, only unused local variables/imports; if `bun run lint` flags unused state setters, verify you're calling every setter added in this step at least once in the code above).
+Expected: both succeed with exit code 0. `bun run lint` may print `@typescript-eslint/no-unused-vars` **warnings** for `editingDefault`/`setEditingDefault` (unused until Task 2) and `setQueue` (unused until Task 3) — this repo's `eslint-config-next/typescript` sets that rule to `'warn'`, not `'error'`, and the lint script has no `--max-warnings` flag, so warnings do not fail the command. Only treat it as broken if `bun run lint` or `bun run build` exit non-zero.
 
 Manual check via `bun dev`: open the Scan modal, confirm the idle screen shows a "Scan by Location →" link below the manual ISBN field. Click it, confirm the setup view replaces the prompt (Room/Shelf selects + Cancel/Start Scanning). Pick a room, confirm the shelf select appears and "Start Scanning" becomes enabled. Click "Start Scanning", confirm the modal swaps to the queue shell showing "Scanning into: <room>" and "No books scanned yet". Close and reopen the modal, confirm it resets to the normal idle screen.
 
@@ -817,7 +819,7 @@ export default function ScanQueueRow({ book, onSave, onRemove }: ScanQueueRowPro
   const isSaving = book.rowState === 'saving';
 
   return (
-    <div style={styles.row}>
+    <div style={styles.row} className="scan-queue-row">
       <div style={styles.coverWrapper}>
         {book.cover_url && !imgError ? (
           <Image
@@ -844,7 +846,7 @@ export default function ScanQueueRow({ book, onSave, onRemove }: ScanQueueRowPro
         </span>
       </div>
 
-      <div style={styles.actions}>
+      <div style={styles.actions} className="scan-queue-row-actions">
         <button
           type="button"
           onClick={() => onSave(book.id)}
@@ -1138,7 +1140,7 @@ export default function ScanQueueRow({
   const shelvesInRoom = shelves.filter(s => s.room === editRoom && s.bookshelf !== '');
 
   return (
-    <div style={styles.row}>
+    <div style={styles.row} className="scan-queue-row">
       <div style={styles.coverWrapper}>
         {book.cover_url && !imgError ? (
           <Image
@@ -1207,7 +1209,7 @@ export default function ScanQueueRow({
         )}
       </div>
 
-      <div style={styles.actions}>
+      <div style={styles.actions} className="scan-queue-row-actions">
         <button
           type="button"
           onClick={() => onSave(book.id)}
@@ -1419,16 +1421,53 @@ git commit -m "feat: add Save All for the scan-by-location queue"
 
 ---
 
-### Task 7: Final polish and full walkthrough
+### Task 7: Mobile responsiveness, final polish, and full walkthrough
 
 **Files:**
 - Modify: `src/components/ScanBookModal.tsx`
+- Modify: `src/app/globals.css`
 
 - [ ] **Step 1: Reduce the queue-list row gap now that rows carry their own bottom border**
 
 `ScanQueueRow`'s `row` style already includes `borderBottom`, so the `queueList` gap from Task 1 (`gap: '4px'`) is fine as-is — skip if already `4px`. If it was left at a larger value in Task 1, update the `queueList` entry in `ScanBookModal.tsx`'s `styles` to `gap: '0px'` so rows read as one continuous list (matching `ManageLocationsModal`'s gapless `shelvesList` convention).
 
-- [ ] **Step 2: Full manual walkthrough**
+- [ ] **Step 2: Add mobile CSS for the queue view and queue rows**
+
+This repo has a shipped mobile-breakpoint convention: six `@media (max-width: 640px)` blocks in `src/app/globals.css`, using `!important` to override the inline `style` props these components use everywhere (see e.g. the block starting `.book-modal-panel` at line 273, and the `.modal-close-btn` / `.icon-btn` touch-target block at line 539). `className="book-modal-select"` (already on every `<select>` added in Tasks 1, 2, and 5) and `className="modal-close-btn"` (already on the queue view's CLOSE button, added in Task 1) are covered by existing blocks and need no new CSS. The queue shell and queue rows use two new classNames — `scan-queue-modal` (added in Task 1 Step 4) and `scan-queue-row` / `scan-queue-row-actions` (added in Task 4 Step 1, carried through Task 5 Step 1) — which have no existing mobile treatment yet.
+
+Add a new block to `src/app/globals.css`, immediately after the existing mobile block that ends around line 560 (the one containing `.modal-close-btn` and `.icon-btn`):
+
+```css
+@media (max-width: 640px) {
+  /* Scan by Location: queue view needs its own mobile treatment since it
+     intentionally doesn't use .book-modal-panel (that class pins a fixed
+     height single-mode relies on; the queue view needs to grow/cap/scroll
+     instead — see ScanBookModal.tsx queueModal style). */
+  .scan-queue-modal {
+    max-height: 90svh !important;
+  }
+
+  .scan-queue-row {
+    flex-wrap: wrap !important;
+  }
+
+  .scan-queue-row-actions {
+    width: 100%;
+    justify-content: flex-end !important;
+    gap: 16px !important;
+  }
+
+  .scan-queue-row-actions button {
+    min-height: 44px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+```
+
+`.scan-queue-row { flex-wrap: wrap }` lets the actions row (Save/Change/Remove) drop to its own line below the thumbnail/title/author/location column on narrow screens instead of being squeezed into the same row; `width: 100%` on `.scan-queue-row-actions` makes that wrap deliberate rather than accidental, and `justify-content: flex-end` keeps the buttons right-aligned like the rest of the app's row actions (matches `ManageLocationsModal`'s `rowActions` pattern). The `min-height: 44px` on the action buttons meets the Apple HIG touch-target floor the same way `.icon-btn`/`.modal-close-btn` already do elsewhere in this file.
+
+- [ ] **Step 3: Full manual walkthrough**
 
 Run `bun dev` and work through every item below in order, in one continuous session, confirming each before moving to the next:
 
@@ -1443,10 +1482,11 @@ Run `bun dev` and work through every item below in order, in one continuous sess
 9. Click "Save All" on the remaining rows. Confirm they all clear from the queue, a summary toast appears, and the modal stays open afterward.
 10. Close the modal (CLOSE button). Reopen the Scan modal and choose "Scan by Location" again. Confirm the queue is empty and no location is pre-selected — nothing carried over from the prior session.
 11. With the modal in its normal (non-location) idle state, verify the existing single-scan flow is completely unaffected: scan a book, confirm it opens the full `BookModal` preview exactly as before, assign a location there, and save.
+12. Using the browser's device toolbar (or an actual phone), resize to a 375×667 viewport (iPhone SE) and repeat steps 1, 2, and 5 there. Confirm: the CLOSE button is fully on-screen and tappable (not clipped above the viewport); every `<select>` is comfortably tappable and doesn't trigger iOS zoom-on-focus; once 3+ rows are queued, each row's Save/Change/Remove buttons wrap to their own line below the title/author/location text and are individually tappable without misclicking a neighboring button.
 
 If any step fails, fix the underlying code in the relevant earlier task's file before proceeding — do not patch around it here.
 
-- [ ] **Step 3: Final verification**
+- [ ] **Step 4: Final verification**
 
 Run:
 ```bash
@@ -1455,9 +1495,9 @@ bun run build
 ```
 Expected: both succeed with zero errors and zero warnings introduced by this feature.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add -A
-git commit -m "polish: finish Scan by Location queue styling and verify full flow"
+git commit -m "polish: mobile responsiveness for Scan by Location queue, final verification"
 ```

@@ -399,6 +399,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     setDraftBook(prev => (prev ? { ...prev, authors } : prev));
   };
 
+  const handleDraftTitleAuthorChange = (_id: string, title: string, authors: string[]) => {
+    setDraftBook(prev => (prev ? { ...prev, title, authors } : prev));
+  };
+
   const handleSaveNew = async () => {
     if (!draftBook) return;
 
@@ -595,7 +599,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
 
           <div style={styles.queueList}>
             {queue.length === 0 ? (
-              <p style={styles.emptyQueueText}>No books scanned yet — type an ISBN below or use a barcode scanner.</p>
+              <p style={styles.emptyQueueText}>No books scanned yet</p>
             ) : (
               queue.map((book) => (
                 <ScanQueueRow
@@ -618,7 +622,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                 type="text"
                 inputMode="numeric"
                 className="field-white"
-                placeholder="ISBN"
+                placeholder="OR enter ISBN number"
                 value={manualIsbn}
                 onChange={(e) => setManualIsbn(e.target.value)}
                 aria-label="Manually enter ISBN"
@@ -651,6 +655,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
         onStatusChange={handleDraftStatusChange}
         onLocationChange={handleDraftLocationChange}
         onAuthorChange={handleDraftAuthorChange}
+        onTitleAuthorChange={handleDraftTitleAuthorChange}
       />
     );
   }
@@ -739,7 +744,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                 {locationSetupOpen ? (
                   <>
                     <span className="material-symbols-outlined" style={styles.promptIcon}>
-                      newsstand
+                      location_on
                     </span>
                     <h2 style={styles.promptTitle}>Choose a default location</h2>
                     <p style={styles.promptText}>
@@ -1000,7 +1005,7 @@ const styles: Record<string, React.CSSProperties> = {
   formSaveBtn: {
     position: 'absolute',
     bottom: '24px',
-    right: '24px',
+    right: '36px',
     backgroundColor: 'var(--accent-primary)',
     border: 'none',
     boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',

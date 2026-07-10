@@ -92,12 +92,26 @@ export default function ScanQueueRow({
               type="button"
               onClick={() => onConfirmLocation(book.id, editRoom, editShelfId)}
               disabled={!editRoom}
-              style={{ ...styles.miniSaveBtn, opacity: editRoom ? 1 : 0.5 }}
+              className="icon-btn"
+              style={{ ...styles.rowIconBtn, opacity: editRoom ? 1 : 0.5, color: 'var(--accent-primary)' }}
+              title="Save location change"
+              aria-label="Save location change"
             >
-              Save
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                check
+              </span>
             </button>
-            <button type="button" onClick={() => onCancelEditLocation(book.id)} style={styles.miniCancelBtn}>
-              Cancel
+            <button
+              type="button"
+              onClick={() => onCancelEditLocation(book.id)}
+              className="icon-btn"
+              style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
+              title="Cancel"
+              aria-label="Cancel"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                close
+              </span>
             </button>
           </div>
         ) : (
@@ -113,15 +127,38 @@ export default function ScanQueueRow({
           type="button"
           onClick={() => onSave(book.id)}
           disabled={isSaving}
-          style={{ ...styles.saveBtn, opacity: isSaving ? 0.6 : 1 }}
+          className="icon-btn"
+          style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
+          title="Save book to library"
+          aria-label="Save book to library"
         >
-          {isSaving ? 'Saving…' : 'Save'}
+          <span className={`material-symbols-outlined${isSaving ? ' spin-icon' : ''}`} style={{ fontSize: '20px' }}>
+            {isSaving ? 'progress_activity' : 'save'}
+          </span>
         </button>
-        <button type="button" onClick={startEdit} style={styles.changeBtn}>
-          Change
+        <button
+          type="button"
+          onClick={startEdit}
+          className="icon-btn"
+          style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
+          title="Change location"
+          aria-label="Change location"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+            edit
+          </span>
         </button>
-        <button type="button" onClick={() => onRemove(book.id)} style={styles.removeBtn}>
-          Remove
+        <button
+          type="button"
+          onClick={() => onRemove(book.id)}
+          className="icon-btn"
+          style={{ ...styles.rowIconBtn, color: 'var(--error)' }}
+          title="Remove from queue"
+          aria-label="Remove from queue"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+            delete
+          </span>
         </button>
       </div>
     </div>
@@ -189,28 +226,17 @@ const styles: Record<string, React.CSSProperties> = {
   actions: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '4px',
     flexShrink: 0,
   },
-  saveBtn: {
-    backgroundColor: 'var(--accent-primary)',
-    border: 'none',
-    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
-    color: 'var(--bg-sheet)',
-    padding: '5px 12px',
-    cursor: 'pointer',
-    fontSize: '0.8rem',
-    fontWeight: 'bold',
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-  },
-  removeBtn: {
+  rowIconBtn: {
     background: 'none',
     border: 'none',
-    color: 'var(--error)',
-    fontSize: '0.8rem',
+    padding: '4px',
     cursor: 'pointer',
-    padding: 0,
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editLocationRow: {
     display: 'flex',
@@ -229,34 +255,5 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: 'none',
     outline: 'none',
     fontSize: '0.8rem',
-  },
-  miniSaveBtn: {
-    backgroundColor: 'var(--accent-primary)',
-    border: 'none',
-    color: 'var(--bg-sheet)',
-    padding: '3px 10px',
-    cursor: 'pointer',
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-  },
-  miniCancelBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-secondary)',
-    fontSize: '0.75rem',
-    cursor: 'pointer',
-    padding: 0,
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-  },
-  changeBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-primary)',
-    textDecoration: 'underline',
-    fontSize: '0.8rem',
-    cursor: 'pointer',
-    padding: 0,
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
 };

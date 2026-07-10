@@ -43,6 +43,7 @@ interface BookModalProps {
   isSaving?: boolean;
   /** Called when the user manually fills in an author the lookup couldn't find. Ignored unless isNew. */
   onAuthorChange?: (id: string, authors: string[]) => void;
+  onTitleAuthorChange?: (id: string, title: string, authors: string[]) => void;
 }
 
 const DESCRIPTION_EXPAND_THRESHOLD = 220; // Roughly where text starts exceeding 4 lines at this width
@@ -58,6 +59,7 @@ export default function BookModal({
   onSaveNew,
   isSaving = false,
   onAuthorChange,
+  onTitleAuthorChange,
 }: BookModalProps) {
   const supabase = createClient();
   const [shelves, setShelves] = useState<{ id: string; room: string; bookshelf: string }[]>([]);
@@ -66,9 +68,15 @@ export default function BookModal({
   const [selectedShelfId, setSelectedShelfId] = useState('');
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [isEditingAuthor, setIsEditingAuthor] = useState(false);
-  const [authorDraft, setAuthorDraft] = useState('');
+  const [isEditingTitleAuthor, setIsEditingTitleAuthor] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(book.title);
+  const [authorDraft, setAuthorDraft] = useState(book.authors.join(', '));
   const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setTitleDraft(book.title);
+    setAuthorDraft(book.authors.join(', '));
+  }, [book]);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -219,19 +227,39 @@ export default function BookModal({
 
   // Fill in an author the lookup couldn't find (scan preview only)
   const handleAddAuthorClick = () => {
+    setTitleDraft(book.title);
     setAuthorDraft('');
-    setIsEditingAuthor(true);
+    setIsEditingTitleAuthor(true);
   };
 
-  const handleSaveAuthor = () => {
-    const name = authorDraft.trim();
-    if (!name) return;
-    onAuthorChange?.(book.id, [name]);
-    setIsEditingAuthor(false);
+  const handleEditTitleAuthorClick = () => {
+    if (isEditingTitleAuthor) {
+      handleCancelTitleAuthor();
+    } else {
+      setTitleDraft(book.title);
+      setAuthorDraft(book.authors.join(', '));
+      setIsEditingTitleAuthor(true);
+    }
   };
 
-  const handleCancelAuthor = () => {
-    setIsEditingAuthor(false);
+  const handleSaveTitleAuthor = () => {
+    const title = titleDraft.trim();
+    const authors = authorDraft
+      .split(',')
+      .map(a => a.trim())
+      .filter(Boolean);
+
+    if (!title) return;
+
+    onTitleAuthorChange?.(book.id, title, authors);
+    onAuthorChange?.(book.id, authors);
+    setIsEditingTitleAuthor(false);
+  };
+
+  const handleCancelTitleAuthor = () => {
+    setTitleDraft(book.title);
+    setAuthorDraft(book.authors.join(', '));
+    setIsEditingTitleAuthor(false);
   };
 
   // Pull just the year out of a published_date string (e.g. "January 28, 1813" -> "1813")
@@ -334,6 +362,27 @@ export default function BookModal({
                 </span>
               </button>
 
+              {/* Edit Title/Author Button */}
+              <button
+                onClick={handleEditTitleAuthorClick}
+                className="icon-btn"
+                style={{
+                  ...styles.iconBtn,
+                  color: isEditingTitleAuthor ? 'var(--accent-primary)' : 'var(--text-primary)'
+                }}
+                title="Edit details"
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '26px',
+                    fontVariationSettings: isEditingTitleAuthor ? "'FILL' 1" : "'FILL' 0"
+                  }}
+                >
+                  edit
+                </span>
+              </button>
+
               {/* Delete Button (Trash) - not shown for an unsaved scan preview; CLOSE already discards it */}
               {!isNew && (
                 <button
@@ -379,52 +428,100 @@ export default function BookModal({
           {/* Right Column - Scrollable Information */}
           <div style={styles.rightCol}>
             <div style={styles.headerInfo}>
-              <h2 style={styles.title} className="book-modal-title">
-                {book.title}
-              </h2>
-              {book.authors.length > 0 ? (
-                <p style={styles.author} className="book-modal-author">
-                  {book.authors.join(', ')}
-                  {publishedYear && (
-                    <>
-                      <span style={styles.authorSeparator} />
-                      <span style={styles.authorYear}>{publishedYear}</span>
-                    </>
-                  )}
-                </p>
-              ) : isEditingAuthor ? (
-                <div style={styles.authorEditRow}>
-                  <input
-                    className="field-white"
-                    value={authorDraft}
-                    onChange={(e) => setAuthorDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveAuthor();
-                      if (e.key === 'Escape') handleCancelAuthor();
-                    }}
-                    placeholder="Author name"
-                    aria-label="Author name"
-                    autoFocus
-                    style={styles.authorEditInput}
-                  />
-                  <button onClick={handleSaveAuthor} style={styles.authorSaveBtn}>Save</button>
-                  <button onClick={handleCancelAuthor} style={styles.confirmCancelBtn}>Cancel</button>
+              {isEditingTitleAuthor ? (
+                <div style={styles.editTitleAuthorForm}>
+                  <div style={styles.editFieldContainer}>
+                    <label style={styles.editLabel}>Title</label>
+                    <input
+                      className="field-white"
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveTitleAuthor();
+                        if (e.key === 'Escape') handleCancelTitleAuthor();
+                      }}
+                      style={styles.editTitleInput}
+                      placeholder="Title"
+                      aria-label="Edit title"
+                      autoFocus
+                    />
+                  </div>
+                  <div style={styles.editFieldContainer}>
+                    <label style={styles.editLabel}>Author</label>
+                    <input
+                      className="field-white"
+                      value={authorDraft}
+                      onChange={(e) => setAuthorDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveTitleAuthor();
+                        if (e.key === 'Escape') handleCancelTitleAuthor();
+                      }}
+                      style={styles.editAuthorInput}
+                      placeholder="Authors"
+                      aria-label="Edit authors"
+                    />
+                  </div>
+                  <div style={styles.editActions}>
+                    <button
+                      onClick={handleSaveTitleAuthor}
+                      className="icon-btn"
+                      style={{
+                        ...styles.iconBtn,
+                        color: 'var(--accent-primary)',
+                      }}
+                      title="Save details"
+                      aria-label="Save details"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                        check
+                      </span>
+                    </button>
+                    <button
+                      onClick={handleCancelTitleAuthor}
+                      className="icon-btn"
+                      style={{
+                        ...styles.iconBtn,
+                        color: 'var(--text-secondary)',
+                      }}
+                      title="Cancel"
+                      aria-label="Cancel"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                        close
+                      </span>
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <p style={styles.author} className="book-modal-author">
-                  Unknown Author
-                  {publishedYear && (
-                    <>
-                      <span style={styles.authorSeparator} />
-                      <span style={styles.authorYear}>{publishedYear}</span>
-                    </>
+                <>
+                  <h2 style={styles.title} className="book-modal-title">
+                    {book.title}
+                  </h2>
+                  {book.authors.length > 0 ? (
+                    <p style={styles.author} className="book-modal-author">
+                      {book.authors.join(', ')}
+                      {publishedYear && (
+                        <>
+                          <span style={styles.authorSeparator} />
+                          <span style={styles.authorYear}>{publishedYear}</span>
+                        </>
+                      )}
+                    </p>
+                  ) : (
+                    <p style={styles.author} className="book-modal-author">
+                      Unknown Author
+                      {publishedYear && (
+                        <>
+                          <span style={styles.authorSeparator} />
+                          <span style={styles.authorYear}>{publishedYear}</span>
+                        </>
+                      )}
+                      <button onClick={handleAddAuthorClick} style={styles.addAuthorLink}>
+                        + Add author
+                      </button>
+                    </p>
                   )}
-                  {isNew && (
-                    <button onClick={handleAddAuthorClick} style={styles.addAuthorLink}>
-                      + Add author
-                    </button>
-                  )}
-                </p>
+                </>
               )}
             </div>
 
@@ -772,6 +869,56 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
+  },
+  editTitleAuthorForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    maxWidth: '420px',
+    backgroundColor: 'rgba(17, 22, 37, 0.02)',
+    padding: '16px',
+    borderRadius: '4px',
+    border: '1px dashed rgba(17, 22, 37, 0.1)',
+  },
+  editFieldContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  editLabel: {
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    color: 'var(--text-secondary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  editTitleInput: {
+    padding: '8px 12px',
+    fontSize: '1.05rem',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    borderRadius: '0px',
+    color: 'var(--text-primary)',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
+    backgroundColor: '#FFFFFF',
+    width: '100%',
+    outline: 'none',
+  },
+  editAuthorInput: {
+    padding: '8px 12px',
+    fontSize: '0.95rem',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    borderRadius: '0px',
+    color: 'var(--text-primary)',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
+    backgroundColor: '#FFFFFF',
+    width: '100%',
+    outline: 'none',
+  },
+  editActions: {
+    display: 'flex',
+    gap: '8px',
+    marginTop: '6px',
   },
   title: {
     fontSize: '26px',

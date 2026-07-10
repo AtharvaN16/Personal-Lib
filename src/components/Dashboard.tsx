@@ -305,6 +305,19 @@ export default function Dashboard() {
     }
   };
 
+  // Handle title and author change from BookModal
+  const handleTitleAuthorChange = async (id: string, title: string, authors: string[]) => {
+    setBooks(prev => prev.map(b => b.id === id ? { ...b, title, authors } : b));
+    if (selectedBook && selectedBook.id === id) {
+      setSelectedBook(prev => prev ? { ...prev, title, authors } : null);
+    }
+    try {
+      await supabase.from('books').update({ title, authors }).eq('id', id);
+    } catch {
+      console.warn('Failed to update book title and author in Supabase');
+    }
+  };
+
   // Handle book deletion
   const handleDelete = async (id: string) => {
     setBooks(prev => prev.filter(b => b.id !== id));
@@ -936,6 +949,7 @@ export default function Dashboard() {
             onStatusChange={handleStatusChange}
             onLocationChange={handleLocationChange}
             onFavoriteToggle={handleFavoriteToggle}
+            onTitleAuthorChange={handleTitleAuthorChange}
           />
         )}
         {isManageLocationsOpen && (

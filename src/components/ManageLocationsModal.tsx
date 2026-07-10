@@ -18,6 +18,7 @@ interface ManageLocationsModalProps {
 export default function ManageLocationsModal({ onClose }: ManageLocationsModalProps) {
   const supabase = createClient();
   const [shelves, setShelves] = useState<Shelf[]>([]);
+  const [bookCounts, setBookCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [roomDrafts, setRoomDrafts] = useState<Record<string, string>>({});
@@ -75,6 +76,17 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
     try {
       const { data } = await supabase.from('shelves').select('id, room, bookshelf').order('room');
       setShelves(data || []);
+
+      const { data: booksData } = await supabase.from('books').select('location_id');
+      const counts: Record<string, number> = {};
+      if (booksData) {
+        booksData.forEach((b: { location_id: string | null }) => {
+          if (b.location_id) {
+            counts[b.location_id] = (counts[b.location_id] || 0) + 1;
+          }
+        });
+      }
+      setBookCounts(counts);
     } catch {
       console.warn('Failed to load shelves list');
     } finally {
@@ -144,6 +156,7 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
         }
       }
       setNewShelves([]);
+      loadShelves();
     } catch {
       console.warn('Failed to save location changes');
     }
@@ -162,6 +175,7 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
     setShelves(prev => prev.filter(s => s.id !== id));
     try {
       await supabase.from('shelves').delete().eq('id', id);
+      loadShelves();
     } catch {
       console.warn('Failed to delete location');
     }
@@ -180,6 +194,7 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
     setShelves(prev => prev.filter(s => s.room !== room));
     try {
       await supabase.from('shelves').delete().eq('room', room);
+      loadShelves();
     } catch {
       console.warn('Failed to delete room');
     }
@@ -252,6 +267,7 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
               const roomShelves = shelves.filter(s => s.room === room && s.bookshelf !== '');
               const roomNewShelves = newShelves.filter(n => n.room === room);
               const roomShelvesCount = roomShelves.length;
+              const roomBooksCount = roomShelves.reduce((sum, s) => sum + (bookCounts[s.id] || 0), 0);
               const isCollapsed = !!collapsedRooms[room];
               const hasShelves = roomShelves.length > 0 || (isEditMode && roomNewShelves.length > 0);
 
@@ -336,7 +352,9 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
                               <h3 style={styles.roomTitle}>{room}</h3>
                             )}
                             {!isEditMode && (
-                              <span style={styles.roomMetadata}>({roomShelvesCount})</span>
+                              <span style={styles.roomMetadata}>
+                                ({roomBooksCount} book{roomBooksCount === 1 ? '' : 's'})
+                              </span>
                             )}
                           </div>
                           <div style={styles.rowActions} onClick={(e) => e.stopPropagation()}>
@@ -457,7 +475,14 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
                                               style={styles.editInput}
                                             />
                                           ) : (
-                                            <span style={styles.shelfName}>{item.data.bookshelf}</span>
+                                            <>
+                                              <span style={styles.shelfName}>{item.data.bookshelf}</span>
+                                              {!isEditMode && (
+                                                <span style={styles.shelfMetadata}>
+                                                  {bookCounts[item.data.id] || 0} book{(bookCounts[item.data.id] || 0) === 1 ? '' : 's'}
+                                                </span>
+                                              )}
+                                            </>
                                           )}
                                           {isEditMode && (
                                             <button
@@ -641,6 +666,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.85rem',
     color: 'var(--text-secondary)',
     marginLeft: '6px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  shelfMetadata: {
+    fontSize: '0.82rem',
+    color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   shelvesContainer: {

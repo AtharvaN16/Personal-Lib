@@ -100,8 +100,7 @@ Unmounting `ScanBookModal` (close/cancel) discards all of the above — no persi
 
 - Lookup failure → toast, stay on queue view (no full error screen in this mode).
 - Duplicate on scan → toast, discard, stay on queue view.
-- Row save failure → toast, row stays queued with `rowState` reset to `'idle'` so it's retryable.
-- Save All partial failure → rows that succeeded are removed; rows that failed stay queued; one summary toast reports the failure count. (Matches existing single-scan fallback behavior of not silently losing data.)
+- **Row/Save-All persistence failure → optimistic local fallback, not a retry state.** As implemented, `persistQueuedBook` mirrors the existing single-scan `handleSaveNew`'s behavior exactly: on any Supabase failure (no session, insert error, etc.) it falls back to a local-only mock id, still calls `onBookAdded`, and the row is removed from the queue with the normal "Added to your library" toast — there is no distinct failure toast and no retryable state. This supersedes the original design (row stays queued, retryable, distinct failure toast) recorded above during brainstorming. The original design was written before implementation surfaced that the rest of this app has no concept of a "failed save" the user can retry — saves are optimistic everywhere else too, and diverging just for this feature would be inconsistent and add complexity for a failure mode (Supabase unreachable mid-session) that today only ever produces a local-only book, not a lost one. Confirmed with the user post-implementation (final whole-branch review, 2026-07-10): keep the optimistic-fallback behavior as-is rather than adding fail-stays-queued semantics.
 
 ## Testing / verification
 
