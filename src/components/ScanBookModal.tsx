@@ -666,7 +666,8 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
 
         {locationSetupOpen && (
           <button onClick={handleCancelSetup} style={styles.backBtn} aria-label="Go back">
-            <span className="material-symbols-outlined" style={styles.backIcon}>arrow_back</span>
+            <span className="material-symbols-outlined" style={styles.backIcon}>chevron_left</span>
+            <span style={styles.backText}>Back</span>
           </button>
         )}
 
@@ -727,7 +728,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                 {locationSetupOpen ? (
                   <>
                     <span className="material-symbols-outlined" style={styles.promptIcon}>
-                      location_on
+                      newsstand
                     </span>
                     <h2 style={styles.promptTitle}>Choose a default location</h2>
                     <p style={styles.promptText}>
@@ -761,14 +762,15 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                         </select>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleStartScanning}
-                      disabled={!setupRoom}
-                      style={{ ...styles.formSaveBtn, opacity: setupRoom ? 1 : 0.5 }}
-                    >
-                      Start Scanning
-                    </button>
+                    {setupRoom && (
+                      <button
+                        type="button"
+                        onClick={handleStartScanning}
+                        style={styles.formSaveBtn}
+                      >
+                        Start Scanning
+                      </button>
+                    )}
                   </>
                 ) : (
                   <>
@@ -856,14 +858,13 @@ const styles: Record<string, React.CSSProperties> = {
   backBtn: {
     position: 'absolute',
     top: '24px',
-    left: '36px',
+    left: '32px',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
     color: 'var(--text-secondary)',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
     padding: '4px',
     transition: 'opacity 0.2s ease',
     zIndex: 10,
@@ -871,6 +872,13 @@ const styles: Record<string, React.CSSProperties> = {
   backIcon: {
     fontSize: '24px',
     fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+  },
+  backText: {
+    fontSize: '0.95rem',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    color: 'var(--text-secondary)',
+    marginLeft: '2px',
+    fontWeight: '500',
   },
   actionRowSpacer: {
     height: '40px', // Matches BookModal's iconBtn height
@@ -880,8 +888,10 @@ const styles: Record<string, React.CSSProperties> = {
   promptWrapper: {
     flex: 1,
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
   },
   promptContent: {
     display: 'flex',
@@ -948,7 +958,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px',
     width: '100%',
     maxWidth: '260px',
-    marginTop: '60px',
+    marginTop: '20px',
   },
   setupActions: {
     display: 'flex',
