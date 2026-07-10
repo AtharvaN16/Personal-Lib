@@ -477,6 +477,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           </button>
 
           <div style={styles.queueHeader}>
+            <p style={styles.scanningLabel}>Scanning into:</p>
             <AnimatePresence mode="wait">
               {editingDefault ? (
                 <motion.div
@@ -485,45 +486,69 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                   animate={{ opacity: 1, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, filter: 'blur(4px)' }}
                   transition={{ duration: 0.15 }}
-                  style={styles.setupForm}
+                  style={styles.defaultLocationRowEdit}
                 >
-                  <select
-                    aria-label="Select room"
-                    value={setupRoom}
-                    onChange={(e) => { setSetupRoom(e.target.value); setSetupShelfId(''); }}
-                    style={styles.selectField}
-                    className="book-modal-select"
-                  >
-                    <option value="">-- Select Room --</option>
-                    {uniqueRooms.map((r, i) => (
-                      <option key={i} value={r}>{r}</option>
-                    ))}
-                  </select>
-                  {setupRoom && (
-                    <select
-                      aria-label="Select shelf"
-                      value={setupShelfId}
-                      onChange={(e) => setSetupShelfId(e.target.value)}
-                      style={styles.selectField}
-                      className="book-modal-select"
+                  <div style={styles.defaultLocationLeft}>
+                    <span
+                      className={`material-symbols-outlined${state === 'loading' ? ' spin-icon' : ''}`}
+                      style={styles.bigScannerIcon}
                     >
-                      <option value="">Unassigned</option>
-                      {shelves.filter(s => s.room === setupRoom && s.bookshelf !== '').map((s) => (
-                        <option key={s.id} value={s.id}>{s.bookshelf}</option>
-                      ))}
-                    </select>
-                  )}
-                  <div style={styles.setupActions}>
-                    <button type="button" onClick={handleCancelEditDefault} style={styles.formCancelBtn}>
-                      Cancel
-                    </button>
+                      {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
+                    </span>
+                    <div style={styles.horizontalSelects}>
+                      <select
+                        aria-label="Select room"
+                        value={setupRoom}
+                        onChange={(e) => { setSetupRoom(e.target.value); setSetupShelfId(''); }}
+                        style={styles.selectFieldHorizontal}
+                        className="book-modal-select"
+                      >
+                        <option value="">-- Select Room --</option>
+                        {uniqueRooms.map((r, i) => (
+                          <option key={i} value={r}>{r}</option>
+                        ))}
+                      </select>
+                      {setupRoom && (
+                        <select
+                          aria-label="Select shelf"
+                          value={setupShelfId}
+                          onChange={(e) => setSetupShelfId(e.target.value)}
+                          style={styles.selectFieldHorizontal}
+                          className="book-modal-select"
+                        >
+                          <option value="">Unassigned</option>
+                          {shelves.filter(s => s.room === setupRoom && s.bookshelf !== '').map((s) => (
+                            <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                  <div style={styles.setupActionsHorizontal}>
                     <button
                       type="button"
                       onClick={handleConfirmDefaultChange}
                       disabled={!setupRoom}
-                      style={{ ...styles.formSaveBtn, opacity: setupRoom ? 1 : 0.5 }}
+                      className="icon-btn"
+                      style={{ ...styles.iconBtnAction, opacity: setupRoom ? 1 : 0.5, color: 'var(--accent-primary)' }}
+                      title="Save default location"
+                      aria-label="Save default location"
                     >
-                      Save
+                      <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                        check
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEditDefault}
+                      className="icon-btn"
+                      style={{ ...styles.iconBtnAction, color: 'var(--text-secondary)' }}
+                      title="Cancel"
+                      aria-label="Cancel"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                        close
+                      </span>
                     </button>
                   </div>
                 </motion.div>
@@ -536,12 +561,18 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                   transition={{ duration: 0.15 }}
                   style={styles.defaultLocationRow}
                 >
-                  <span style={styles.defaultLocationText}>
-                    Scanning into: <strong>
+                  <div style={styles.defaultLocationLeft}>
+                    <span
+                      className={`material-symbols-outlined${state === 'loading' ? ' spin-icon' : ''}`}
+                      style={styles.bigScannerIcon}
+                    >
+                      {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
+                    </span>
+                    <span style={styles.bigLocationText}>
                       {defaultLocationObj?.room}
                       {defaultLocationObj?.bookshelf ? ` • ${defaultLocationObj.bookshelf}` : ''}
-                    </strong>
-                  </span>
+                    </span>
+                  </div>
                   <button type="button" onClick={handleStartEditDefault} style={styles.editLink}>
                     Change
                   </button>
@@ -550,30 +581,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
             </AnimatePresence>
           </div>
 
-          <div style={styles.queueScannerRow}>
-            <span
-              className={`material-symbols-outlined${state === 'loading' ? ' spin-icon' : ''}`}
-              style={styles.scannerIcon}
-            >
-              {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
-            </span>
-            <form onSubmit={handleManualSubmit} style={styles.queueManualForm}>
-              <input
-                type="text"
-                inputMode="numeric"
-                className="field-white"
-                placeholder="Or type an ISBN"
-                value={manualIsbn}
-                onChange={(e) => setManualIsbn(e.target.value)}
-                aria-label="Manually enter ISBN"
-                style={styles.manualInput}
-              />
-            </form>
-          </div>
-
           <div style={styles.queueList}>
             {queue.length === 0 ? (
-              <p style={styles.emptyQueueText}>No books scanned yet — scan or type an ISBN above.</p>
+              <p style={styles.emptyQueueText}>No books scanned yet — type an ISBN below or use a barcode scanner.</p>
             ) : (
               queue.map((book) => (
                 <ScanQueueRow
@@ -591,6 +601,18 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           </div>
 
           <div style={styles.saveAllRow}>
+            <form onSubmit={handleManualSubmit} style={styles.bottomManualForm}>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="field-white"
+                placeholder="ISBN"
+                value={manualIsbn}
+                onChange={(e) => setManualIsbn(e.target.value)}
+                aria-label="Manually enter ISBN"
+                style={styles.bottomManualInput}
+              />
+            </form>
             <button
               type="button"
               onClick={handleSaveAll}
@@ -755,6 +777,13 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                     <p style={styles.promptText}>
                       Scan the barcode to add it to your library.
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => setLocationSetupOpen(true)}
+                      style={styles.scanByLocationLink}
+                    >
+                      Scan Multiple Books
+                    </button>
                     <form onSubmit={handleManualSubmit} style={styles.manualForm}>
                       <input
                         type="text"
@@ -768,13 +797,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                       />
                     </form>
                     {manualIsbn && <span style={styles.enterHint}>press ⏎ to search</span>}
-                    <button
-                      type="button"
-                      onClick={() => setLocationSetupOpen(true)}
-                      style={styles.scanByLocationLink}
-                    >
-                      Scan by Location →
-                    </button>
                   </>
                 )}
               </div>
@@ -868,6 +890,7 @@ const styles: Record<string, React.CSSProperties> = {
   manualForm: {
     width: '100%',
     maxWidth: '260px',
+    marginTop: '70px',
   },
   manualInput: {
     padding: '8px 12px',
@@ -888,11 +911,13 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     border: 'none',
     color: 'var(--accent-primary)',
-    fontSize: '0.85rem',
-    fontWeight: 'bold',
+    fontSize: '0.9rem',
+    fontWeight: '600',
     cursor: 'pointer',
     padding: 0,
-    marginTop: '14px',
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textUnderlineOffset: '4px',
+    marginTop: '4px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   setupForm: {
@@ -947,6 +972,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     padding: 0,
     fontFamily: 'var(--font-instrument-sans), sans-serif',
+    flexShrink: 0,
   },
   queueModal: {
     width: '100%',
@@ -962,39 +988,88 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     overflow: 'hidden',
   },
+  scanningLabel: {
+    fontSize: '0.85rem',
+    color: 'var(--text-secondary)',
+    marginBottom: '8px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
   queueHeader: {
     flexShrink: 0,
-    marginBottom: '16px',
+    marginBottom: '20px',
   },
   defaultLocationRow: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: '12px',
+  },
+  defaultLocationRowEdit: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     gap: '12px',
     flexWrap: 'wrap',
   },
-  defaultLocationText: {
-    fontSize: '15px',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-  },
-  queueScannerRow: {
-    flexShrink: 0,
+  defaultLocationLeft: {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
-    paddingBottom: '20px',
-    marginBottom: '16px',
-    borderBottom: '1px solid rgba(17, 22, 37, 0.08)',
+    flex: 1,
+    minWidth: 0,
   },
-  scannerIcon: {
-    fontSize: '32px',
+  bigScannerIcon: {
+    fontSize: '44px',
     color: 'var(--accent-primary)',
     flexShrink: 0,
   },
-  queueManualForm: {
-    flex: 1,
-    maxWidth: '220px',
+  bigLocationText: {
+    fontSize: '24px',
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
+  horizontalSelects: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flex: 1,
+    minWidth: 0,
+    flexWrap: 'wrap',
+  },
+  selectFieldHorizontal: {
+    padding: '6px 10px',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
+    borderRadius: '0px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    backgroundColor: '#FFFFFF',
+    color: 'var(--text-primary)',
+    boxShadow: 'none',
+    outline: 'none',
+    fontSize: '0.9rem',
+    flex: 1,
+    minWidth: '120px',
+  },
+  setupActionsHorizontal: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  iconBtnAction: {
+    background: 'none',
+    border: 'none',
+    padding: '4px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   queueList: {
     flex: 1,
     minHeight: 0,
@@ -1003,6 +1078,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: '4px',
     paddingRight: '4px',
+    borderTop: '1px solid rgba(17, 22, 37, 0.08)',
+    paddingTop: '12px',
   },
   emptyQueueText: {
     fontSize: '0.9rem',
@@ -1012,8 +1089,28 @@ const styles: Record<string, React.CSSProperties> = {
   saveAllRow: {
     flexShrink: 0,
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: '16px',
+    borderTop: '1px solid rgba(17, 22, 37, 0.08)',
+    paddingTop: '16px',
+  },
+  bottomManualForm: {
+    flex: 1,
+    maxWidth: '180px',
+  },
+  bottomManualInput: {
+    padding: '8px 12px',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
+    borderRadius: '0px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    backgroundColor: '#FFFFFF',
+    color: 'var(--text-primary)',
+    boxShadow: 'none',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+    fontSize: '0.9rem',
   },
   saveAllBtn: {
     backgroundColor: 'var(--accent-primary)',
