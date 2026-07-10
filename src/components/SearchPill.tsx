@@ -229,7 +229,7 @@ export default function SearchPill({
             fontSize: `${fontSize}px`,
             fontStyle: 'italic',
             color: 'var(--accent-primary)',
-            backgroundColor: 'rgba(0, 44, 188, 0.06)', // Light blue container background
+            backgroundColor: 'rgba(var(--accent-primary-rgb), 0.06)', // Accent-tinted container background
             borderRadius: `${8 * s}px`, // Clean capsule border radius
             padding: `${6 * s}px ${20 * s}px`, // More padding to the search pill
             border: 'none',

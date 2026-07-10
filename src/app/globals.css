@@ -8,6 +8,7 @@
   --text-tertiary: #616874;    /* Pencil gray, darkened from #868C9B to meet 4.5:1 contrast on paper/sheet backgrounds */
   
   --accent-primary: #002CBC;   /* Vibrant ink blue */
+  --accent-primary-rgb: 0, 44, 188; /* Same color as R, G, B channels for rgba() composition */
   --accent-sage-light: #E8ECE9;
   --accent-terracotta: #C77966;
   --accent-terracotta-light: #F7EAE6;
@@ -74,7 +75,7 @@ body::after {
   left: -20vw;
   width: 140vw;
   height: 140vh;
-  background: radial-gradient(circle 45vw at 50% 85.7%, rgba(0, 44, 188, 0.22) 0%, rgba(0, 44, 188, 0.06) 60%, transparent 100%);
+  background: radial-gradient(circle 45vw at 50% 85.7%, rgba(var(--accent-primary-rgb), 0.22) 0%, rgba(var(--accent-primary-rgb), 0.06) 60%, transparent 100%);
   z-index: -1;
   pointer-events: none;
   transform-origin: 50% 85.7%;
@@ -224,7 +225,7 @@ a {
   }
 
   body::after {
-    background: radial-gradient(ellipse 65vw 65vh at 50% 74%, rgba(0, 44, 188, 0.24) 0%, rgba(0, 44, 188, 0.06) 60%, transparent 100%) !important;
+    background: radial-gradient(ellipse 65vw 65vh at 50% 74%, rgba(var(--accent-primary-rgb), 0.24) 0%, rgba(var(--accent-primary-rgb), 0.06) 60%, transparent 100%) !important;
     transform-origin: 50% 74% !important;
   }
 }

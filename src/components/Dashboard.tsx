@@ -15,6 +15,7 @@ import SearchPill from '@/components/SearchPill';
 import MobileMenu from '@/components/MobileMenu';
 import MobileSearchOverlay from '@/components/MobileSearchOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useThemeColor } from '@/hooks/useThemeColor';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 import { GUEST_SHELVES, GUEST_DATA_VERSION } from '@/lib/guestData';
 
@@ -172,6 +173,8 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
   const isMobile = useIsMobile();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { themeColor, setThemeColor } = useThemeColor(isGuest);
 
   // The header visually locks into its compact/scrolled appearance while editing — regardless of
   // actual scroll position — so Edit Mode's "Done" trigger and the compact title/nav stay put
@@ -1184,7 +1187,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                 color: 'var(--accent-primary)',
                 padding: '12px 24px',
                 borderRadius: '9999px',
-                boxShadow: '0 4px 16px rgba(0, 44, 188, 0.15)',
+                boxShadow: '0 4px 16px rgba(var(--accent-primary-rgb), 0.15)',
                 fontFamily: 'var(--font-instrument-sans), sans-serif',
                 fontSize: '0.9rem',
                 fontWeight: '600',
