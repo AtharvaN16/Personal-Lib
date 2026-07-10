@@ -155,6 +155,25 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     setSetupShelfId('');
   };
 
+  const handleStartEditDefault = () => {
+    setSetupRoom(defaultLocationObj?.room ?? '');
+    setSetupShelfId(defaultLocationId);
+    setEditingDefault(true);
+  };
+
+  const handleCancelEditDefault = () => {
+    setEditingDefault(false);
+  };
+
+  const handleConfirmDefaultChange = async () => {
+    if (!setupRoom) return;
+    const resolved = await resolveLocationSelection(setupRoom, setupShelfId);
+    if (!resolved) return;
+    setDefaultLocationId(resolved.id);
+    setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
+    setEditingDefault(false);
+  };
+
   const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
   const setupShelvesInRoom = shelves.filter(s => s.room === setupRoom && s.bookshelf !== '');
 
@@ -305,14 +324,77 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           </button>
 
           <div style={styles.queueHeader}>
-            <div style={styles.defaultLocationRow}>
-              <span style={styles.defaultLocationText}>
-                Scanning into: <strong>
-                  {defaultLocationObj?.room}
-                  {defaultLocationObj?.bookshelf ? ` • ${defaultLocationObj.bookshelf}` : ''}
-                </strong>
-              </span>
-            </div>
+            <AnimatePresence mode="wait">
+              {editingDefault ? (
+                <motion.div
+                  key="edit-default"
+                  initial={{ opacity: 0, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.15 }}
+                  style={styles.setupForm}
+                >
+                  <select
+                    aria-label="Select room"
+                    value={setupRoom}
+                    onChange={(e) => { setSetupRoom(e.target.value); setSetupShelfId(''); }}
+                    style={styles.selectField}
+                    className="book-modal-select"
+                  >
+                    <option value="">-- Select Room --</option>
+                    {uniqueRooms.map((r, i) => (
+                      <option key={i} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  {setupRoom && (
+                    <select
+                      aria-label="Select shelf"
+                      value={setupShelfId}
+                      onChange={(e) => setSetupShelfId(e.target.value)}
+                      style={styles.selectField}
+                      className="book-modal-select"
+                    >
+                      <option value="">Unassigned</option>
+                      {shelves.filter(s => s.room === setupRoom && s.bookshelf !== '').map((s) => (
+                        <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                      ))}
+                    </select>
+                  )}
+                  <div style={styles.setupActions}>
+                    <button type="button" onClick={handleCancelEditDefault} style={styles.formCancelBtn}>
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmDefaultChange}
+                      disabled={!setupRoom}
+                      style={{ ...styles.formSaveBtn, opacity: setupRoom ? 1 : 0.5 }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="display-default"
+                  initial={{ opacity: 0, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.15 }}
+                  style={styles.defaultLocationRow}
+                >
+                  <span style={styles.defaultLocationText}>
+                    Scanning into: <strong>
+                      {defaultLocationObj?.room}
+                      {defaultLocationObj?.bookshelf ? ` • ${defaultLocationObj.bookshelf}` : ''}
+                    </strong>
+                  </span>
+                  <button type="button" onClick={handleStartEditDefault} style={styles.editLink}>
+                    Change
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div style={styles.queueScannerRow}>
@@ -684,6 +766,16 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: '0.9rem',
     fontWeight: 'bold',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  editLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-primary)',
+    textDecoration: 'underline',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    padding: 0,
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   queueModal: {
