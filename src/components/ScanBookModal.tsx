@@ -486,6 +486,8 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
             <span style={styles.backText}>Back</span>
           </button>
 
+          <div style={styles.actionRowSpacer} />
+
           <div style={styles.queueHeader}>
             <p style={styles.scanningLabel}>Scanning into:</p>
             <AnimatePresence mode="wait">
@@ -771,15 +773,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                         </select>
                       )}
                     </div>
-                    {setupRoom && (
-                      <button
-                        type="button"
-                        onClick={handleStartScanning}
-                        style={styles.formSaveBtn}
-                      >
-                        Start Scanning
-                      </button>
-                    )}
                   </>
                 ) : (
                   <>
@@ -816,6 +809,16 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
             </motion.div>
           )}
         </AnimatePresence>
+
+        {locationSetupOpen && setupRoom && mode === 'single' && (
+          <button
+            type="button"
+            onClick={handleStartScanning}
+            style={styles.formSaveBtn}
+          >
+            Start Scanning
+          </button>
+        )}
       </motion.div>
     </div>
   );
