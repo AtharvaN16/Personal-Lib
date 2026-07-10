@@ -63,7 +63,12 @@ async function fetchWorkDetails(workKey: string): Promise<WorkDetails> {
 
 async function fetchBookFromGoogle(isbn: string): Promise<BookLookupResult | null> {
   try {
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    // Unauthenticated requests share a global daily quota across every anonymous caller on the
+    // internet and are effectively always exhausted — a free key raises this app's own limit to
+    // 1000/day. See https://console.cloud.google.com/apis/credentials (restrict by HTTP referrer).
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${apiKey ? `&key=${apiKey}` : ''}`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.items || data.items.length === 0) return null;
@@ -87,9 +92,26 @@ async function fetchBookFromGoogle(isbn: string): Promise<BookLookupResult | nul
 }
 
 /**
- * Looks up a book by ISBN via the Open Library API, with an automatic fallback to Google Books API
- * to salvage missing covers or handle missing edition records.
- * Returns null when the ISBN isn't found in either database.
+ * Amazon's legacy cover endpoint returns HTTP 200 with a ~43-byte placeholder GIF for ISBNs it
+ * has no art for, rather than a 404 — so a missing cover has to be detected by response size.
+ */
+async function fetchAmazonCover(isbn: string): Promise<string | null> {
+  try {
+    const url = `https://images-na.ssl-images-amazon.com/images/P/${isbn}.jpg`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (blob.size < 1000) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Looks up a book by ISBN via the Open Library API, falling back to Google Books for missing
+ * metadata/covers, then to Amazon's legacy cover endpoint, then to Open Library's own ISBN-keyed
+ * cover lookup as a last resort. Returns null when the ISBN isn't found in either database.
  */
 export async function fetchBookByIsbn(isbn: string): Promise<BookLookupResult | null> {
   let openLibraryResult: BookLookupResult | null = null;
@@ -109,7 +131,9 @@ export async function fetchBookByIsbn(isbn: string): Promise<BookLookupResult | 
       const authorKeys = editionAuthorKeys.length > 0 ? editionAuthorKeys : workDetails.authorKeys;
       const authorNames = await Promise.all(authorKeys.map(fetchAuthorName));
 
-      const coverId = data.covers?.[0];
+      // -1 is Open Library's sentinel for a flagged/removed cover — it resolves to a broken
+      // image, so skip past it to the first real (positive) cover id.
+      const coverId = data.covers?.find(id => id > 0);
       const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : null;
 
       openLibraryResult = {
@@ -134,28 +158,15 @@ export async function fetchBookByIsbn(isbn: string): Promise<BookLookupResult | 
   // Otherwise, query Google Books to try to find the book or salvage a cover
   const googleResult = await fetchBookFromGoogle(isbn);
 
-  if (googleResult) {
-    if (openLibraryResult) {
-      // Open Library succeeded but had no cover — combine Open Library metadata with Google's cover (or direct OL cover if Google has none)
-      return {
-        ...openLibraryResult,
-        cover_url: googleResult.cover_url || `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
-      };
-    }
-    // Open Library missed the book entirely — use the Google Books result (or direct OL cover if Google has none)
-    return {
-      ...googleResult,
-      cover_url: googleResult.cover_url || `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
-    };
-  }
+  // Prefer whichever source has metadata; Open Library wins if both found the book since its
+  // records tend to be more complete (descriptions, publishers, etc).
+  const metadata = openLibraryResult || googleResult;
+  if (!metadata) return null;
 
-  // If Google Books also has no record / failed, fall back to direct OL cover for the OL metadata
-  if (openLibraryResult) {
-    return {
-      ...openLibraryResult,
-      cover_url: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
-    };
-  }
+  const coverUrl =
+    googleResult?.cover_url ||
+    (await fetchAmazonCover(isbn)) ||
+    `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`;
 
-  return null;
+  return { ...metadata, isbn, cover_url: coverUrl };
 }
