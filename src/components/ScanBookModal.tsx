@@ -193,7 +193,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   };
 
   const handleConfirmDefaultChange = async () => {
-    if (!setupRoom) return;
+    if (!setupRoom) {
+      setDefaultLocationId('');
+      setDefaultLocationObj(null);
+      setEditingDefault(false);
+      return;
+    }
     const resolved = await resolveLocationSelection(setupRoom, setupShelfId);
     if (!resolved) return;
     setDefaultLocationId(resolved.id);
@@ -202,7 +207,23 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   };
 
   const handleSaveDefaultLocation = async () => {
-    if (!setupRoom) return;
+    if (!setupRoom) {
+      setPersistentDefaultLocationId('');
+      setPersistentDefaultLocationObj(null);
+      localStorage.removeItem('defaultLocationId');
+      localStorage.removeItem('defaultLocationObj');
+
+      // Sync current session scan location
+      setCurrentRoom('');
+      setCurrentShelfId('');
+
+      // Sync multi-scan queue location
+      setDefaultLocationId('');
+      setDefaultLocationObj(null);
+
+      setLocationSetupOpen(false);
+      return;
+    }
     const resolved = await resolveLocationSelection(setupRoom, setupShelfId);
     if (!resolved) return;
 
@@ -568,7 +589,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                         style={styles.selectFieldHorizontal}
                         className="book-modal-select"
                       >
-                        <option value="">-- Select Room --</option>
+                        <option value="">Unassigned</option>
                         {uniqueRooms.map((r, i) => (
                           <option key={i} value={r}>{r}</option>
                         ))}
@@ -593,9 +614,8 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                     <button
                       type="button"
                       onClick={handleConfirmDefaultChange}
-                      disabled={!setupRoom}
                       className="icon-btn"
-                      style={{ ...styles.iconBtnAction, opacity: setupRoom ? 1 : 0.5, color: 'var(--accent-primary)' }}
+                      style={{ ...styles.iconBtnAction, color: 'var(--accent-primary)' }}
                       title="Save default location"
                       aria-label="Save default location"
                     >
@@ -737,6 +757,17 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           </button>
         )}
 
+        {mode === 'single' && !locationSetupOpen && (
+          <button
+            type="button"
+            onClick={handleStartMultiScan}
+            style={styles.scanMultipleTopRight}
+            aria-label="Scan multiple books"
+          >
+            Scan Multiple Books
+          </button>
+        )}
+
         {/* Reserves the same vertical space BookModal's action-icon row occupies, so the
             cover/content below lines up exactly once this swaps into the real BookModal. */}
         <div style={styles.actionRowSpacer} />
@@ -808,7 +839,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                         style={styles.selectField}
                         className="book-modal-select"
                       >
-                        <option value="">-- Select Room --</option>
+                        <option value="">Unassigned</option>
                         {uniqueRooms.map((r, i) => (
                           <option key={i} value={r}>{r}</option>
                         ))}
@@ -827,7 +858,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                           ))}
                         </select>
                       )}
-                      {isMobile && setupRoom && mode === 'single' && (
+                      {isMobile && mode === 'single' && (
                         <button
                           type="button"
                           onClick={handleSaveDefaultLocation}
@@ -902,16 +933,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                       }}
                       style={styles.defaultLocationLink}
                     >
-                      Default Scan Location →
+                      Change Preferred Scan Location
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={handleStartMultiScan}
-                      style={styles.scanByLocationLink}
-                    >
-                      Scan Multiple Books
-                    </button>
                     <form onSubmit={handleManualSubmit} style={styles.manualForm}>
                       <input
                         type="text"
@@ -932,7 +956,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           )}
         </AnimatePresence>
 
-        {!isMobile && locationSetupOpen && setupRoom && mode === 'single' && (
+        {!isMobile && locationSetupOpen && mode === 'single' && (
           <button
             type="button"
             onClick={handleSaveDefaultLocation}
@@ -1056,7 +1080,7 @@ const styles: Record<string, React.CSSProperties> = {
   manualForm: {
     width: '100%',
     maxWidth: '260px',
-    marginTop: '70px',
+    marginTop: '40px',
   },
   manualInput: {
     padding: '8px 12px',
@@ -1086,13 +1110,29 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '4px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
+  scanMultipleTopRight: {
+    position: 'absolute',
+    top: '24px',
+    right: '36px',
+    background: 'none',
+    border: 'none',
+    color: 'var(--accent-primary)',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    padding: 0,
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textUnderlineOffset: '4px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    zIndex: 10,
+  },
   setupForm: {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
     width: '100%',
     maxWidth: '260px',
-    marginTop: '20px',
+    marginTop: '8px',
   },
   setupActions: {
     display: 'flex',
