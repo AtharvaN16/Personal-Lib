@@ -19,6 +19,8 @@ interface OpenLibraryIsbnResponse {
 
 interface OpenLibraryAuthorResponse {
   name: string;
+  personal_name?: string;
+  alternate_names?: string[];
 }
 
 interface OpenLibraryWorkResponse {
@@ -27,12 +29,34 @@ interface OpenLibraryWorkResponse {
   authors?: { author: { key: string } }[];
 }
 
+const LATIN_REGEX = /^[\p{Script=Latin}\s.,'()\-’]+$/u;
+
+function isLatin(str: string): boolean {
+  return LATIN_REGEX.test(str.trim());
+}
+
 async function fetchAuthorName(authorKey: string): Promise<string | null> {
   try {
     const res = await fetch(`https://openlibrary.org${authorKey}.json`);
     if (!res.ok) return null;
     const data: OpenLibraryAuthorResponse = await res.json();
-    return data.name || null;
+
+    // Prioritize Latin/English name representations to avoid native characters (e.g. Chinese, Cyrillic)
+    if (data.personal_name && isLatin(data.personal_name)) {
+      return data.personal_name;
+    }
+    if (data.name && isLatin(data.name)) {
+      return data.name;
+    }
+    if (data.alternate_names) {
+      for (const alt of data.alternate_names) {
+        if (isLatin(alt)) {
+          return alt;
+        }
+      }
+    }
+
+    return data.personal_name || data.name || null;
   } catch {
     return null;
   }
@@ -67,7 +91,7 @@ async function fetchBookFromGoogle(isbn: string): Promise<BookLookupResult | nul
     // internet and are effectively always exhausted — a free key raises this app's own limit to
     // 1000/day. See https://console.cloud.google.com/apis/credentials (restrict by HTTP referrer).
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY;
-    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${apiKey ? `&key=${apiKey}` : ''}`;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&hl=en${apiKey ? `&key=${apiKey}` : ''}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
