@@ -309,20 +309,23 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
 
   // Handle status update locally and in Supabase
   const handleStatusChange = async (id: string, status: 'Completed' | 'Reading' | 'To Read') => {
-    const updated = books.map(b => b.id === id ? { ...b, status } : b);
-    setBooks(updated);
+    setBooks(prev => {
+      const updated = prev.map(b => b.id === id ? { ...b, status } : b);
+      if (isGuest) {
+        try {
+          localStorage.setItem('guest_books', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest status change:', e);
+        }
+      }
+      return updated;
+    });
+
     if (selectedBook && selectedBook.id === id) {
       setSelectedBook(prev => prev ? { ...prev, status } : null);
     }
     
-    if (isGuest) {
-      try {
-        localStorage.setItem('guest_books', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save guest status change:', e);
-      }
-      return;
-    }
+    if (isGuest) return;
 
     try {
       await supabase.from('books').update({ status }).eq('id', id);
@@ -333,36 +336,42 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
 
   // Toggle favorite locally
   const handleFavoriteToggle = (id: string, favorite: boolean) => {
-    const updated = books.map(b => b.id === id ? { ...b, favorite } : b);
-    setBooks(updated);
+    setBooks(prev => {
+      const updated = prev.map(b => b.id === id ? { ...b, favorite } : b);
+      if (isGuest) {
+        try {
+          localStorage.setItem('guest_books', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest favorite status:', e);
+        }
+      }
+      return updated;
+    });
+
     if (selectedBook && selectedBook.id === id) {
       setSelectedBook(prev => prev ? { ...prev, favorite } : null);
-    }
-    if (isGuest) {
-      try {
-        localStorage.setItem('guest_books', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save guest favorite status:', e);
-      }
     }
   };
 
   // Handle title and author change from BookModal
   const handleTitleAuthorChange = async (id: string, title: string, authors: string[]) => {
-    const updated = books.map(b => b.id === id ? { ...b, title, authors } : b);
-    setBooks(updated);
+    setBooks(prev => {
+      const updated = prev.map(b => b.id === id ? { ...b, title, authors } : b);
+      if (isGuest) {
+        try {
+          localStorage.setItem('guest_books', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest title/author change:', e);
+        }
+      }
+      return updated;
+    });
+
     if (selectedBook && selectedBook.id === id) {
       setSelectedBook(prev => prev ? { ...prev, title, authors } : null);
     }
 
-    if (isGuest) {
-      try {
-        localStorage.setItem('guest_books', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save guest title/author change:', e);
-      }
-      return;
-    }
+    if (isGuest) return;
 
     try {
       await supabase.from('books').update({ title, authors }).eq('id', id);
@@ -373,18 +382,20 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
 
   // Handle book deletion
   const handleDelete = async (id: string) => {
-    const updated = books.filter(b => b.id !== id);
-    setBooks(updated);
+    setBooks(prev => {
+      const updated = prev.filter(b => b.id !== id);
+      if (isGuest) {
+        try {
+          localStorage.setItem('guest_books', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest deletion:', e);
+        }
+      }
+      return updated;
+    });
     setSelectedBook(null);
 
-    if (isGuest) {
-      try {
-        localStorage.setItem('guest_books', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save guest deletion:', e);
-      }
-      return;
-    }
+    if (isGuest) return;
 
     try {
       await supabase.from('books').delete().eq('id', id);
@@ -397,19 +408,21 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedBookIds);
     const count = ids.length;
-    const updated = books.filter(b => !selectedBookIds.has(b.id));
-    setBooks(updated);
+    setBooks(prev => {
+      const updated = prev.filter(b => !selectedBookIds.has(b.id));
+      if (isGuest) {
+        try {
+          localStorage.setItem('guest_books', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest bulk deletion:', e);
+        }
+      }
+      return updated;
+    });
     exitEditMode();
     showToast(`Deleted ${count} book${count === 1 ? '' : 's'}`);
 
-    if (isGuest) {
-      try {
-        localStorage.setItem('guest_books', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save guest bulk deletion:', e);
-      }
-      return;
-    }
+    if (isGuest) return;
 
     try {
       await supabase.from('books').delete().in('id', ids);
@@ -424,20 +437,23 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     locationId: string, 
     locationObj: { room: string; bookshelf: string } | null
   ) => {
-    const updated = books.map(b => b.id === bookId ? { ...b, location: locationObj } : b);
-    setBooks(updated);
+    setBooks(prev => {
+      const updated = prev.map(b => b.id === bookId ? { ...b, location: locationObj } : b);
+      if (isGuest) {
+        try {
+          localStorage.setItem('guest_books', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest location change:', e);
+        }
+      }
+      return updated;
+    });
+
     if (selectedBook && selectedBook.id === bookId) {
       setSelectedBook(prev => prev ? { ...prev, location: locationObj } : null);
     }
 
-    if (isGuest) {
-      try {
-        localStorage.setItem('guest_books', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save guest location change:', e);
-      }
-      return;
-    }
+    if (isGuest) return;
 
     try {
       const locationIdVal = locationId === '' || locationId === 'unassigned' ? null : locationId;
@@ -451,20 +467,22 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const handleBulkMove = async (locationId: string, locationObj: { room: string; bookshelf: string } | null) => {
     const ids = Array.from(selectedBookIds);
     const count = ids.length;
-    const updated = books.map(b => selectedBookIds.has(b.id) ? { ...b, location: locationObj } : b);
-    setBooks(updated);
+    setBooks(prev => {
+      const updated = prev.map(b => selectedBookIds.has(b.id) ? { ...b, location: locationObj } : b);
+      if (isGuest) {
+        try {
+          localStorage.setItem('guest_books', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest bulk move:', e);
+        }
+      }
+      return updated;
+    });
     setIsBulkMoveOpen(false);
     exitEditMode();
     showToast(`Moved ${count} book${count === 1 ? '' : 's'} to ${locationObj?.room ?? 'Unassigned'}`);
 
-    if (isGuest) {
-      try {
-        localStorage.setItem('guest_books', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save guest bulk move:', e);
-      }
-      return;
-    }
+    if (isGuest) return;
 
     try {
       const locationIdVal = locationId === '' ? null : locationId;
@@ -1069,18 +1087,30 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             onLocationChange={handleLocationChange}
             onFavoriteToggle={handleFavoriteToggle}
             onTitleAuthorChange={handleTitleAuthorChange}
+            isGuest={isGuest}
           />
         )}
         {isManageLocationsOpen && (
-          <ManageLocationsModal onClose={() => setIsManageLocationsOpen(false)} />
+          <ManageLocationsModal onClose={() => setIsManageLocationsOpen(false)} isGuest={isGuest} />
         )}
         {isScanModalOpen && (
           <ScanBookModal
             onClose={() => setIsScanModalOpen(false)}
             books={books}
             showToast={showToast}
+            isGuest={isGuest}
             onBookAdded={(newBook) => {
-              setBooks(prev => [newBook, ...prev]);
+              setBooks(prev => {
+                const updated = [newBook, ...prev];
+                if (isGuest) {
+                  try {
+                    localStorage.setItem('guest_books', JSON.stringify(updated));
+                  } catch (e) {
+                    console.warn('Failed to save guest book:', e);
+                  }
+                }
+                return updated;
+              });
               setIsScanModalOpen(false);
               showToast(`Added "${newBook.title}" to your library`);
             }}
@@ -1091,6 +1121,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             count={selectedBookIds.size}
             onClose={() => setIsBulkMoveOpen(false)}
             onApply={handleBulkMove}
+            isGuest={isGuest}
           />
         )}
         {isFilterOpen && (

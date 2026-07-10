@@ -13,9 +13,10 @@ interface Shelf {
 
 interface ManageLocationsModalProps {
   onClose: () => void;
+  isGuest?: boolean;
 }
 
-export default function ManageLocationsModal({ onClose }: ManageLocationsModalProps) {
+export default function ManageLocationsModal({ onClose, isGuest = false }: ManageLocationsModalProps) {
   const supabase = createClient();
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [bookCounts, setBookCounts] = useState<Record<string, number>>({});
@@ -74,6 +75,28 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
   const loadShelves = async () => {
     setLoading(true);
     try {
+      if (isGuest) {
+        const storedShelves = localStorage.getItem('guest_shelves');
+        const guestShelves = storedShelves ? JSON.parse(storedShelves) : [];
+        setShelves(guestShelves);
+
+        const storedBooks = localStorage.getItem('guest_books');
+        const guestBooks = storedBooks ? JSON.parse(storedBooks) : [];
+        const counts: Record<string, number> = {};
+        guestBooks.forEach((b: any) => {
+          if (b.location) {
+            const match = guestShelves.find(
+              (s: any) => s.room === b.location.room && s.bookshelf === b.location.bookshelf
+            );
+            if (match) {
+              counts[match.id] = (counts[match.id] || 0) + 1;
+            }
+          }
+        });
+        setBookCounts(counts);
+        return;
+      }
+
       const { data } = await supabase.from('shelves').select('id, room, bookshelf').order('room');
       setShelves(data || []);
 
@@ -126,6 +149,60 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
     setShelves(updatedShelves);
     setIsEditMode(false);
 
+    if (isGuest) {
+      const pendingInserts = newShelves.filter(n => n.bookshelf.trim());
+      const inserts = pendingInserts.map((n, i) => ({
+        id: `guest-shelf-${Date.now()}-${i}`,
+        room: (roomDrafts[n.room] ?? n.room).trim() || n.room,
+        bookshelf: n.bookshelf.trim(),
+      }));
+
+      const finalShelves = [
+        ...updatedShelves,
+        ...inserts
+      ];
+      try {
+        localStorage.setItem('guest_shelves', JSON.stringify(finalShelves));
+
+        // Sync renames back to guest books
+        const storedBooks = localStorage.getItem('guest_books');
+        if (storedBooks) {
+          const guestBooks = JSON.parse(storedBooks);
+          const updatedBooks = guestBooks.map((b: any) => {
+            if (!b.location) return b;
+            
+            let room = b.location.room;
+            const roomRename = roomDrafts[room];
+            if (roomRename !== undefined && roomRename.trim()) {
+              room = roomRename.trim();
+            }
+
+            let bookshelf = b.location.bookshelf;
+            const shelf = shelves.find(s => s.room === b.location.room && s.bookshelf === b.location.bookshelf);
+            if (shelf) {
+              const shelfRename = shelfDrafts[shelf.id];
+              if (shelfRename !== undefined) {
+                bookshelf = shelfRename.trim();
+              }
+            }
+
+            return {
+              ...b,
+              location: { room, bookshelf }
+            };
+          });
+          localStorage.setItem('guest_books', JSON.stringify(updatedBooks));
+        }
+      } catch (e) {
+        console.warn('Failed to save guest shelves:', e);
+      }
+      setShelves(finalShelves);
+      setNewShelves([]);
+      loadShelves();
+      window.location.reload();
+      return;
+    }
+
     try {
       const roomRenames = rooms.filter(r => roomDrafts[r] && roomDrafts[r].trim() && roomDrafts[r].trim() !== r);
       await Promise.all(
@@ -172,7 +249,34 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
 
   const handleConfirmDelete = async (id: string) => {
     setConfirmingDeleteId(null);
+    const shelfToDelete = shelves.find(s => s.id === id);
     setShelves(prev => prev.filter(s => s.id !== id));
+
+    if (isGuest) {
+      const finalShelves = shelves.filter(s => s.id !== id);
+      try {
+        localStorage.setItem('guest_shelves', JSON.stringify(finalShelves));
+        if (shelfToDelete) {
+          const storedBooks = localStorage.getItem('guest_books');
+          if (storedBooks) {
+            const guestBooks = JSON.parse(storedBooks);
+            const updatedBooks = guestBooks.map((b: any) => {
+              if (b.location && b.location.room === shelfToDelete.room && b.location.bookshelf === shelfToDelete.bookshelf) {
+                return { ...b, location: null };
+              }
+              return b;
+            });
+            localStorage.setItem('guest_books', JSON.stringify(updatedBooks));
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to delete guest shelf:', e);
+      }
+      loadShelves();
+      window.location.reload();
+      return;
+    }
+
     try {
       await supabase.from('shelves').delete().eq('id', id);
       loadShelves();
@@ -192,6 +296,30 @@ export default function ManageLocationsModal({ onClose }: ManageLocationsModalPr
   const handleConfirmDeleteRoom = async (room: string) => {
     setConfirmingDeleteRoom(null);
     setShelves(prev => prev.filter(s => s.room !== room));
+
+    if (isGuest) {
+      const finalShelves = shelves.filter(s => s.room !== room);
+      try {
+        localStorage.setItem('guest_shelves', JSON.stringify(finalShelves));
+        const storedBooks = localStorage.getItem('guest_books');
+        if (storedBooks) {
+          const guestBooks = JSON.parse(storedBooks);
+          const updatedBooks = guestBooks.map((b: any) => {
+            if (b.location && b.location.room === room) {
+              return { ...b, location: null };
+            }
+            return b;
+          });
+          localStorage.setItem('guest_books', JSON.stringify(updatedBooks));
+        }
+      } catch (e) {
+        console.warn('Failed to delete guest room:', e);
+      }
+      loadShelves();
+      window.location.reload();
+      return;
+    }
+
     try {
       await supabase.from('shelves').delete().eq('room', room);
       loadShelves();

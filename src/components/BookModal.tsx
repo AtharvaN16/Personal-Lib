@@ -43,6 +43,7 @@ interface BookModalProps {
   /** Called when the user manually fills in an author the lookup couldn't find. Ignored unless isNew. */
   onAuthorChange?: (id: string, authors: string[]) => void;
   onTitleAuthorChange?: (id: string, title: string, authors: string[]) => void;
+  isGuest?: boolean;
 }
 
 const DESCRIPTION_EXPAND_THRESHOLD = 220; // Roughly where text starts exceeding 4 lines at this width
@@ -59,6 +60,7 @@ export default function BookModal({
   isSaving = false,
   onAuthorChange,
   onTitleAuthorChange,
+  isGuest = false,
 }: BookModalProps) {
   const supabase = createClient();
   const [shelves, setShelves] = useState<{ id: string; room: string; bookshelf: string }[]>([]);
@@ -119,6 +121,18 @@ export default function BookModal({
   // Fetch all shelves on mount for selection dropdowns
   useEffect(() => {
     async function loadShelves() {
+      if (isGuest) {
+        try {
+          const stored = localStorage.getItem('guest_shelves');
+          if (stored) {
+            setShelves(JSON.parse(stored));
+          }
+        } catch (e) {
+          console.warn('Failed to load guest shelves:', e);
+        }
+        return;
+      }
+
       try {
         const { data } = await supabase.from('shelves').select('id, room, bookshelf');
         if (data) {
@@ -129,7 +143,7 @@ export default function BookModal({
       }
     }
     loadShelves();
-  }, [supabase]);
+  }, [supabase, isGuest]);
 
   // Set up initial selection values on Edit trigger
   const handleEditClick = () => {
@@ -173,6 +187,26 @@ export default function BookModal({
     const roomOnlyShelf = shelves.find(s => s.room === selectedRoom && s.bookshelf === '');
     if (roomOnlyShelf) {
       onLocationChange?.(book.id, roomOnlyShelf.id, { room: selectedRoom, bookshelf: '' });
+      setIsEditingLocation(false);
+      return;
+    }
+
+    if (isGuest) {
+      const newShelf = {
+        id: `guest-shelf-${Date.now()}`,
+        room: selectedRoom,
+        bookshelf: '',
+      };
+      setShelves(prev => {
+        const updated = [...prev, newShelf];
+        try {
+          localStorage.setItem('guest_shelves', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest shelf:', e);
+        }
+        return updated;
+      });
+      onLocationChange?.(book.id, newShelf.id, { room: selectedRoom, bookshelf: '' });
       setIsEditingLocation(false);
       return;
     }

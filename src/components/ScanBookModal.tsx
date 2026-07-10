@@ -40,9 +40,10 @@ interface ScanBookModalProps {
   onBookAdded: (book: Book) => void;
   books: Book[];
   showToast: (message: string) => void;
+  isGuest?: boolean;
 }
 
-export default function ScanBookModal({ onClose, onBookAdded, books, showToast }: ScanBookModalProps) {
+export default function ScanBookModal({ onClose, onBookAdded, books, showToast, isGuest = false }: ScanBookModalProps) {
   const supabase = createClient();
   const [state, setState] = useState<ScanState>('idle');
   const [manualIsbn, setManualIsbn] = useState('');
@@ -108,6 +109,26 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
 
   useEffect(() => {
     async function loadShelves() {
+      if (isGuest) {
+        try {
+          const stored = localStorage.getItem('guest_shelves');
+          if (stored) {
+            setShelves(JSON.parse(stored));
+          } else {
+            const mockShelves = [
+              { id: 'guest-shelf-1', room: 'Living room', bookshelf: 'Tall shelf' },
+              { id: 'guest-shelf-2', room: 'Bedroom', bookshelf: 'Bedside table' }
+            ];
+            setShelves(mockShelves);
+            localStorage.setItem('guest_shelves', JSON.stringify(mockShelves));
+          }
+        } catch (e) {
+          console.warn('Failed to load guest shelves list:', e);
+          setShelves([]);
+        }
+        return;
+      }
+
       try {
         const { data } = await supabase.from('shelves').select('id, room, bookshelf');
         if (data) setShelves(data);
@@ -116,7 +137,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
       }
     }
     loadShelves();
-  }, [supabase]);
+  }, [supabase, isGuest]);
 
   useEffect(() => {
     try {
@@ -147,6 +168,24 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     const roomOnlyShelf = shelves.find(s => s.room === room && s.bookshelf === '');
     if (roomOnlyShelf) return roomOnlyShelf;
 
+    if (isGuest) {
+      const newShelf = {
+        id: `guest-shelf-${Date.now()}`,
+        room,
+        bookshelf: '',
+      };
+      setShelves(prev => {
+        const updated = [...prev, newShelf];
+        try {
+          localStorage.setItem('guest_shelves', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest shelf:', e);
+        }
+        return updated;
+      });
+      return newShelf;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
@@ -162,7 +201,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
       console.warn('Failed to save room-only location');
     }
     return { id: '', room, bookshelf: '' };
-  }, [shelves, supabase]);
+  }, [shelves, supabase, isGuest]);
 
   const handleStartMultiScan = async () => {
     const resolved = await resolveLocationSelection(currentRoom, currentShelfId);
@@ -245,6 +284,24 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   };
 
   const persistQueuedBook = useCallback(async (row: QueuedBook) => {
+    if (isGuest) {
+      const mockId = `guest-book-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      onBookAdded({
+        id: mockId,
+        title: row.title,
+        authors: row.authors,
+        isbn: row.isbn,
+        publisher: row.publisher,
+        published_date: row.published_date,
+        description: row.description,
+        cover_url: row.cover_url,
+        location: row.location,
+        status: 'To Read',
+        favorite: false,
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user session');
@@ -297,7 +354,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
         favorite: false,
       });
     }
-  }, [supabase, onBookAdded]);
+  }, [supabase, onBookAdded, isGuest]);
 
   const handleSaveQueueRow = async (id: string) => {
     const row = queue.find(q => q.id === id);

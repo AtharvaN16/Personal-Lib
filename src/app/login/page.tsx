@@ -90,7 +90,7 @@ function LoginForm() {
         >
           <div style={styles.header}>
             <h1 className="display-serif" style={styles.title}>
-              Personal Library
+              My Personal Library
             </h1>
             <p style={styles.subtitle}>Catalog your books & organize your shelves</p>
           </div>
@@ -261,7 +261,7 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     width: '100%',
     maxWidth: '440px',
-    padding: '40px 32px 36px 32px',
+    padding: '40px 32px 56px 32px',
     position: 'relative',
     zIndex: 10000,
     display: 'flex',
@@ -274,13 +274,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   header: {
     textAlign: 'center',
-    marginBottom: '8px',
+    marginBottom: '24px',
   },
   title: {
-    fontSize: '2.5rem',
+    fontSize: '2rem',
     fontWeight: 500,
     color: 'var(--accent-primary)',
-    marginBottom: '8px',
+    marginBottom: '2px',
   },
   subtitle: {
     fontSize: '0.9rem',
@@ -364,9 +364,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   footer: {
     textAlign: 'center',
-    marginTop: '12px',
-    borderTop: '1px solid rgba(17, 22, 37, 0.08)',
-    paddingTop: '16px',
+    marginTop: '20px',
+    paddingTop: '0px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',

@@ -8,9 +8,10 @@ interface BulkMoveModalProps {
   count: number;
   onClose: () => void;
   onApply: (locationId: string, locationObj: { room: string; bookshelf: string } | null) => void;
+  isGuest?: boolean;
 }
 
-export default function BulkMoveModal({ count, onClose, onApply }: BulkMoveModalProps) {
+export default function BulkMoveModal({ count, onClose, onApply, isGuest = false }: BulkMoveModalProps) {
   const supabase = createClient();
   const [shelves, setShelves] = useState<{ id: string; room: string; bookshelf: string }[]>([]);
   const [selectedRoom, setSelectedRoom] = useState('');
@@ -58,6 +59,16 @@ export default function BulkMoveModal({ count, onClose, onApply }: BulkMoveModal
   // Fetch all shelves on mount for the room/shelf dropdowns
   useEffect(() => {
     async function loadShelves() {
+      if (isGuest) {
+        try {
+          const stored = localStorage.getItem('guest_shelves');
+          if (stored) setShelves(JSON.parse(stored));
+        } catch (e) {
+          console.warn('Failed to load guest shelves:', e);
+        }
+        return;
+      }
+
       try {
         const { data } = await supabase.from('shelves').select('id, room, bookshelf');
         if (data) setShelves(data);
@@ -66,7 +77,7 @@ export default function BulkMoveModal({ count, onClose, onApply }: BulkMoveModal
       }
     }
     loadShelves();
-  }, [supabase]);
+  }, [supabase, isGuest]);
 
   const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
   const shelvesInRoom = shelves.filter(s => s.room === selectedRoom && s.bookshelf !== '');
@@ -84,6 +95,25 @@ export default function BulkMoveModal({ count, onClose, onApply }: BulkMoveModal
     const roomOnlyShelf = shelves.find(s => s.room === selectedRoom && s.bookshelf === '');
     if (roomOnlyShelf) {
       onApply(roomOnlyShelf.id, { room: selectedRoom, bookshelf: '' });
+      return;
+    }
+
+    if (isGuest) {
+      const newShelf = {
+        id: `guest-shelf-${Date.now()}`,
+        room: selectedRoom,
+        bookshelf: '',
+      };
+      setShelves(prev => {
+        const updated = [...prev, newShelf];
+        try {
+          localStorage.setItem('guest_shelves', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Failed to save guest shelf:', e);
+        }
+        return updated;
+      });
+      onApply(newShelf.id, { room: selectedRoom, bookshelf: '' });
       return;
     }
 
