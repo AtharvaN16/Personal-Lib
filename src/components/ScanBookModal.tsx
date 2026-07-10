@@ -182,10 +182,55 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     try {
       const result = await fetchBookByIsbn(isbn);
       if (!result) {
+        if (mode === 'location') {
+          showToast(`Couldn't find that book — ISBN "${isbn}"`);
+          setState('idle');
+          return;
+        }
         setFailedIsbn(isbn);
         setState('error');
         return;
       }
+
+      if (mode === 'location') {
+        const isDuplicate = books.some(b =>
+          (b.isbn && result.isbn && b.isbn.replace(/[\s-]/g, '') === result.isbn.replace(/[\s-]/g, '')) ||
+          (b.title.toLowerCase().trim() === result.title.toLowerCase().trim() &&
+           b.authors.map(a => a.toLowerCase().trim()).join(',') === result.authors.map(a => a.toLowerCase().trim()).join(','))
+        ) || queue.some(q =>
+          (q.isbn && result.isbn && q.isbn.replace(/[\s-]/g, '') === result.isbn.replace(/[\s-]/g, '')) ||
+          (q.title.toLowerCase().trim() === result.title.toLowerCase().trim() &&
+           q.authors.map(a => a.toLowerCase().trim()).join(',') === result.authors.map(a => a.toLowerCase().trim()).join(','))
+        );
+
+        if (isDuplicate) {
+          showToast(`"${result.title}" already exists in library`);
+          setState('idle');
+          return;
+        }
+
+        setQueue(prev => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            title: result.title,
+            authors: result.authors,
+            isbn: result.isbn,
+            publisher: result.publisher,
+            published_date: result.published_date,
+            description: result.description,
+            cover_url: result.cover_url,
+            locationId: defaultLocationId,
+            location: defaultLocationObj,
+            overridden: false,
+            rowState: 'idle',
+            editingLocation: false,
+          },
+        ]);
+        setState('idle');
+        return;
+      }
+
       setDraftBook({
         id: 'draft',
         title: result.title,
@@ -202,10 +247,15 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
       setDraftLocationId('');
       setState('loaded');
     } catch {
+      if (mode === 'location') {
+        showToast(`Couldn't find that book — ISBN "${isbn}"`);
+        setState('idle');
+        return;
+      }
       setFailedIsbn(isbn);
       setState('error');
     }
-  }, []);
+  }, [mode, books, queue, defaultLocationId, defaultLocationObj, showToast]);
 
   // Hardware scanner only listens while waiting for a scan — not mid-lookup or once loaded
   useHardwareScanner(state === 'idle' && !locationSetupOpen, (code) => {
@@ -398,8 +448,11 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           </div>
 
           <div style={styles.queueScannerRow}>
-            <span className="material-symbols-outlined" style={styles.scannerIcon}>
-              qr_code_scanner
+            <span
+              className={`material-symbols-outlined${state === 'loading' ? ' spin-icon' : ''}`}
+              style={styles.scannerIcon}
+            >
+              {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
             </span>
             <form onSubmit={handleManualSubmit} style={styles.queueManualForm}>
               <input
