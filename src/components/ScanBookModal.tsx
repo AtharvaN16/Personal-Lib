@@ -8,6 +8,7 @@ import ScanQueueRow from '@/components/ScanQueueRow';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { GUEST_SHELVES } from '@/lib/guestData';
+import { getPrefs, setDefaultLocation } from '@/lib/userPrefs';
 
 export interface Shelf {
   id: string;
@@ -171,22 +172,25 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   }, [supabase, isGuest]);
 
   useEffect(() => {
-    try {
-      const savedId = localStorage.getItem('defaultLocationId') || '';
-      const savedObjStr = localStorage.getItem('defaultLocationObj');
-      const savedObj = savedObjStr ? JSON.parse(savedObjStr) : null;
-      
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    let cancelled = false;
+    getPrefs(isGuest).then(({ defaultLocation }) => {
+      if (cancelled) return;
+      const savedId = defaultLocation?.id || '';
+      const savedObj = defaultLocation ? { room: defaultLocation.room, bookshelf: defaultLocation.bookshelf } : null;
+
       setPersistentDefaultLocationId(savedId);
       setPersistentDefaultLocationObj(savedObj);
-      
+
       // Initialize active scanning session location
       setCurrentRoom(savedObj?.room || '');
       setCurrentShelfId(savedId);
-    } catch (e) {
+    }).catch((e) => {
       console.warn('Failed to load default location settings:', e);
-    }
-  }, []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isGuest]);
 
   const resolveLocationSelection = useCallback(async (
     room: string,
@@ -297,8 +301,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     if (!setupRoom || !uniqueRooms.includes(setupRoom)) {
       setPersistentDefaultLocationId('');
       setPersistentDefaultLocationObj(null);
-      localStorage.removeItem('defaultLocationId');
-      localStorage.removeItem('defaultLocationObj');
+      await setDefaultLocation(isGuest, null);
 
       // Sync current session scan location
       setCurrentRoom('');
@@ -316,9 +319,8 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
 
     setPersistentDefaultLocationId(resolved.id);
     setPersistentDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
-    
-    localStorage.setItem('defaultLocationId', resolved.id);
-    localStorage.setItem('defaultLocationObj', JSON.stringify({ room: resolved.room, bookshelf: resolved.bookshelf }));
+
+    await setDefaultLocation(isGuest, { id: resolved.id, room: resolved.room, bookshelf: resolved.bookshelf });
 
     // Sync current session scan location
     setCurrentRoom(resolved.room);
