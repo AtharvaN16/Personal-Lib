@@ -560,6 +560,13 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
             <span style={styles.backText}>Back</span>
           </button>
 
+          <span
+            className={`material-symbols-outlined${state === 'loading' ? ' spin-icon' : ''}`}
+            style={styles.topCenterScannerIcon}
+          >
+            {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
+          </span>
+
           <div style={styles.actionRowSpacer} />
 
           <div style={styles.queueHeader}>
@@ -575,12 +582,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                   style={styles.defaultLocationRowEdit}
                 >
                   <div style={styles.defaultLocationLeft}>
-                    <span
-                      className={`material-symbols-outlined${state === 'loading' ? ' spin-icon' : ''}`}
-                      style={styles.bigScannerIcon}
-                    >
-                      {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
-                    </span>
                     <div style={styles.horizontalSelects}>
                       <select
                         aria-label="Select room"
@@ -647,12 +648,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                   style={styles.defaultLocationRow}
                 >
                   <div style={styles.defaultLocationLeft}>
-                    <span
-                      className={`material-symbols-outlined${state === 'loading' ? ' spin-icon' : ''}`}
-                      style={styles.bigScannerIcon}
-                    >
-                      {state === 'loading' ? 'progress_activity' : 'qr_code_scanner'}
-                    </span>
                     <span style={styles.bigLocationText}>
                       {defaultLocationObj
                         ? `${defaultLocationObj.room}${defaultLocationObj.bookshelf ? ` • ${defaultLocationObj.bookshelf}` : ''}`
@@ -1124,6 +1119,15 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: 'underline wavy var(--accent-primary)',
     textUnderlineOffset: '4px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
+    zIndex: 10,
+  },
+  topCenterScannerIcon: {
+    position: 'absolute',
+    top: '24px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    fontSize: '40px',
+    color: 'var(--accent-primary)',
     zIndex: 10,
   },
   setupForm: {
