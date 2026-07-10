@@ -720,14 +720,22 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
               <div style={styles.promptContent}>
                 {locationSetupOpen ? (
                   <>
-                    <span className="material-symbols-outlined" style={styles.promptIcon}>
+                    {locationSetupOpen && (
+                      <button onClick={handleCancelSetup} style={styles.backBtn} aria-label="Back">
+                        <span className="material-symbols-outlined">arrow_back</span>
+                      </button>
+                    )}
+                    <span 
+                      className="material-symbols-outlined" 
+                      style={{ ...styles.promptIcon, fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
+                    >
                       location_on
                     </span>
                     <h2 style={styles.promptTitle}>Choose a default location</h2>
                     <p style={styles.promptText}>
                       Every book you scan will be assigned here until you change it.
                     </p>
-                    <div style={styles.setupForm}>
+                    <div style={{ ...styles.setupForm, marginTop: '30px' }}>
                       <select
                         aria-label="Select room"
                         value={setupRoom}
@@ -755,17 +763,15 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                         </select>
                       )}
                       <div style={styles.setupActions}>
-                        <button type="button" onClick={handleCancelSetup} style={styles.formCancelBtn}>
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleStartScanning}
-                          disabled={!setupRoom}
-                          style={{ ...styles.formSaveBtn, opacity: setupRoom ? 1 : 0.5 }}
-                        >
-                          Start Scanning
-                        </button>
+                        {setupRoom && (
+                          <button
+                            type="button"
+                            onClick={handleStartScanning}
+                            style={styles.formSaveBtn}
+                          >
+                            Start Scanning
+                          </button>
+                        )}
                       </div>
                     </div>
                   </>
@@ -851,6 +857,22 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     transition: 'opacity 0.2s ease',
     padding: 0,
+  },
+  backBtn: {
+    position: 'absolute',
+    top: '40px',
+    left: '36px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: 'var(--text-secondary)',
+    padding: 0,
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
   },
   actionRowSpacer: {
     height: '40px', // Matches BookModal's iconBtn height
