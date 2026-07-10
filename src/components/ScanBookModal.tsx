@@ -243,6 +243,31 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     setQueue(prev => prev.filter(q => q.id !== id));
   };
 
+  const handleStartEditQueueLocation = (id: string) => {
+    setQueue(prev => prev.map(q => (q.id === id ? { ...q, editingLocation: true } : q)));
+  };
+
+  const handleCancelEditQueueLocation = (id: string) => {
+    setQueue(prev => prev.map(q => (q.id === id ? { ...q, editingLocation: false } : q)));
+  };
+
+  const handleConfirmQueueLocation = async (id: string, room: string, shelfId: string) => {
+    if (!room) return;
+    const resolved = await resolveLocationSelection(room, shelfId);
+    if (!resolved) return;
+    setQueue(prev => prev.map(q => (
+      q.id === id
+        ? {
+            ...q,
+            locationId: resolved.id,
+            location: { room: resolved.room, bookshelf: resolved.bookshelf },
+            overridden: true,
+            editingLocation: false,
+          }
+        : q
+    )));
+  };
+
   const uniqueRooms = Array.from(new Set(shelves.map(s => s.room)));
   const setupShelvesInRoom = shelves.filter(s => s.room === setupRoom && s.bookshelf !== '');
 
@@ -545,8 +570,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                 <ScanQueueRow
                   key={book.id}
                   book={book}
+                  shelves={shelves}
                   onSave={handleSaveQueueRow}
                   onRemove={handleRemoveFromQueue}
+                  onStartEditLocation={handleStartEditQueueLocation}
+                  onCancelEditLocation={handleCancelEditQueueLocation}
+                  onConfirmLocation={handleConfirmQueueLocation}
                 />
               ))
             )}
