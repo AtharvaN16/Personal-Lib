@@ -744,7 +744,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                 {locationSetupOpen ? (
                   <>
                     <span className="material-symbols-outlined" style={styles.promptIcon}>
-                      location_on
+                      newsstand
                     </span>
                     <h2 style={styles.promptTitle}>Choose a default location</h2>
                     <p style={styles.promptText}>
