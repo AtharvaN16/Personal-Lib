@@ -848,6 +848,58 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                     <p style={styles.promptText}>
                       Scan the barcode to add it to your library.
                     </p>
+
+                    {/* Session location selectors */}
+                    <div style={styles.setupForm}>
+                      <select
+                        aria-label="Select Room"
+                        value={currentRoom}
+                        onChange={(e) => {
+                          const room = e.target.value;
+                          setCurrentRoom(room);
+                          if (room === persistentDefaultLocationObj?.room) {
+                            setCurrentShelfId(persistentDefaultLocationId);
+                          } else {
+                            setCurrentShelfId('');
+                          }
+                        }}
+                        style={styles.selectField}
+                        className="book-modal-select"
+                      >
+                        <option value="">-- Select Room (Unassigned) --</option>
+                        {uniqueRooms.map((r, i) => (
+                          <option key={i} value={r}>{r}</option>
+                        ))}
+                      </select>
+                      
+                      {currentRoom && (
+                        <select
+                          aria-label="Select Shelf"
+                          value={currentShelfId}
+                          onChange={(e) => setCurrentShelfId(e.target.value)}
+                          style={styles.selectField}
+                          className="book-modal-select"
+                        >
+                          <option value="">Unassigned</option>
+                          {shelves.filter(s => s.room === currentRoom && s.bookshelf !== '').map((s) => (
+                            <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSetupRoom(persistentDefaultLocationObj?.room || '');
+                        setSetupShelfId(persistentDefaultLocationId);
+                        setLocationSetupOpen(true);
+                      }}
+                      style={styles.defaultLocationLink}
+                    >
+                      Default Scan Location →
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => setLocationSetupOpen(true)}
@@ -1245,6 +1297,17 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: '0.9rem',
     fontWeight: 'bold',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  defaultLocationLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: '0.85rem',
+    cursor: 'pointer',
+    padding: 0,
+    textDecoration: 'underline',
+    marginTop: '6px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
   skeletonContent: {
