@@ -38,6 +38,7 @@ export default function AccountMenu({ email, themeColor, onThemeColorChange, isO
     <div id="account-menu-wrapper" style={{ position: 'relative' }}>
       <button
         onClick={() => onOpenChange(!isOpen)}
+        className="nav-link"
         style={styles.trigger}
       >
         Menu
@@ -54,25 +55,6 @@ export default function AccountMenu({ email, themeColor, onThemeColorChange, isO
             transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
             style={styles.panel}
           >
-            {isGuest ? (
-              <button
-                onClick={() => {
-                  document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-                  window.location.href = '/login';
-                }}
-                style={styles.signInRow}
-              >
-                Sign in to save your books
-              </button>
-            ) : (
-              <div style={styles.topGroup}>
-                <span style={styles.email}>{email}</span>
-                <button onClick={logout} style={styles.logoutBtn}>
-                  Logout
-                </button>
-              </div>
-            )}
-
             <div style={styles.row}>
               <button
                 onClick={() => setShowPalette(!showPalette)}
@@ -109,7 +91,7 @@ export default function AccountMenu({ email, themeColor, onThemeColorChange, isO
                     transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
                     style={{ overflow: 'hidden' }}
                   >
-                    <div style={{ marginTop: '-10px', paddingTop: '10px', paddingBottom: '10px' }}>
+                    <div style={{ marginTop: '-10px', marginLeft: '-6px', padding: '10px 6px' }}>
                       <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
                     </div>
                   </motion.div>
@@ -120,6 +102,27 @@ export default function AccountMenu({ email, themeColor, onThemeColorChange, isO
             <Link href="/about" style={styles.row} onClick={() => onOpenChange(false)}>
               <span style={styles.rowLabel}>About</span>
             </Link>
+
+            <div style={styles.bottomGroup}>
+              {isGuest ? (
+                <button
+                  onClick={() => {
+                    document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+                    window.location.href = '/login';
+                  }}
+                  style={styles.signInRow}
+                >
+                  Sign in to save your books
+                </button>
+              ) : (
+                <div style={styles.topGroup}>
+                  <span style={styles.email}>{email}</span>
+                  <button onClick={logout} style={styles.logoutBtn}>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -133,27 +136,24 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     padding: 0,
     cursor: 'pointer',
-    fontFamily: 'var(--font-newsreader), Georgia, serif',
-    fontStyle: 'italic',
-    fontSize: '32px',
-    color: 'var(--accent-primary)',
-    textDecoration: 'underline wavy var(--accent-primary)',
-    textDecorationThickness: '1.5px',
-    textUnderlineOffset: '6px',
   },
   panel: {
     position: 'absolute',
     top: 'calc(100% + 16px)',
     right: 0,
-    minWidth: '260px',
+    width: '280px',
     backgroundColor: 'var(--bg-sheet)',
-    borderRadius: '12px 15px 12px 15px/15px 12px 15px 12px',
+    borderRadius: 0,
     boxShadow: '0 12px 30px rgba(17, 22, 37, 0.15)',
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
     gap: '22px',
     zIndex: 1100,
+  },
+  bottomGroup: {
+    borderTop: '1px solid rgba(17, 22, 37, 0.12)',
+    paddingTop: '20px',
   },
   topGroup: {
     display: 'flex',

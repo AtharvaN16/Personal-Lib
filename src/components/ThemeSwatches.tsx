@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 
 export const THEME_COLORS: { name: string; hex: string }[] = [
   { name: 'Vivid Blue', hex: '#002CBC' },
@@ -16,7 +16,7 @@ interface ThemeSwatchesProps {
   onChange: (hex: string) => void;
 }
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -26,7 +26,7 @@ const containerVariants = {
   },
 };
 
-const swatchVariants = {
+const swatchVariants: Variants = {
   hidden: { opacity: 0, scale: 0.6, y: -8 },
   visible: {
     opacity: 1,
