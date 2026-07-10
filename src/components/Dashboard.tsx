@@ -435,6 +435,7 @@ export default function Dashboard() {
             color: 'var(--accent-primary)',
             textDecoration: 'underline wavy var(--accent-primary)',
             textDecorationThickness: '1.5px',
+            textUnderlineOffset: '6px',
             fontStyle: 'italic',
           }}
         >
@@ -566,6 +567,7 @@ export default function Dashboard() {
                     color: 'var(--accent-primary)',
                     textDecoration: 'underline wavy var(--accent-primary)',
                     textDecorationThickness: '1.5px',
+                    textUnderlineOffset: '6px',
                   }}
                 >
                   {committedQuery ? 'Clear search' : 'Search'}
@@ -600,7 +602,7 @@ export default function Dashboard() {
                         { match: displayLabel, onClick: () => setIsFilterOpen(true) },
                       ]}
                     >
-                      {`Currently showing ${displayLabel}.`}
+                      {`Currently showing ${displayLabel}`}
                     </TextAnimate>
                   </div>
                 </motion.div>
@@ -1222,6 +1224,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--accent-primary)',
     textDecoration: 'underline wavy var(--accent-primary)',
     textDecorationThickness: '1.5px',
+    textUnderlineOffset: '6px',
   },
   scanFab: {
     position: 'fixed',

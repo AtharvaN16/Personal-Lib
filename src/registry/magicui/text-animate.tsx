@@ -229,6 +229,7 @@ export function TextAnimate({
                   color: 'var(--accent-primary)',
                   textDecoration: 'underline wavy var(--accent-primary)',
                   textDecorationThickness: '1.5px',
+                  textUnderlineOffset: '6px',
                   position: 'relative',
                   ...(isClickable ? {
                     cursor: 'pointer',

@@ -234,8 +234,6 @@ export default function SearchPill({
             padding: `${6 * s}px ${20 * s}px`, // More padding to the search pill
             border: 'none',
             outline: 'none',
-            textDecoration: 'underline wavy var(--accent-primary)',
-            textDecorationThickness: '1.5px',
             lineHeight: '1.4',
             height: `calc(100% + ${12 * s}px)`,
             margin: 0,
