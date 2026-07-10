@@ -7,10 +7,11 @@ import { useLogout } from '@/hooks/useLogout';
 interface MobileMenuProps {
   onClose: () => void;
   onManageLocations: () => void;
+  isGuest?: boolean;
 }
 
 /** Hamburger dropdown menu (mobile only): dimmed+blurred backdrop, links slide down underneath the header. */
-export default function MobileMenu({ onClose, onManageLocations }: MobileMenuProps) {
+export default function MobileMenu({ onClose, onManageLocations, isGuest = false }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logout = useLogout();
 
@@ -85,15 +86,29 @@ export default function MobileMenu({ onClose, onManageLocations }: MobileMenuPro
         >
           Manage Locations
         </button>
-        <button
-          className="mobile-menu-row"
-          onClick={() => {
-            logout();
-            onClose();
-          }}
-        >
-          Logout
-        </button>
+        {isGuest ? (
+          <button
+            className="mobile-menu-row"
+            style={{ fontWeight: '600', color: 'var(--accent-primary)' }}
+            onClick={() => {
+              document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+              window.location.href = '/login';
+              onClose();
+            }}
+          >
+            Sign in to save your books
+          </button>
+        ) : (
+          <button
+            className="mobile-menu-row"
+            onClick={() => {
+              logout();
+              onClose();
+            }}
+          >
+            Logout
+          </button>
+        )}
       </motion.div>
     </div>
   );
