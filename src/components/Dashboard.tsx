@@ -149,7 +149,7 @@ export default function Dashboard() {
   // `appliedQuery` below.
   const [committedQuery, setCommittedQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
-  const [books, setBooks] = useState<Book[]>(defaultMockBooks);
+  const [books, setBooks] = useState<Book[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isManageLocationsOpen, setIsManageLocationsOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -273,11 +273,11 @@ export default function Dashboard() {
           }));
           setBooks(formatted);
         } else {
-          setBooks(defaultMockBooks);
+          setBooks([]);
         }
       } catch (err) {
-        console.warn('Failed to load books from Supabase, loading mock:', err);
-        setBooks(defaultMockBooks);
+        console.warn('Failed to load books from Supabase:', err);
+        setBooks([]);
       }
     }
     loadBooks();
