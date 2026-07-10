@@ -28,6 +28,14 @@
   margin: 0;
 }
 
+/* Disable transitions and animations on page load */
+.no-transitions,
+.no-transitions * {
+  transition: none !important;
+  animation-delay: 0s !important;
+  animation-duration: 0s !important;
+}
+
 html,
 body {
   max-width: 100vw;
@@ -373,11 +381,13 @@ a {
   .mobile-menu-panel {
     width: 100%;
     max-width: 100%;
-    margin-top: 90px; /* clears the fixed header */
+    height: calc(100dvh - 90px); /* clears the fixed header and stretches to the bottom */
+    margin-top: 90px;
     background: transparent; /* let the cinematic blurred backdrop show through */
     display: flex;
     flex-direction: column;
-    padding: 8px 0;
+    padding: 8px 0 24px 0;
+    box-sizing: border-box;
   }
 
   .mobile-menu-row {

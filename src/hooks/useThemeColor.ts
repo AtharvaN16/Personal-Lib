@@ -22,11 +22,26 @@ export function useThemeColor(isGuest: boolean) {
 
   useEffect(() => {
     let cancelled = false;
+    
+    // Add no-transitions class on mount to prevent color transition on page load
+    document.documentElement.classList.add('no-transitions');
+
     getPrefs(isGuest).then((prefs) => {
       if (cancelled) return;
       setThemeColorState(prefs.themeColor);
       applyThemeColor(prefs.themeColor);
+      
+      // Re-enable transitions after theme is applied in the DOM
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove('no-transitions');
+        });
+      });
+    }).catch(() => {
+      if (cancelled) return;
+      document.documentElement.classList.remove('no-transitions');
     });
+
     return () => {
       cancelled = true;
     };

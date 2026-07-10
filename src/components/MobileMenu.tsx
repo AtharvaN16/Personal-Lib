@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLogout } from '@/hooks/useLogout';
 import ThemeSwatches from '@/components/ThemeSwatches';
 
@@ -18,6 +18,7 @@ interface MobileMenuProps {
 export default function MobileMenu({ onClose, onManageLocations, isGuest = false, email = null, themeColor, onThemeColorChange }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logout = useLogout();
+  const [showPalette, setShowPalette] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -81,37 +82,43 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
         transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mobile-menu-group">
-          {isGuest ? (
-            <button
-              className="mobile-menu-row"
-              style={{ fontWeight: '600', color: 'var(--accent-primary)' }}
-              onClick={() => {
-                document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-                window.location.href = '/login';
-                onClose();
-              }}
+        {/* Top items */}
+        <button
+          className="mobile-menu-row"
+          onClick={() => setShowPalette(!showPalette)}
+          style={{ justifyContent: 'flex-end', gap: '8px', width: '100%' }}
+        >
+          <span>Theme</span>
+          <motion.span
+            animate={{ rotate: showPalette ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ display: 'inline-flex', alignItems: 'center' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </motion.span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {showPalette && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+              style={{ overflow: 'hidden' }}
             >
-              Sign in to save your books
-            </button>
-          ) : (
-            <>
-              <div className="mobile-menu-row" style={{ cursor: 'default', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                {email}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                padding: '4px 24px 16px 24px',
+              }}>
+                <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
               </div>
-              <button
-                className="mobile-menu-row"
-                style={{ fontWeight: '600', color: 'var(--error)' }}
-                onClick={() => {
-                  logout();
-                  onClose();
-                }}
-              >
-                Logout
-              </button>
-            </>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
         <button
           className="mobile-menu-row"
@@ -123,11 +130,6 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
           Manage Locations
         </button>
 
-        <div className="mobile-menu-row" style={{ justifyContent: 'flex-end', gap: '12px' }}>
-          <span>Theme</span>
-          <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
-        </div>
-
         <button
           className="mobile-menu-row"
           onClick={() => {
@@ -137,6 +139,39 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
         >
           About
         </button>
+
+        {/* Bottom items, pushed via margin-top: auto */}
+        <div className="mobile-menu-group" style={{ marginTop: 'auto', marginBottom: '24px' }}>
+          {isGuest ? (
+            <button
+              className="mobile-menu-row"
+              style={{ fontWeight: '600', color: 'var(--accent-primary)', width: '100%', justifyContent: 'flex-end' }}
+              onClick={() => {
+                document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+                window.location.href = '/login';
+                onClose();
+              }}
+            >
+              Sign in to save your books
+            </button>
+          ) : (
+            <>
+              <div className="mobile-menu-row" style={{ cursor: 'default', color: 'var(--text-secondary)', fontSize: '0.9rem', width: '100%', justifyContent: 'flex-end' }}>
+                {email}
+              </div>
+              <button
+                className="mobile-menu-row"
+                style={{ fontWeight: '600', color: 'var(--error)', width: '100%', justifyContent: 'flex-end', textAlign: 'right' }}
+                onClick={() => {
+                  logout();
+                  onClose();
+                }}
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
       </motion.div>
     </div>
   );

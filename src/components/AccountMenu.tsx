@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { useLogout } from '@/hooks/useLogout';
@@ -18,6 +18,7 @@ interface AccountMenuProps {
 /** Desktop-only dropdown sheet, anchored under the "Menu" trigger, replacing the old bare Logout link. */
 export default function AccountMenu({ email, themeColor, onThemeColorChange, isOpen, onOpenChange, isGuest = false }: AccountMenuProps) {
   const logout = useLogout();
+  const [showPalette, setShowPalette] = useState(false);
 
   // Escape closes the sheet — outside-click close is handled by Dashboard.tsx's
   // shared useCloseOnOutsideClick, which only listens for clicks, not keys.
@@ -73,8 +74,47 @@ export default function AccountMenu({ email, themeColor, onThemeColorChange, isO
             )}
 
             <div style={styles.row}>
-              <span style={styles.rowLabel}>Theme</span>
-              <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
+              <button
+                onClick={() => setShowPalette(!showPalette)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={styles.rowLabel}>Theme</span>
+                <motion.span
+                  animate={{ rotate: showPalette ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </motion.span>
+              </button>
+
+              <AnimatePresence initial={false}>
+                {showPalette && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div style={{ marginTop: '-10px', paddingTop: '10px', paddingBottom: '10px' }}>
+                      <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <Link href="/about" style={styles.row} onClick={() => onOpenChange(false)}>
