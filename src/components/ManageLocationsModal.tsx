@@ -357,10 +357,11 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
         aria-modal="true"
         aria-label="Manage Locations"
         tabIndex={-1}
+        layout
         initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         exit={{ opacity: 0, y: 30, filter: 'blur(0px)' }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.3, layout: { duration: 0.25, ease: 'easeOut' } }}
         style={{ ...styles.modal, outline: 'none' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -386,12 +387,39 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
         <p style={styles.subtitle}>All the rooms and shelves you&apos;ve catalogued.</p>
 
         <div style={styles.list}>
+          <AnimatePresence mode="wait">
           {loading ? (
-            <p style={styles.emptyText}>Loading...</p>
+            <motion.p
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              style={styles.emptyText}
+            >
+              Loading...
+            </motion.p>
           ) : rooms.length === 0 ? (
-            <p style={styles.emptyText}>No locations yet. Add one below.</p>
+            <motion.p
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              style={styles.emptyText}
+            >
+              No locations yet. Add one below.
+            </motion.p>
           ) : (
-            rooms.map(room => {
+            <motion.div
+              key="rooms"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}
+            >
+            {rooms.map(room => {
               const roomShelves = shelves.filter(s => s.room === room && s.bookshelf !== '');
               const roomNewShelves = newShelves.filter(n => n.room === room);
               const roomShelvesCount = roomShelves.length;
@@ -662,8 +690,10 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
                   </AnimatePresence>
                 </div>
               );
-            })
+            })}
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
         <button onClick={() => setIsAddLocationOpen(true)} style={styles.addNewBtn}>

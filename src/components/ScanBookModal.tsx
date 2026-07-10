@@ -704,7 +704,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                   style={styles.defaultLocationRowEdit}
                 >
                   <div style={styles.defaultLocationLeft}>
-                    <div style={styles.horizontalSelects}>
+                    <motion.div
+                      style={styles.horizontalSelects}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.08, ease: 'easeOut' }}
+                    >
                       <select
                         aria-label="Select room"
                         value={setupRoom}
@@ -717,21 +722,28 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           <option key={i} value={r}>{r}</option>
                         ))}
                       </select>
-                      {setupRoomIsSelected && (
-                        <select
-                          aria-label="Select shelf"
-                          value={setupShelfId}
-                          onChange={(e) => setSetupShelfId(e.target.value)}
-                          style={styles.selectFieldHorizontal}
-                          className="book-modal-select"
-                        >
-                          <option value="">Unassigned</option>
-                          {setupShelvesInRoom.map((s) => (
-                            <option key={s.id} value={s.id}>{s.bookshelf}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+                      <AnimatePresence>
+                        {setupRoomIsSelected && (
+                          <motion.select
+                            key="shelf-select"
+                            aria-label="Select shelf"
+                            value={setupShelfId}
+                            onChange={(e) => setSetupShelfId(e.target.value)}
+                            style={styles.selectFieldHorizontal}
+                            className="book-modal-select"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                          >
+                            <option value="">Unassigned</option>
+                            {setupShelvesInRoom.map((s) => (
+                              <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                            ))}
+                          </motion.select>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
                   </div>
                   <div style={styles.setupActionsHorizontal}>
                     <button
@@ -948,7 +960,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                     <p style={styles.promptText}>
                       Every book you scan will be assigned here until you change it.
                     </p>
-                    <div style={styles.setupForm}>
+                    <motion.div
+                      style={styles.setupForm}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: 0.1, ease: 'easeOut' }}
+                    >
                       <select
                         aria-label="Select room"
                         value={setupRoom}
@@ -961,20 +978,27 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           <option key={i} value={r}>{r}</option>
                         ))}
                       </select>
-                      {setupRoomIsSelected && (
-                        <select
-                          aria-label="Select shelf"
-                          value={setupShelfId}
-                          onChange={(e) => setSetupShelfId(e.target.value)}
-                          style={styles.selectField}
-                          className="book-modal-select"
-                        >
-                          <option value="">Unassigned</option>
-                          {setupShelvesInRoom.map((s) => (
-                            <option key={s.id} value={s.id}>{s.bookshelf}</option>
-                          ))}
-                        </select>
-                      )}
+                      <AnimatePresence>
+                        {setupRoomIsSelected && (
+                          <motion.select
+                            key="shelf-select"
+                            aria-label="Select shelf"
+                            value={setupShelfId}
+                            onChange={(e) => setSetupShelfId(e.target.value)}
+                            style={styles.selectField}
+                            className="book-modal-select"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                          >
+                            <option value="">Unassigned</option>
+                            {setupShelvesInRoom.map((s) => (
+                              <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                            ))}
+                          </motion.select>
+                        )}
+                      </AnimatePresence>
                       {isMobile && mode === 'single' && (
                         <button
                           type="button"
@@ -990,7 +1014,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           Save Default Location
                         </button>
                       )}
-                    </div>
+                    </motion.div>
                   </>
                 ) : (
                   <>
@@ -1003,7 +1027,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                     </p>
 
                     {/* Session location selectors */}
-                    <div style={styles.setupForm}>
+                    <motion.div
+                      style={styles.setupForm}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: 0.1, ease: 'easeOut' }}
+                    >
                       <select
                         aria-label="Select Room"
                         value={currentRoom}
@@ -1024,22 +1053,29 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                           <option key={i} value={r}>{r}</option>
                         ))}
                       </select>
-                      
-                      {currentRoomIsSelected && (
-                        <select
-                          aria-label="Select Shelf"
-                          value={currentShelfId}
-                          onChange={(e) => setCurrentShelfId(e.target.value)}
-                          style={styles.selectField}
-                          className="book-modal-select"
-                        >
-                          <option value="">Unassigned</option>
-                          {currentShelvesInRoom.map((s) => (
-                            <option key={s.id} value={s.id}>{s.bookshelf}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+
+                      <AnimatePresence>
+                        {currentRoomIsSelected && (
+                          <motion.select
+                            key="current-shelf-select"
+                            aria-label="Select Shelf"
+                            value={currentShelfId}
+                            onChange={(e) => setCurrentShelfId(e.target.value)}
+                            style={styles.selectField}
+                            className="book-modal-select"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                          >
+                            <option value="">Unassigned</option>
+                            {currentShelvesInRoom.map((s) => (
+                              <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                            ))}
+                          </motion.select>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
 
                     <button
                       type="button"
