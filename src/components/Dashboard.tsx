@@ -254,6 +254,24 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = [] }: D
   // Load books from Supabase on mount
   useEffect(() => {
     async function loadBooks() {
+      if (isGuest) {
+        try {
+          const stored = localStorage.getItem('guest_books');
+          if (stored) {
+            setBooks(JSON.parse(stored));
+          } else if (initialGuestBooks && initialGuestBooks.length > 0) {
+            setBooks(initialGuestBooks);
+            localStorage.setItem('guest_books', JSON.stringify(initialGuestBooks));
+          } else {
+            setBooks([]);
+          }
+        } catch (e) {
+          console.warn('Failed to load guest books from localStorage:', e);
+          setBooks([]);
+        }
+        return;
+      }
+
       try {
         const { data } = await supabase
           .from('books')
@@ -285,7 +303,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = [] }: D
       }
     }
     loadBooks();
-  }, [supabase]);
+  }, [supabase, isGuest, initialGuestBooks]);
 
   // Handle status update locally and in Supabase
   const handleStatusChange = async (id: string, status: 'Completed' | 'Reading' | 'To Read') => {

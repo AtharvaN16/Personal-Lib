@@ -81,122 +81,125 @@ function LoginForm() {
       <div style={styles.backgroundBlob1} />
       <div style={styles.backgroundBlob2} />
 
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        style={styles.card}
-      >
-        <div style={styles.header}>
-          <h1 className="display-serif" style={styles.title}>
-            Personal Library
-          </h1>
-          <p style={styles.subtitle}>Catalog your books & organize your shelves</p>
-        </div>
+      <div style={styles.loginWrapper}>
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          style={styles.card}
+        >
+          <div style={styles.header}>
+            <h1 className="display-serif" style={styles.title}>
+              Personal Library
+            </h1>
+            <p style={styles.subtitle}>Catalog your books & organize your shelves</p>
+          </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={isSignUp ? 'signup' : 'login'}
-            initial={{ opacity: 0, x: isSignUp ? 20 : -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: isSignUp ? -20 : 20 }}
-            transition={{ duration: 0.25 }}
-          >
-            <form onSubmit={handleAuth} style={styles.form}>
-              <div style={styles.inputGroup}>
-                <label htmlFor="login-email" style={styles.label}>Email Address</label>
-                <input
-                  id="login-email"
-                  type="email"
-                  className="field-white"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.inputGroup}>
-                <label htmlFor="login-password" style={styles.label}>Password</label>
-                <div style={styles.passwordWrapper}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={isSignUp ? 'signup' : 'login'}
+              initial={{ opacity: 0, x: isSignUp ? 20 : -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isSignUp ? -20 : 20 }}
+              transition={{ duration: 0.25 }}
+            >
+              <form onSubmit={handleAuth} style={styles.form}>
+                <div style={styles.inputGroup}>
+                  <label htmlFor="login-email" style={styles.label}>Email Address</label>
                   <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
+                    id="login-email"
+                    type="email"
                     className="field-white"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={loading}
-                    style={{ ...styles.input, ...styles.passwordInput }}
+                    style={styles.input}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    aria-pressed={showPassword}
-                    style={styles.passwordToggle}
-                    tabIndex={-1}
+                </div>
+
+                <div style={styles.inputGroup}>
+                  <label htmlFor="login-password" style={styles.label}>Password</label>
+                  <div style={styles.passwordWrapper}>
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="field-white"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={loading}
+                      style={{ ...styles.input, ...styles.passwordInput }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
+                      style={styles.passwordToggle}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.6 18.6 0 0 1 5.06-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a18.6 18.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                          <path d="M1 1l22 22" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Status notifications */}
+                {message.text && (
+                  <div
+                    style={{
+                      ...styles.notification,
+                      ...(message.type === 'success' ? styles.successNotify : styles.errorNotify),
+                    }}
                   >
-                    {showPassword ? (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.6 18.6 0 0 1 5.06-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a18.6 18.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <path d="M1 1l22 22" />
-                      </svg>
-                    ) : (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
+                    <p>{message.text}</p>
+                  </div>
+                )}
 
-              {/* Status notifications */}
-              {message.text && (
-                <div
-                  style={{
-                    ...styles.notification,
-                    ...(message.type === 'success' ? styles.successNotify : styles.errorNotify),
-                  }}
+                <button
+                  type="submit"
+                  style={{ ...styles.submitBtn, opacity: loading ? 0.6 : 1 }}
+                  disabled={loading}
                 >
-                  <p>{message.text}</p>
-                </div>
-              )}
+                  {loading ? 'Working on it...' : isSignUp ? 'Create Account' : 'Sign In'}
+                </button>
+              </form>
+            </motion.div>
+          </AnimatePresence>
 
-              <button
-                type="submit"
-                style={{ ...styles.submitBtn, opacity: loading ? 0.6 : 1 }}
-                disabled={loading}
-              >
-                {loading ? 'Working on it...' : isSignUp ? 'Create Account' : 'Sign In'}
-              </button>
-            </form>
-          </motion.div>
-        </AnimatePresence>
+          <div style={styles.footer}>
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setMessage({ text: '', type: null });
+              }}
+              style={styles.toggleBtn}
+            >
+              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
+            </button>
+          </div>
+        </motion.div>
 
-        <div style={styles.footer}>
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setMessage({ text: '', type: null });
-            }}
-            style={styles.toggleBtn}
-          >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
-          </button>
-          <div style={styles.dividerText}>OR</div>
-          <button
-            onClick={handleSkip}
-            style={styles.guestBtn}
-          >
-            Skip and explore as guest
-          </button>
-        </div>
-      </motion.div>
+        <button
+          type="button"
+          onClick={handleSkip}
+          style={styles.outsideGuestBtn}
+        >
+          Skip and explore as guest
+        </button>
+      </div>
     </div>
   );
 }
@@ -378,22 +381,24 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: 'underline',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
-  dividerText: {
-    fontSize: '0.75rem',
-    color: 'var(--text-secondary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-    margin: '4px 0',
+  loginWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: '440px',
   },
-  guestBtn: {
+  outsideGuestBtn: {
     background: 'none',
     border: 'none',
     color: 'var(--accent-primary)',
-    fontSize: '0.9rem',
-    fontWeight: '500',
+    fontSize: '0.95rem',
+    fontWeight: '600',
     cursor: 'pointer',
-    textDecoration: 'underline',
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textUnderlineOffset: '4px',
+    marginTop: '40px', // 40px top margin below the card
     fontFamily: 'var(--font-instrument-sans), sans-serif',
+    transition: 'color 0.2s ease',
   },
 };
