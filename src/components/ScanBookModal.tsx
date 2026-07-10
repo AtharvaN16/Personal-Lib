@@ -1191,7 +1191,7 @@ const styles: Record<string, React.CSSProperties> = {
   queueModal: {
     width: '100%',
     maxWidth: '680px',
-    maxHeight: 'min(720px, 85svh)',
+    maxHeight: 'calc(100svh - 64px)',
     backgroundColor: 'var(--bg-sheet)',
     padding: '40px 36px 36px 36px',
     position: 'relative',
