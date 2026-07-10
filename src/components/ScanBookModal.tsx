@@ -239,6 +239,15 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     showToast(`Added "${row.title}" to your library`);
   };
 
+  const handleSaveAll = async () => {
+    if (queue.length === 0) return;
+    const rows = queue;
+    setQueue(prev => prev.map(q => ({ ...q, rowState: 'saving' })));
+    await Promise.all(rows.map(row => persistQueuedBook(row)));
+    setQueue([]);
+    showToast(`Added ${rows.length} book${rows.length === 1 ? '' : 's'} to your library`);
+  };
+
   const handleRemoveFromQueue = (id: string) => {
     setQueue(prev => prev.filter(q => q.id !== id));
   };
@@ -582,7 +591,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
           </div>
 
           <div style={styles.saveAllRow}>
-            <button type="button" disabled style={{ ...styles.saveAllBtn, opacity: 0.5 }}>
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={queue.length === 0}
+              style={{ ...styles.saveAllBtn, opacity: queue.length === 0 ? 0.5 : 1 }}
+            >
               Save All
             </button>
           </div>
