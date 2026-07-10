@@ -124,6 +124,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
       const savedObjStr = localStorage.getItem('defaultLocationObj');
       const savedObj = savedObjStr ? JSON.parse(savedObjStr) : null;
       
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPersistentDefaultLocationId(savedId);
       setPersistentDefaultLocationObj(savedObj);
       
@@ -163,14 +164,16 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     return { id: '', room, bookshelf: '' };
   }, [shelves, supabase]);
 
-  const handleStartScanning = async () => {
-    if (!setupRoom) return;
-    const resolved = await resolveLocationSelection(setupRoom, setupShelfId);
-    if (!resolved) return;
-    setDefaultLocationId(resolved.id);
-    setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
+  const handleStartMultiScan = async () => {
+    const resolved = await resolveLocationSelection(currentRoom, currentShelfId);
+    if (resolved) {
+      setDefaultLocationId(resolved.id);
+      setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
+    } else {
+      setDefaultLocationId('');
+      setDefaultLocationObj(null);
+    }
     setMode('location');
-    setLocationSetupOpen(false);
   };
 
   const handleCancelSetup = () => {
@@ -380,6 +383,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
         return;
       }
 
+      const resolved = await resolveLocationSelection(currentRoom, currentShelfId);
       setDraftBook({
         id: 'draft',
         title: result.title,
@@ -389,11 +393,11 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
         published_date: result.published_date,
         description: result.description,
         cover_url: result.cover_url,
-        location: null,
+        location: resolved ? { room: resolved.room, bookshelf: resolved.bookshelf } : null,
         status: 'To Read',
         favorite: false,
       });
-      setDraftLocationId('');
+      setDraftLocationId(resolved ? resolved.id : '');
       setState('loaded');
     } catch {
       if (mode === 'location') {
@@ -404,7 +408,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
       setFailedIsbn(isbn);
       setState('error');
     }
-  }, [mode, books, queue, defaultLocationId, defaultLocationObj, showToast]);
+  }, [mode, books, queue, defaultLocationId, defaultLocationObj, showToast, currentRoom, currentShelfId, resolveLocationSelection]);
 
   // Hardware scanner only listens while waiting for a scan — not mid-lookup or once loaded
   useHardwareScanner(state === 'idle' && !locationSetupOpen && !editingDefault, (code) => {
@@ -825,7 +829,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                       {isMobile && setupRoom && mode === 'single' && (
                         <button
                           type="button"
-                          onClick={handleStartScanning}
+                          onClick={handleSaveDefaultLocation}
                           style={{
                             ...styles.formSaveBtn,
                             position: 'static',
@@ -834,7 +838,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
                             textAlign: 'center',
                           }}
                         >
-                          Start Scanning
+                          Save Default Location
                         </button>
                       )}
                     </div>
@@ -902,7 +906,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
 
                     <button
                       type="button"
-                      onClick={() => setLocationSetupOpen(true)}
+                      onClick={handleStartMultiScan}
                       style={styles.scanByLocationLink}
                     >
                       Scan Multiple Books
@@ -930,10 +934,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
         {!isMobile && locationSetupOpen && setupRoom && mode === 'single' && (
           <button
             type="button"
-            onClick={handleStartScanning}
+            onClick={handleSaveDefaultLocation}
             style={styles.formSaveBtn}
           >
-            Start Scanning
+            Save Default Location
           </button>
         )}
       </motion.div>
