@@ -57,6 +57,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
   const [setupShelfId, setSetupShelfId] = useState('');
   const [defaultLocationId, setDefaultLocationId] = useState('');
   const [defaultLocationObj, setDefaultLocationObj] = useState<{ room: string; bookshelf: string } | null>(null);
+  const [persistentDefaultLocationId, setPersistentDefaultLocationId] = useState('');
+  const [persistentDefaultLocationObj, setPersistentDefaultLocationObj] = useState<{ room: string; bookshelf: string } | null>(null);
+  const [currentRoom, setCurrentRoom] = useState('');
+  const [currentShelfId, setCurrentShelfId] = useState('');
   const [editingDefault, setEditingDefault] = useState(false);
   const [queue, setQueue] = useState<QueuedBook[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -113,6 +117,25 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     }
     loadShelves();
   }, [supabase]);
+
+  useEffect(() => {
+    try {
+      const savedId = localStorage.getItem('defaultLocationId') || '';
+      const savedObjStr = localStorage.getItem('defaultLocationObj');
+      const savedObj = savedObjStr ? JSON.parse(savedObjStr) : null;
+      
+      setTimeout(() => {
+        setPersistentDefaultLocationId(savedId);
+        setPersistentDefaultLocationObj(savedObj);
+        
+        // Initialize active scanning session location
+        setCurrentRoom(savedObj?.room || '');
+        setCurrentShelfId(savedId);
+      }, 0);
+    } catch (e) {
+      console.warn('Failed to load default location settings:', e);
+    }
+  }, []);
 
   const resolveLocationSelection = useCallback(async (
     room: string,
@@ -175,6 +198,28 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
     setDefaultLocationId(resolved.id);
     setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
     setEditingDefault(false);
+  };
+
+  const handleSaveDefaultLocation = async () => {
+    if (!setupRoom) return;
+    const resolved = await resolveLocationSelection(setupRoom, setupShelfId);
+    if (!resolved) return;
+
+    setPersistentDefaultLocationId(resolved.id);
+    setPersistentDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
+    
+    localStorage.setItem('defaultLocationId', resolved.id);
+    localStorage.setItem('defaultLocationObj', JSON.stringify({ room: resolved.room, bookshelf: resolved.bookshelf }));
+
+    // Sync current session scan location
+    setCurrentRoom(resolved.room);
+    setCurrentShelfId(resolved.id);
+
+    // Sync multi-scan queue location
+    setDefaultLocationId(resolved.id);
+    setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
+
+    setLocationSetupOpen(false);
   };
 
   const persistQueuedBook = useCallback(async (row: QueuedBook) => {
