@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images-na.ssl-images-amazon.com" },
       // Google Books API cover fallback thumbnails
       { protocol: "https", hostname: "books.google.com" },
+      // Open Library covers redirect to Internet Archive subdomains (e.g. ia801705.us.archive.org)
+      { protocol: "https", hostname: "**.archive.org" },
     ],
   },
 };

@@ -136,16 +136,26 @@ export async function fetchBookByIsbn(isbn: string): Promise<BookLookupResult | 
 
   if (googleResult) {
     if (openLibraryResult) {
-      // Open Library succeeded but had no cover — combine Open Library metadata with Google's cover
+      // Open Library succeeded but had no cover — combine Open Library metadata with Google's cover (or direct OL cover if Google has none)
       return {
         ...openLibraryResult,
-        cover_url: googleResult.cover_url,
+        cover_url: googleResult.cover_url || `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
       };
     }
-    // Open Library missed the book entirely — use the Google Books result
-    return googleResult;
+    // Open Library missed the book entirely — use the Google Books result (or direct OL cover if Google has none)
+    return {
+      ...googleResult,
+      cover_url: googleResult.cover_url || `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
+    };
   }
 
-  // If Google Books also has no record, return whatever Open Library found (even without a cover)
-  return openLibraryResult;
+  // If Google Books also has no record / failed, fall back to direct OL cover for the OL metadata
+  if (openLibraryResult) {
+    return {
+      ...openLibraryResult,
+      cover_url: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
+    };
+  }
+
+  return null;
 }
