@@ -124,14 +124,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast }
       const savedObjStr = localStorage.getItem('defaultLocationObj');
       const savedObj = savedObjStr ? JSON.parse(savedObjStr) : null;
       
-      setTimeout(() => {
-        setPersistentDefaultLocationId(savedId);
-        setPersistentDefaultLocationObj(savedObj);
-        
-        // Initialize active scanning session location
-        setCurrentRoom(savedObj?.room || '');
-        setCurrentShelfId(savedId);
-      }, 0);
+      setPersistentDefaultLocationId(savedId);
+      setPersistentDefaultLocationObj(savedObj);
+      
+      // Initialize active scanning session location
+      setCurrentRoom(savedObj?.room || '');
+      setCurrentShelfId(savedId);
     } catch (e) {
       console.warn('Failed to load default location settings:', e);
     }
