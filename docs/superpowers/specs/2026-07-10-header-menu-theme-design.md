@@ -128,6 +128,7 @@ See more of my work at atharvanayak.design, or say hello at atharvanayak16@gmail
 
 - `atharvanayak.design` → `<a href="https://atharvanayak.design" target="_blank" rel="noopener noreferrer">`
 - email → `<a href="mailto:atharvanayak16@gmail.com">`
+- Both links use the same hero-text link treatment as the "Search"/"Currently showing X" highlights elsewhere (italic serif, `color: var(--accent-primary)`, `text-decoration: underline wavy var(--accent-primary)`, matching thickness/offset) — not a generic browser-blue underline.
 - A simple "back" link/button to return to the dashboard (`/`).
 
 ## Testing
