@@ -3,15 +3,19 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useLogout } from '@/hooks/useLogout';
+import ThemeSwatches from '@/components/ThemeSwatches';
 
 interface MobileMenuProps {
   onClose: () => void;
   onManageLocations: () => void;
   isGuest?: boolean;
+  email?: string | null;
+  themeColor: string;
+  onThemeColorChange: (hex: string) => void;
 }
 
 /** Hamburger dropdown menu (mobile only): dimmed+blurred backdrop, links slide down underneath the header. */
-export default function MobileMenu({ onClose, onManageLocations, isGuest = false }: MobileMenuProps) {
+export default function MobileMenu({ onClose, onManageLocations, isGuest = false, email = null, themeColor, onThemeColorChange }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logout = useLogout();
 
@@ -77,6 +81,38 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
         transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="mobile-menu-group">
+          {isGuest ? (
+            <button
+              className="mobile-menu-row"
+              style={{ fontWeight: '600', color: 'var(--accent-primary)' }}
+              onClick={() => {
+                document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+                window.location.href = '/login';
+                onClose();
+              }}
+            >
+              Sign in to save your books
+            </button>
+          ) : (
+            <>
+              <div className="mobile-menu-row" style={{ cursor: 'default', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                {email}
+              </div>
+              <button
+                className="mobile-menu-row"
+                style={{ fontWeight: '600', color: 'var(--error)' }}
+                onClick={() => {
+                  logout();
+                  onClose();
+                }}
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+
         <button
           className="mobile-menu-row"
           onClick={() => {
@@ -86,29 +122,21 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
         >
           Manage Locations
         </button>
-        {isGuest ? (
-          <button
-            className="mobile-menu-row"
-            style={{ fontWeight: '600', color: 'var(--accent-primary)' }}
-            onClick={() => {
-              document.cookie = 'guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-              window.location.href = '/login';
-              onClose();
-            }}
-          >
-            Sign in to save your books
-          </button>
-        ) : (
-          <button
-            className="mobile-menu-row"
-            onClick={() => {
-              logout();
-              onClose();
-            }}
-          >
-            Logout
-          </button>
-        )}
+
+        <div className="mobile-menu-row" style={{ justifyContent: 'flex-end', gap: '12px' }}>
+          <span>Theme</span>
+          <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
+        </div>
+
+        <button
+          className="mobile-menu-row"
+          onClick={() => {
+            window.location.href = '/about';
+            onClose();
+          }}
+        >
+          About
+        </button>
       </motion.div>
     </div>
   );

@@ -399,6 +399,10 @@ a {
     background-color: var(--tag-bg);
   }
 
+  .mobile-menu-group {
+    margin-bottom: 12px;
+  }
+
   .mobile-search-panel {
     width: 100%;
     max-width: 100%;

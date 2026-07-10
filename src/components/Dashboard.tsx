@@ -1142,6 +1142,9 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             onClose={() => setIsMobileMenuOpen(false)}
             onManageLocations={() => setIsManageLocationsOpen(true)}
             isGuest={isGuest}
+            email={userEmail}
+            themeColor={themeColor}
+            onThemeColorChange={setThemeColor}
           />
         )}
         {isMobileSearchOpen && (
