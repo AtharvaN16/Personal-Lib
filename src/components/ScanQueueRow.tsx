@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
-import type { QueuedBook, Shelf } from '@/components/ScanBookModal';
+import type { QueuedBook } from '@/components/ScanBookModal';
+import type { Shelf } from '@/lib/hooks/useLocations';
 
 interface ScanQueueRowProps {
   book: QueuedBook;

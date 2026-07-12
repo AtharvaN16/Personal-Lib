@@ -952,10 +952,14 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             books={books}
             showToast={showToast}
             isGuest={isGuest}
-            onBookAdded={(newBook) => {
-              addBook(newBook);
-              setIsScanModalOpen(false);
-              showToast(`Added "${newBook.title}" to your library`);
+            onBookAdded={async (draftBook, locationId) => {
+              try {
+                const persisted = await addBook(draftBook, locationId);
+                showToast(`Added "${persisted.title}" to your library`);
+              } catch (err: unknown) {
+                console.error(err);
+                showToast('Failed to add book to library');
+              }
             }}
           />
         )}

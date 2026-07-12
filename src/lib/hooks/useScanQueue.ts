@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { Book } from '@/components/BookModal';
 
 export interface QueuedBook {
@@ -33,13 +32,12 @@ export interface BookLookupResult {
 export function useScanQueue(
   isGuest: boolean,
   books: Book[],
-  onBookAdded: (book: Book) => void,
+  onBookAdded: (book: Omit<Book, 'id'>, locationId?: string) => Promise<void> | void,
   showToast: (msg: string) => void,
   resolveLocationSelection: (room: string, shelfId: string) => Promise<{ id: string; room: string; bookshelf: string } | null>,
   uniqueRooms: string[]
 ) {
   const [queue, setQueue] = useState<QueuedBook[]>([]);
-  const supabase = createClient();
 
   const addResultToQueue = useCallback((
     result: BookLookupResult,
@@ -131,77 +129,20 @@ export function useScanQueue(
   }, [uniqueRooms, resolveLocationSelection]);
 
   const persistQueuedBook = useCallback(async (row: QueuedBook) => {
-    if (isGuest) {
-      const mockId = `guest-book-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      onBookAdded({
-        id: mockId,
-        title: row.title,
-        authors: row.authors,
-        isbn: row.isbn,
-        publisher: row.publisher,
-        published_date: row.published_date,
-        description: row.description,
-        cover_url: row.cover_url,
-        location: row.location,
-        status: 'To Read',
-        favorite: false,
-      });
-      return;
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user session');
-
-      const { data, error } = await supabase
-        .from('books')
-        .insert([{
-          user_id: user.id,
-          title: row.title,
-          authors: row.authors,
-          isbn: row.isbn || null,
-          publisher: row.publisher || null,
-          published_date: row.published_date || null,
-          description: row.description || null,
-          cover_url: row.cover_url || null,
-          location_id: row.locationId || null,
-          status: 'To Read',
-        }])
-        .select();
-
-      if (error) throw error;
-
-      onBookAdded({
-        id: data && data[0] ? data[0].id : row.id,
-        title: row.title,
-        authors: row.authors,
-        isbn: row.isbn,
-        publisher: row.publisher,
-        published_date: row.published_date,
-        description: row.description,
-        cover_url: row.cover_url,
-        location: row.location,
-        status: 'To Read',
-        favorite: false,
-      });
-    } catch {
-      console.warn('Failed to save queued book to Supabase, adding locally instead');
-      const mockId = Math.random().toString(36).substring(7);
-      onBookAdded({
-        id: mockId,
-        title: row.title,
-        authors: row.authors,
-        isbn: row.isbn,
-        publisher: row.publisher,
-        published_date: row.published_date,
-        description: row.description,
-        cover_url: row.cover_url,
-        location: row.location,
-        status: 'To Read',
-        favorite: false,
-      });
-    }
-  }, [supabase, onBookAdded, isGuest]);
+    const draftBook: Omit<Book, 'id'> = {
+      title: row.title,
+      authors: row.authors,
+      isbn: row.isbn || null,
+      publisher: row.publisher || null,
+      published_date: row.published_date || null,
+      description: row.description || null,
+      cover_url: row.cover_url || null,
+      location: row.location,
+      status: 'To Read',
+      favorite: false,
+    };
+    await onBookAdded(draftBook, row.locationId || undefined);
+  }, [onBookAdded]);
 
   const saveQueueRow = useCallback(async (id: string) => {
     const row = queue.find((q) => q.id === id);

@@ -2,20 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@/lib/supabase/client';
 import BookModal, { Book } from '@/components/BookModal';
 import ScanQueueRow from '@/components/ScanQueueRow';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { GUEST_SHELVES } from '@/lib/guestData';
 import { getPrefs, setDefaultLocation } from '@/lib/userPrefs';
 import { useScanQueue, QueuedBook as HookQueuedBook } from '@/lib/hooks/useScanQueue';
-
-export interface Shelf {
-  id: string;
-  room: string;
-  bookshelf: string;
-}
+import { useLocations } from '@/lib/hooks/useLocations';
 
 export type QueuedBook = HookQueuedBook;
 
@@ -60,14 +53,14 @@ async function fetchBookByIsbn(isbn: string): Promise<BookLookupResult | null> {
 
 interface ScanBookModalProps {
   onClose: () => void;
-  onBookAdded: (book: Book) => void;
+  onBookAdded: (book: Omit<Book, 'id'>, locationId?: string) => Promise<void> | void;
   books: Book[];
   showToast: (message: string) => void;
   isGuest?: boolean;
 }
 
 export default function ScanBookModal({ onClose, onBookAdded, books, showToast, isGuest = false }: ScanBookModalProps) {
-  const supabase = createClient();
+  const { shelves, addLocation } = useLocations(isGuest);
   const [state, setState] = useState<ScanState>('idle');
   const [manualIsbn, setManualIsbn] = useState('');
   const [failedIsbn, setFailedIsbn] = useState('');
@@ -76,7 +69,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   const [isSaving, setIsSaving] = useState(false);
   const [mode, setMode] = useState<ScanMode>('single');
   const [locationSetupOpen, setLocationSetupOpen] = useState(false);
-  const [shelves, setShelves] = useState<Shelf[]>([]);
   const [setupRoom, setSetupRoom] = useState('');
   const [setupShelfId, setSetupShelfId] = useState('');
   const [defaultLocationId, setDefaultLocationId] = useState('');
@@ -130,33 +122,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     };
   }, [onClose, state]);
 
-  useEffect(() => {
-    async function loadShelves() {
-      if (isGuest) {
-        try {
-          const stored = localStorage.getItem('guest_shelves');
-          if (stored) {
-            setShelves(JSON.parse(stored));
-          } else {
-            setShelves(GUEST_SHELVES);
-            localStorage.setItem('guest_shelves', JSON.stringify(GUEST_SHELVES));
-          }
-        } catch (e) {
-          console.warn('Failed to load guest shelves list:', e);
-          setShelves([]);
-        }
-        return;
-      }
 
-      try {
-        const { data } = await supabase.from('shelves').select('id, room, bookshelf');
-        if (data) setShelves(data);
-      } catch {
-        console.warn('Failed to load shelves list');
-      }
-    }
-    loadShelves();
-  }, [supabase, isGuest]);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,40 +156,14 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     const roomOnlyShelf = shelves.find(s => s.room === room && s.bookshelf === '');
     if (roomOnlyShelf) return roomOnlyShelf;
 
-    if (isGuest) {
-      const newShelf = {
-        id: `guest-shelf-${Date.now()}`,
-        room,
-        bookshelf: '',
-      };
-      setShelves(prev => {
-        const updated = [...prev, newShelf];
-        try {
-          localStorage.setItem('guest_shelves', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest shelf:', e);
-        }
-        return updated;
-      });
-      return newShelf;
-    }
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase
-        .from('shelves')
-        .insert([{ room, bookshelf: '', user_id: user?.id }])
-        .select();
-      if (error) throw error;
-      if (data && data[0]) {
-        setShelves(prev => [...prev, data[0]]);
-        return data[0];
-      }
+      const newShelf = await addLocation(room, '');
+      return newShelf;
     } catch {
       console.warn('Failed to save room-only location');
     }
     return { id: '', room, bookshelf: '' };
-  }, [shelves, supabase, isGuest]);
+  }, [shelves, addLocation]);
 
   const uniqueRooms = Array.from(new Set(shelves.map(s => s.room))).filter(Boolean);
   const setupRoomIsSelected = uniqueRooms.includes(setupRoom);
@@ -457,39 +397,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     setIsSaving(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user session');
-
-      const { data, error } = await supabase
-        .from('books')
-        .insert([{
-          user_id: user.id,
-          title: draftBook.title,
-          authors: draftBook.authors,
-          isbn: draftBook.isbn || null,
-          publisher: draftBook.publisher || null,
-          published_date: draftBook.published_date || null,
-          description: draftBook.description || null,
-          cover_url: draftBook.cover_url || null,
-          location_id: draftLocationId || null,
-          status: draftBook.status || 'To Read',
-        }])
-        .select();
-
-      if (error) throw error;
-
-      onBookAdded({
-        ...draftBook,
-        id: data && data[0] ? data[0].id : draftBook.id,
-      });
+      await onBookAdded(draftBook, draftLocationId || undefined);
       onClose();
     } catch {
-      // No authenticated Supabase session (or the insert failed) — fall back to a local-only
-      // id so the book still lands in the grid, matching AddLocationModal's offline fallback.
-      console.warn('Failed to save scanned book to Supabase, adding locally instead');
-      const mockId = Math.random().toString(36).substring(7);
-      onBookAdded({ ...draftBook, id: mockId });
-      onClose();
+      console.warn('Failed to save scanned book');
     } finally {
       setIsSaving(false);
     }

@@ -202,19 +202,63 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
   }, [isGuest, supabase]);
 
   // Add a book (individual)
-  const addBook = useCallback(async (book: Book) => {
-    setBooks((prev) => {
-      const updated = [book, ...prev];
-      if (isGuest) {
+  const addBook = useCallback(async (book: Omit<Book, 'id'>, locationId?: string) => {
+    if (isGuest) {
+      const newBook: Book = {
+        ...book,
+        id: `guest-book-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      };
+      setBooks((prev) => {
+        const updated = [newBook, ...prev];
         try {
           localStorage.setItem('guest_books', JSON.stringify(updated));
         } catch (e) {
           console.warn('Failed to save guest book:', e);
         }
-      }
-      return updated;
-    });
-  }, [isGuest]);
+        return updated;
+      });
+      return newBook;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user session');
+
+    const { data, error: insertErr } = await supabase
+      .from('books')
+      .insert([{
+        user_id: user.id,
+        title: book.title,
+        authors: book.authors,
+        isbn: book.isbn || null,
+        publisher: book.publisher || null,
+        published_date: book.published_date || null,
+        description: book.description || null,
+        cover_url: book.cover_url || null,
+        location_id: locationId || null,
+        status: book.status || 'To Read',
+        favorite: book.favorite || false,
+      }])
+      .select();
+
+    if (insertErr) {
+      console.error('Failed to save book to Supabase:', insertErr);
+      throw insertErr;
+    }
+
+    if (!data || !data[0]) {
+      throw new Error('Failed to insert book');
+    }
+
+    const formatted: Book = {
+      ...data[0],
+      location: data[0].location_id ? book.location : null,
+      authors: data[0].authors || [],
+      genres: data[0].genres || [],
+    };
+
+    setBooks((prev) => [formatted, ...prev]);
+    return formatted;
+  }, [isGuest, supabase]);
 
   return {
     books,
