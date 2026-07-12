@@ -537,13 +537,30 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   // shows exactly what was left there.
   const appliedQuery = (isSearching || isHeaderSearching || isMobileSearchOpen) ? searchQuery : committedQuery;
 
+  const displayedBooks = books.filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)) && matchesFilter(b));
+
   // Once a search is applied (at least one match found), "Currently showing" reflects the
   // matched book(s) instead of the active filter, until the search is cleared. Must apply
   // matchesFilter too, same as the grid below — otherwise this can name a book that isn't
   // even visible (e.g. it matches the search but not the active "Unread books" filter).
-  const activeSearchMatches = appliedQuery
-    ? books.filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)) && matchesFilter(b))
+  const activeSearchMatches = appliedQuery ? displayedBooks : [];
+
+  // Grouping logic for room filters with multiple bookshelves
+  const allBooksInRoom = filterRoom
+    ? books.filter(b => b.location?.room === filterRoom)
     : [];
+  const uniqueShelvesInRoom = Array.from(
+    new Set(allBooksInRoom.map(b => b.location?.bookshelf).filter((s): s is string => Boolean(s)))
+  );
+  const hasUnassignedInRoom = allBooksInRoom.some(b => !b.location?.bookshelf);
+
+  const shouldDivideGrid =
+    filterMode === 'location' &&
+    filterRoom !== null &&
+    (uniqueShelvesInRoom.length > 1 || (uniqueShelvesInRoom.length === 1 && hasUnassignedInRoom));
+
+  const sortedShelves = [...uniqueShelvesInRoom].sort();
+  const unassignedBooks = displayedBooks.filter(b => !b.location?.bookshelf);
   const otherMatchCount = activeSearchMatches.length - 1;
   const displayLabel =
     activeSearchMatches.length === 0 ? filterLabel
@@ -946,16 +963,86 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.85, duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
         >
-          <div
-            style={{
-              ...styles.booksGrid,
-            }}
-            className="books-grid"
-          >
-            <AnimatePresence>
-              {books
-                .filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)) && matchesFilter(b))
-                .map((book) => (
+          {shouldDivideGrid ? (
+            <div style={{ width: '100%' }}>
+              {sortedShelves.map((shelf) => {
+                const shelfBooks = displayedBooks.filter(b => b.location?.bookshelf === shelf);
+                if (shelfBooks.length === 0) return null;
+                return (
+                  <div key={shelf} style={styles.shelfSection}>
+                    <div style={styles.shelfHeaderWrapper}>
+                      <div style={styles.shelfHeaderLine} />
+                      <h2 style={styles.shelfHeading}>Books on {shelf}</h2>
+                      <div style={styles.shelfHeaderLine} />
+                    </div>
+                    <div style={styles.booksGrid} className="books-grid">
+                      <AnimatePresence>
+                        {shelfBooks.map((book) => (
+                          <motion.div
+                            key={book.id}
+                            layout
+                            initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <BookCard
+                              book={book}
+                              onClick={setSelectedBook}
+                              isMobile={isMobile}
+                              editMode={isEditMode}
+                              selected={selectedBookIds.has(book.id)}
+                              onToggleSelect={toggleBookSelected}
+                            />
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                );
+              })}
+              {unassignedBooks.length > 0 && (
+                <div key="unassigned" style={styles.shelfSection}>
+                  <div style={styles.shelfHeaderWrapper}>
+                    <div style={styles.shelfHeaderLine} />
+                    <h2 style={styles.shelfHeading}>Other books in {filterRoom}</h2>
+                    <div style={styles.shelfHeaderLine} />
+                  </div>
+                  <div style={styles.booksGrid} className="books-grid">
+                    <AnimatePresence>
+                      {unassignedBooks.map((book) => (
+                        <motion.div
+                          key={book.id}
+                          layout
+                          initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
+                          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                          exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <BookCard
+                            book={book}
+                            onClick={setSelectedBook}
+                            isMobile={isMobile}
+                            editMode={isEditMode}
+                            selected={selectedBookIds.has(book.id)}
+                            onToggleSelect={toggleBookSelected}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              style={{
+                ...styles.booksGrid,
+              }}
+              className="books-grid"
+            >
+              <AnimatePresence>
+                {displayedBooks.map((book) => (
                   <motion.div
                     key={book.id}
                     layout
@@ -974,8 +1061,9 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                     />
                   </motion.div>
                 ))}
-            </AnimatePresence>
-          </div>
+              </AnimatePresence>
+            </div>
+          )}
         </motion.div>
       </main>
 
@@ -1594,5 +1682,34 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '0px',
     boxShadow: '0 4px 15px rgba(17, 22, 37, 0.03)',
     width: '100%',
+  },
+  shelfSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    marginBottom: '16px',
+  },
+  shelfHeaderWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: '48px',
+    marginBottom: '32px',
+    width: '100%',
+  },
+  shelfHeaderLine: {
+    flexGrow: 1,
+    height: '1px',
+    borderBottom: '1px dashed rgba(17, 22, 37, 0.15)',
+  },
+  shelfHeading: {
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: 'var(--text-secondary)',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    whiteSpace: 'nowrap',
+    opacity: 0.85,
   },
 };
