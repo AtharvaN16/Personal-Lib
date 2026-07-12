@@ -8,7 +8,6 @@ import ManageLocationsModal from '@/components/ManageLocationsModal';
 import ScanBookModal from '@/components/ScanBookModal';
 import BulkMoveModal from '@/components/BulkMoveModal';
 import FilterPanel, { FilterMode } from '@/components/FilterPanel';
-import { createClient } from '@/lib/supabase/client';
 import { TextAnimate } from '@/registry/magicui/text-animate';
 import HeroAnimation from '@/components/HeroAnimation';
 import SearchPill from '@/components/SearchPill';
@@ -18,6 +17,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 import { GUEST_SHELVES, GUEST_DATA_VERSION } from '@/lib/guestData';
+import { useBooks } from '@/lib/hooks/useBooks';
 
 /** Closes an open search pill when the user clicks anywhere outside its wrapper element. */
 function useCloseOnOutsideClick(active: boolean, wrapperId: string, onClose: () => void) {
@@ -149,7 +149,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_GUEST_BOOKS, userEmail = null }: DashboardProps = {}) {
-  const supabase = createClient();
+
   const [isSearching, setIsSearching] = useState(false);
   const [isHeaderSearching, setIsHeaderSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -158,7 +158,16 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   // `appliedQuery` below.
   const [committedQuery, setCommittedQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
-  const [books, setBooks] = useState<Book[]>([]);
+  const {
+    books,
+    updateBookStatus,
+    toggleBookFavorite,
+    updateBookDetails,
+    deleteBooks,
+    moveBooks,
+    addBook,
+    setBooks
+  } = useBooks(isGuest, initialGuestBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isManageLocationsOpen, setIsManageLocationsOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -259,168 +268,51 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     setCommittedQuery('');
   };
 
-  // Load books from Supabase on mount
-  useEffect(() => {
-    async function loadBooks() {
-      if (isGuest) {
-        try {
-          // Reseed everything when the curated guest catalog/shelf set has changed since this
-          // browser last cached it, so guests don't get stuck on data from an older version.
-          const isStale = localStorage.getItem('guest_data_version') !== GUEST_DATA_VERSION;
-          if (isStale) {
-            localStorage.removeItem('guest_books');
-            localStorage.removeItem('guest_shelves');
-            localStorage.setItem('guest_data_version', GUEST_DATA_VERSION);
-          }
 
-          if (!localStorage.getItem('guest_shelves')) {
-            localStorage.setItem('guest_shelves', JSON.stringify(GUEST_SHELVES));
-          }
-
-          const stored = localStorage.getItem('guest_books');
-          const storedBooks = stored ? JSON.parse(stored) : [];
-          if (storedBooks.length > 0) {
-            setBooks(storedBooks);
-          } else if (initialGuestBooks && initialGuestBooks.length > 0) {
-            setBooks(initialGuestBooks);
-            localStorage.setItem('guest_books', JSON.stringify(initialGuestBooks));
-          } else {
-            setBooks([]);
-          }
-        } catch (e) {
-          console.warn('Failed to load guest books from localStorage:', e);
-          setBooks([]);
-        }
-        return;
-      }
-
-      try {
-        const { data } = await supabase
-          .from('books')
-          .select('*, location:location_id(room, bookshelf)');
-
-        if (data && data.length > 0) {
-          const formatted = data.map((b: { id: string; title: string; authors?: string[]; isbn?: string | null; publisher?: string | null; published_date?: string | null; description?: string | null; cover_url?: string | null; location?: { room: string; bookshelf: string } | null; status?: 'Completed' | 'Reading' | 'To Read' | null; notes?: string | null }) => ({
-            id: b.id,
-            title: b.title,
-            authors: b.authors || [],
-            isbn: b.isbn,
-            publisher: b.publisher,
-            published_date: b.published_date,
-            description: b.description,
-            cover_url: b.cover_url,
-            location: b.location ? { room: b.location.room, bookshelf: b.location.bookshelf } : null,
-            genres: [],
-            status: b.status || 'To Read',
-            notes: b.notes,
-            favorite: false,
-          }));
-          setBooks(formatted);
-        } else {
-          setBooks([]);
-        }
-      } catch (err) {
-        console.warn('Failed to load books from Supabase:', err);
-        setBooks([]);
-      }
-    }
-    loadBooks();
-  }, [supabase, isGuest, initialGuestBooks]);
 
   // Handle status update locally and in Supabase
   const handleStatusChange = async (id: string, status: 'Completed' | 'Reading' | 'To Read') => {
-    setBooks(prev => {
-      const updated = prev.map(b => b.id === id ? { ...b, status } : b);
-      if (isGuest) {
-        try {
-          localStorage.setItem('guest_books', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest status change:', e);
-        }
-      }
-      return updated;
-    });
-
-    if (selectedBook && selectedBook.id === id) {
-      setSelectedBook(prev => prev ? { ...prev, status } : null);
-    }
-    
-    if (isGuest) return;
-
     try {
-      await supabase.from('books').update({ status }).eq('id', id);
+      await updateBookStatus(id, status);
+      if (selectedBook && selectedBook.id === id) {
+        setSelectedBook(prev => prev ? { ...prev, status } : null);
+      }
     } catch {
-      console.warn('Failed to save status change to Supabase');
+      console.warn('Failed to save status change');
     }
   };
 
   // Toggle favorite locally
-  const handleFavoriteToggle = (id: string, favorite: boolean) => {
-    setBooks(prev => {
-      const updated = prev.map(b => b.id === id ? { ...b, favorite } : b);
-      if (isGuest) {
-        try {
-          localStorage.setItem('guest_books', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest favorite status:', e);
-        }
+  const handleFavoriteToggle = async (id: string, favorite: boolean) => {
+    try {
+      await toggleBookFavorite(id, favorite);
+      if (selectedBook && selectedBook.id === id) {
+        setSelectedBook(prev => prev ? { ...prev, favorite } : null);
       }
-      return updated;
-    });
-
-    if (selectedBook && selectedBook.id === id) {
-      setSelectedBook(prev => prev ? { ...prev, favorite } : null);
+    } catch {
+      console.warn('Failed to toggle favorite status');
     }
   };
 
   // Handle title and author change from BookModal
   const handleTitleAuthorChange = async (id: string, title: string, authors: string[]) => {
-    setBooks(prev => {
-      const updated = prev.map(b => b.id === id ? { ...b, title, authors } : b);
-      if (isGuest) {
-        try {
-          localStorage.setItem('guest_books', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest title/author change:', e);
-        }
-      }
-      return updated;
-    });
-
-    if (selectedBook && selectedBook.id === id) {
-      setSelectedBook(prev => prev ? { ...prev, title, authors } : null);
-    }
-
-    if (isGuest) return;
-
     try {
-      await supabase.from('books').update({ title, authors }).eq('id', id);
+      await updateBookDetails(id, title, authors);
+      if (selectedBook && selectedBook.id === id) {
+        setSelectedBook(prev => prev ? { ...prev, title, authors } : null);
+      }
     } catch {
-      console.warn('Failed to update book title and author in Supabase');
+      console.warn('Failed to update book details');
     }
   };
 
   // Handle book deletion
   const handleDelete = async (id: string) => {
-    setBooks(prev => {
-      const updated = prev.filter(b => b.id !== id);
-      if (isGuest) {
-        try {
-          localStorage.setItem('guest_books', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest deletion:', e);
-        }
-      }
-      return updated;
-    });
-    setSelectedBook(null);
-
-    if (isGuest) return;
-
     try {
-      await supabase.from('books').delete().eq('id', id);
+      await deleteBooks([id]);
+      setSelectedBook(null);
     } catch {
-      console.warn('Failed to delete book from Supabase');
+      console.warn('Failed to delete book');
     }
   };
 
@@ -428,26 +320,12 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedBookIds);
     const count = ids.length;
-    setBooks(prev => {
-      const updated = prev.filter(b => !selectedBookIds.has(b.id));
-      if (isGuest) {
-        try {
-          localStorage.setItem('guest_books', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest bulk deletion:', e);
-        }
-      }
-      return updated;
-    });
-    exitEditMode();
-    showToast(`Deleted ${count} book${count === 1 ? '' : 's'}`);
-
-    if (isGuest) return;
-
     try {
-      await supabase.from('books').delete().in('id', ids);
+      await deleteBooks(ids);
+      exitEditMode();
+      showToast(`Deleted ${count} book${count === 1 ? '' : 's'}`);
     } catch {
-      console.warn('Failed to bulk delete books from Supabase');
+      console.warn('Failed to bulk delete books');
     }
   };
 
@@ -457,29 +335,13 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     locationId: string, 
     locationObj: { room: string; bookshelf: string } | null
   ) => {
-    setBooks(prev => {
-      const updated = prev.map(b => b.id === bookId ? { ...b, location: locationObj } : b);
-      if (isGuest) {
-        try {
-          localStorage.setItem('guest_books', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest location change:', e);
-        }
-      }
-      return updated;
-    });
-
-    if (selectedBook && selectedBook.id === bookId) {
-      setSelectedBook(prev => prev ? { ...prev, location: locationObj } : null);
-    }
-
-    if (isGuest) return;
-
     try {
-      const locationIdVal = locationId === '' || locationId === 'unassigned' ? null : locationId;
-      await supabase.from('books').update({ location_id: locationIdVal }).eq('id', bookId);
+      await moveBooks([bookId], locationId, locationObj);
+      if (selectedBook && selectedBook.id === bookId) {
+        setSelectedBook(prev => prev ? { ...prev, location: locationObj } : null);
+      }
     } catch {
-      console.warn('Failed to update book location in database');
+      console.warn('Failed to update book location');
     }
   };
 
@@ -487,28 +349,13 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const handleBulkMove = async (locationId: string, locationObj: { room: string; bookshelf: string } | null) => {
     const ids = Array.from(selectedBookIds);
     const count = ids.length;
-    setBooks(prev => {
-      const updated = prev.map(b => selectedBookIds.has(b.id) ? { ...b, location: locationObj } : b);
-      if (isGuest) {
-        try {
-          localStorage.setItem('guest_books', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('Failed to save guest bulk move:', e);
-        }
-      }
-      return updated;
-    });
-    setIsBulkMoveOpen(false);
-    exitEditMode();
-    showToast(`Moved ${count} book${count === 1 ? '' : 's'} to ${locationObj?.room ?? 'Unassigned'}`);
-
-    if (isGuest) return;
-
     try {
-      const locationIdVal = locationId === '' ? null : locationId;
-      await supabase.from('books').update({ location_id: locationIdVal }).in('id', ids);
+      await moveBooks(ids, locationId, locationObj);
+      setIsBulkMoveOpen(false);
+      exitEditMode();
+      showToast(`Moved ${count} book${count === 1 ? '' : 's'} to ${locationObj?.room ?? 'Unassigned'}`);
     } catch {
-      console.warn('Failed to bulk update book locations in database');
+      console.warn('Failed to bulk update book locations');
     }
   };
 
