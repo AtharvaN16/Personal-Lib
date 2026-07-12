@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Book } from '@/components/BookModal';
 
 export interface Shelf {
   id: string;
@@ -29,12 +30,10 @@ export function useLocations(isGuest: boolean = false) {
         const storedBooks = localStorage.getItem('guest_books');
         const guestBooks = storedBooks ? JSON.parse(storedBooks) : [];
         const counts: Record<string, number> = {};
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        guestBooks.forEach((b: any) => {
+        guestBooks.forEach((b: Book) => {
           if (b.location) {
             const match = guestShelves.find(
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (s: any) => s.room === b.location.room && s.bookshelf === b.location.bookshelf
+              (s: Shelf) => s.room === b.location!.room && s.bookshelf === b.location!.bookshelf
             );
             if (match) {
               counts[match.id] = (counts[match.id] || 0) + 1;
@@ -218,8 +217,7 @@ export function useLocations(isGuest: boolean = false) {
       const storedBooks = localStorage.getItem('guest_books');
       if (storedBooks) {
         const guestBooks = JSON.parse(storedBooks);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updatedBooks = guestBooks.map((b: any) => {
+        const updatedBooks = guestBooks.map((b: Book) => {
           if (!b.location) return b;
 
           let room = b.location.room;
@@ -229,7 +227,7 @@ export function useLocations(isGuest: boolean = false) {
           }
 
           let bookshelf = b.location.bookshelf;
-          const shelf = shelves.find((s) => s.room === b.location.room && s.bookshelf === b.location.bookshelf);
+          const shelf = shelves.find((s) => s.room === b.location!.room && s.bookshelf === b.location!.bookshelf);
           if (shelf) {
             const shelfRename = shelfDrafts[shelf.id];
             if (shelfRename !== undefined) {

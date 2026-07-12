@@ -35,11 +35,38 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
           setError(fetchErr.message);
           console.error('Failed to load books:', fetchErr);
         } else if (data) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const formatted = data.map((b: any) => ({
-            ...b,
-            location: b.location ? { room: b.location.room, bookshelf: b.location.bookshelf } : null,
+          interface SupabaseBookRow {
+            id: string;
+            user_id: string;
+            title: string;
+            authors: string[] | null;
+            isbn: string | null;
+            publisher: string | null;
+            published_date: string | null;
+            description: string | null;
+            cover_url: string | null;
+            location_id: string | null;
+            status: string;
+            favorite: boolean;
+            notes: string | null;
+            created_at: string;
+            genres?: string[];
+            location: { room: string; bookshelf: string } | null;
+          }
+
+          const formatted: Book[] = (data as unknown as SupabaseBookRow[]).map((b) => ({
+            id: b.id,
+            title: b.title,
             authors: b.authors || [],
+            isbn: b.isbn,
+            publisher: b.publisher,
+            published_date: b.published_date,
+            description: b.description,
+            cover_url: b.cover_url,
+            location: b.location ? { room: b.location.room, bookshelf: b.location.bookshelf } : null,
+            status: b.status as Book['status'],
+            favorite: b.favorite,
+            notes: b.notes,
             genres: b.genres || [],
           }));
           setBooks(formatted);
