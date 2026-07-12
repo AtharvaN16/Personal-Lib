@@ -9,6 +9,7 @@ import { useHardwareScanner } from '@/hooks/useHardwareScanner';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { GUEST_SHELVES } from '@/lib/guestData';
 import { getPrefs, setDefaultLocation } from '@/lib/userPrefs';
+import { useScanQueue, QueuedBook as HookQueuedBook } from '@/lib/hooks/useScanQueue';
 
 export interface Shelf {
   id: string;
@@ -16,21 +17,7 @@ export interface Shelf {
   bookshelf: string;
 }
 
-export interface QueuedBook {
-  id: string;
-  title: string;
-  authors: string[];
-  isbn?: string | null;
-  publisher?: string | null;
-  published_date?: string | null;
-  description?: string | null;
-  cover_url?: string | null;
-  locationId: string;
-  location: { room: string; bookshelf: string } | null;
-  overridden: boolean;
-  rowState: 'idle' | 'saving';
-  editingLocation: boolean;
-}
+export type QueuedBook = HookQueuedBook;
 
 type ScanMode = 'single' | 'location';
 
@@ -99,7 +86,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   const [currentRoom, setCurrentRoom] = useState('');
   const [currentShelfId, setCurrentShelfId] = useState('');
   const [editingDefault, setEditingDefault] = useState(false);
-  const [queue, setQueue] = useState<QueuedBook[]>([]);
+
   const modalRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
@@ -248,6 +235,24 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     ? shelves.filter(s => s.room === currentRoom && s.bookshelf !== '')
     : [];
 
+  const {
+    queue,
+    addResultToQueue,
+    removeFromQueue,
+    startEditLocation,
+    cancelEditLocation,
+    confirmLocation,
+    saveQueueRow,
+    saveAllQueue,
+  } = useScanQueue(
+    isGuest,
+    books,
+    onBookAdded,
+    showToast,
+    resolveLocationSelection,
+    uniqueRooms
+  );
+
   const handleStartMultiScan = async () => {
     if (!currentRoom || !uniqueRooms.includes(currentRoom)) {
       setDefaultLocationId('');
@@ -333,139 +338,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     setLocationSetupOpen(false);
   };
 
-  const persistQueuedBook = useCallback(async (row: QueuedBook) => {
-    if (isGuest) {
-      const mockId = `guest-book-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      onBookAdded({
-        id: mockId,
-        title: row.title,
-        authors: row.authors,
-        isbn: row.isbn,
-        publisher: row.publisher,
-        published_date: row.published_date,
-        description: row.description,
-        cover_url: row.cover_url,
-        location: row.location,
-        status: 'To Read',
-        favorite: false,
-      });
-      return;
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user session');
-
-      const { data, error } = await supabase
-        .from('books')
-        .insert([{
-          user_id: user.id,
-          title: row.title,
-          authors: row.authors,
-          isbn: row.isbn || null,
-          publisher: row.publisher || null,
-          published_date: row.published_date || null,
-          description: row.description || null,
-          cover_url: row.cover_url || null,
-          location_id: row.locationId || null,
-          status: 'To Read',
-        }])
-        .select();
-
-      if (error) throw error;
-
-      onBookAdded({
-        id: data && data[0] ? data[0].id : row.id,
-        title: row.title,
-        authors: row.authors,
-        isbn: row.isbn,
-        publisher: row.publisher,
-        published_date: row.published_date,
-        description: row.description,
-        cover_url: row.cover_url,
-        location: row.location,
-        status: 'To Read',
-        favorite: false,
-      });
-    } catch {
-      console.warn('Failed to save queued book to Supabase, adding locally instead');
-      const mockId = Math.random().toString(36).substring(7);
-      onBookAdded({
-        id: mockId,
-        title: row.title,
-        authors: row.authors,
-        isbn: row.isbn,
-        publisher: row.publisher,
-        published_date: row.published_date,
-        description: row.description,
-        cover_url: row.cover_url,
-        location: row.location,
-        status: 'To Read',
-        favorite: false,
-      });
-    }
-  }, [supabase, onBookAdded, isGuest]);
-
-  const handleSaveQueueRow = async (id: string) => {
-    const row = queue.find(q => q.id === id);
-    if (!row) return;
-    setQueue(prev => prev.map(q => (q.id === id ? { ...q, rowState: 'saving' } : q)));
-    await persistQueuedBook(row);
-    setQueue(prev => prev.filter(q => q.id !== id));
-    showToast(`Added "${row.title}" to your library`);
-  };
-
-  const handleSaveAll = async () => {
-    if (queue.length === 0) return;
-    const rows = queue;
-    setQueue(prev => prev.map(q => ({ ...q, rowState: 'saving' })));
-    await Promise.all(rows.map(row => persistQueuedBook(row)));
-    setQueue([]);
-    showToast(`Added ${rows.length} book${rows.length === 1 ? '' : 's'} to your library`);
-  };
-
-  const handleRemoveFromQueue = (id: string) => {
-    setQueue(prev => prev.filter(q => q.id !== id));
-  };
-
-  const handleStartEditQueueLocation = (id: string) => {
-    setQueue(prev => prev.map(q => (q.id === id ? { ...q, editingLocation: true } : q)));
-  };
-
-  const handleCancelEditQueueLocation = (id: string) => {
-    setQueue(prev => prev.map(q => (q.id === id ? { ...q, editingLocation: false } : q)));
-  };
-
-  const handleConfirmQueueLocation = async (id: string, room: string, shelfId: string) => {
-    if (!room || !uniqueRooms.includes(room)) {
-      setQueue(prev => prev.map(q => (
-        q.id === id
-          ? {
-              ...q,
-              locationId: '',
-              location: null,
-              overridden: true,
-              editingLocation: false,
-            }
-          : q
-      )));
-      return;
-    }
-    const resolved = await resolveLocationSelection(room, shelfId);
-    if (!resolved) return;
-    setQueue(prev => prev.map(q => (
-      q.id === id
-        ? {
-            ...q,
-            locationId: resolved.id,
-            location: { room: resolved.room, bookshelf: resolved.bookshelf },
-            overridden: true,
-            editingLocation: false,
-          }
-        : q
-    )));
-  };
-
   const runLookup = useCallback(async (isbn: string) => {
     setState('loading');
     try {
@@ -482,41 +354,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       }
 
       if (mode === 'location') {
-        const isDuplicate = books.some(b =>
-          (b.isbn && result.isbn && b.isbn.replace(/[\s-]/g, '') === result.isbn.replace(/[\s-]/g, '')) ||
-          (b.title.toLowerCase().trim() === result.title.toLowerCase().trim() &&
-           b.authors.map(a => a.toLowerCase().trim()).join(',') === result.authors.map(a => a.toLowerCase().trim()).join(','))
-        ) || queue.some(q =>
-          (q.isbn && result.isbn && q.isbn.replace(/[\s-]/g, '') === result.isbn.replace(/[\s-]/g, '')) ||
-          (q.title.toLowerCase().trim() === result.title.toLowerCase().trim() &&
-           q.authors.map(a => a.toLowerCase().trim()).join(',') === result.authors.map(a => a.toLowerCase().trim()).join(','))
-        );
-
-        if (isDuplicate) {
-          showToast(`"${result.title}" already exists in library`);
-          setState('idle');
-          return;
+        const added = addResultToQueue(result, defaultLocationId, defaultLocationObj);
+        if (added) {
+          setManualIsbn('');
         }
-
-        setQueue(prev => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            title: result.title,
-            authors: result.authors,
-            isbn: result.isbn,
-            publisher: result.publisher,
-            published_date: result.published_date,
-            description: result.description,
-            cover_url: result.cover_url,
-            locationId: defaultLocationId,
-            location: defaultLocationObj,
-            overridden: false,
-            rowState: 'idle',
-            editingLocation: false,
-          },
-        ]);
-        setManualIsbn('');
         setState('idle');
         return;
       }
@@ -553,7 +394,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       setFailedIsbn(isbn);
       setState('error');
     }
-  }, [mode, books, queue, defaultLocationId, defaultLocationObj, showToast, currentRoom, currentShelfId, currentRoomIsSelected, resolveLocationSelection]);
+  }, [mode, addResultToQueue, defaultLocationId, defaultLocationObj, showToast, currentRoom, currentShelfId, currentRoomIsSelected, resolveLocationSelection]);
 
   // Hardware scanner only listens while waiting for a scan — not mid-lookup or once loaded
   useHardwareScanner(state === 'idle' && !locationSetupOpen && !editingDefault, (code) => {
@@ -807,11 +648,11 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                   key={book.id}
                   book={book}
                   shelves={shelves}
-                  onSave={handleSaveQueueRow}
-                  onRemove={handleRemoveFromQueue}
-                  onStartEditLocation={handleStartEditQueueLocation}
-                  onCancelEditLocation={handleCancelEditQueueLocation}
-                  onConfirmLocation={handleConfirmQueueLocation}
+                  onSave={saveQueueRow}
+                  onRemove={removeFromQueue}
+                  onStartEditLocation={startEditLocation}
+                  onCancelEditLocation={cancelEditLocation}
+                  onConfirmLocation={confirmLocation}
                 />
               ))
             )}
@@ -832,7 +673,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
             </form>
             <button
               type="button"
-              onClick={handleSaveAll}
+              onClick={saveAllQueue}
               disabled={queue.length === 0}
               style={{ ...styles.saveAllBtn, opacity: queue.length === 0 ? 0.5 : 1 }}
             >
