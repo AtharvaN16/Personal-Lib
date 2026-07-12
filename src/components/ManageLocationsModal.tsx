@@ -2,25 +2,25 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@/lib/supabase/client';
 import AddLocationModal from '@/components/AddLocationModal';
-
-interface Shelf {
-  id: string;
-  room: string;
-  bookshelf: string;
-}
+import { useLocations } from '@/lib/hooks/useLocations';
 
 interface ManageLocationsModalProps {
   onClose: () => void;
+  onLocationsChanged?: () => void;
   isGuest?: boolean;
 }
 
-export default function ManageLocationsModal({ onClose, isGuest = false }: ManageLocationsModalProps) {
-  const supabase = createClient();
-  const [shelves, setShelves] = useState<Shelf[]>([]);
-  const [bookCounts, setBookCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+export default function ManageLocationsModal({ onClose, onLocationsChanged, isGuest = false }: ManageLocationsModalProps) {
+  const {
+    shelves,
+    bookCounts,
+    loading,
+    deleteLocation,
+    deleteRoom,
+    saveBulkChanges,
+    loadLocations,
+  } = useLocations(isGuest);
   const [isEditMode, setIsEditMode] = useState(false);
   const [roomDrafts, setRoomDrafts] = useState<Record<string, string>>({});
   const [shelfDrafts, setShelfDrafts] = useState<Record<string, string>>({});
@@ -72,55 +72,7 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
     };
   }, [onClose]);
 
-  const loadShelves = async () => {
-    setLoading(true);
-    try {
-      if (isGuest) {
-        const storedShelves = localStorage.getItem('guest_shelves');
-        const guestShelves = storedShelves ? JSON.parse(storedShelves) : [];
-        setShelves(guestShelves);
 
-        const storedBooks = localStorage.getItem('guest_books');
-        const guestBooks = storedBooks ? JSON.parse(storedBooks) : [];
-        const counts: Record<string, number> = {};
-        guestBooks.forEach((b: any) => {
-          if (b.location) {
-            const match = guestShelves.find(
-              (s: any) => s.room === b.location.room && s.bookshelf === b.location.bookshelf
-            );
-            if (match) {
-              counts[match.id] = (counts[match.id] || 0) + 1;
-            }
-          }
-        });
-        setBookCounts(counts);
-        return;
-      }
-
-      const { data } = await supabase.from('shelves').select('id, room, bookshelf').order('room');
-      setShelves(data || []);
-
-      const { data: booksData } = await supabase.from('books').select('location_id');
-      const counts: Record<string, number> = {};
-      if (booksData) {
-        booksData.forEach((b: { location_id: string | null }) => {
-          if (b.location_id) {
-            counts[b.location_id] = (counts[b.location_id] || 0) + 1;
-          }
-        });
-      }
-      setBookCounts(counts);
-    } catch {
-      console.warn('Failed to load shelves list');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadShelves();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const rooms = Array.from(new Set(shelves.map(s => s.room)));
 
@@ -140,100 +92,15 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
       return;
     }
 
-    // Saving: apply room renames first (bulk per room), then individual shelf renames, then new shelves
-    const updatedShelves = shelves.map(s => ({
-      ...s,
-      room: (roomDrafts[s.room] ?? s.room).trim() || s.room,
-      bookshelf: (shelfDrafts[s.id] ?? s.bookshelf).trim(),
-    }));
-    setShelves(updatedShelves);
-    setIsEditMode(false);
-
-    if (isGuest) {
-      const pendingInserts = newShelves.filter(n => n.bookshelf.trim());
-      const inserts = pendingInserts.map((n, i) => ({
-        id: `guest-shelf-${Date.now()}-${i}`,
-        room: (roomDrafts[n.room] ?? n.room).trim() || n.room,
-        bookshelf: n.bookshelf.trim(),
-      }));
-
-      const finalShelves = [
-        ...updatedShelves,
-        ...inserts
-      ];
-      try {
-        localStorage.setItem('guest_shelves', JSON.stringify(finalShelves));
-
-        // Sync renames back to guest books
-        const storedBooks = localStorage.getItem('guest_books');
-        if (storedBooks) {
-          const guestBooks = JSON.parse(storedBooks);
-          const updatedBooks = guestBooks.map((b: any) => {
-            if (!b.location) return b;
-            
-            let room = b.location.room;
-            const roomRename = roomDrafts[room];
-            if (roomRename !== undefined && roomRename.trim()) {
-              room = roomRename.trim();
-            }
-
-            let bookshelf = b.location.bookshelf;
-            const shelf = shelves.find(s => s.room === b.location.room && s.bookshelf === b.location.bookshelf);
-            if (shelf) {
-              const shelfRename = shelfDrafts[shelf.id];
-              if (shelfRename !== undefined) {
-                bookshelf = shelfRename.trim();
-              }
-            }
-
-            return {
-              ...b,
-              location: { room, bookshelf }
-            };
-          });
-          localStorage.setItem('guest_books', JSON.stringify(updatedBooks));
-        }
-      } catch (e) {
-        console.warn('Failed to save guest shelves:', e);
-      }
-      setShelves(finalShelves);
-      setNewShelves([]);
-      loadShelves();
-      window.location.reload();
-      return;
-    }
-
     try {
-      const roomRenames = rooms.filter(r => roomDrafts[r] && roomDrafts[r].trim() && roomDrafts[r].trim() !== r);
-      await Promise.all(
-        roomRenames.map(oldRoom =>
-          supabase.from('shelves').update({ room: roomDrafts[oldRoom].trim() }).eq('room', oldRoom)
-        )
-      );
-
-      const shelfRenames = shelves.filter(s => {
-        const draft = shelfDrafts[s.id];
-        return draft !== undefined && draft.trim() !== s.bookshelf;
-      });
-      await Promise.all(
-        shelfRenames.map(s => supabase.from('shelves').update({ bookshelf: shelfDrafts[s.id].trim() }).eq('id', s.id))
-      );
-
-      const pendingInserts = newShelves.filter(n => n.bookshelf.trim());
-      if (pendingInserts.length > 0) {
-        const { data: { user } } = await supabase.auth.getUser();
-        const rows = pendingInserts.map(n => ({
-          room: (roomDrafts[n.room] ?? n.room).trim() || n.room,
-          bookshelf: n.bookshelf.trim(),
-          user_id: user?.id,
-        }));
-        const { data } = await supabase.from('shelves').insert(rows).select();
-        if (data) {
-          setShelves(prev => [...prev, ...data]);
-        }
-      }
+      const pendingInserts = newShelves.filter(n => n.bookshelf.trim()).map(n => ({
+        room: n.room,
+        bookshelf: n.bookshelf
+      }));
+      await saveBulkChanges(roomDrafts, shelfDrafts, pendingInserts);
+      setIsEditMode(false);
       setNewShelves([]);
-      loadShelves();
+      onLocationsChanged?.();
     } catch {
       console.warn('Failed to save location changes');
     }
@@ -249,37 +116,9 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
 
   const handleConfirmDelete = async (id: string) => {
     setConfirmingDeleteId(null);
-    const shelfToDelete = shelves.find(s => s.id === id);
-    setShelves(prev => prev.filter(s => s.id !== id));
-
-    if (isGuest) {
-      const finalShelves = shelves.filter(s => s.id !== id);
-      try {
-        localStorage.setItem('guest_shelves', JSON.stringify(finalShelves));
-        if (shelfToDelete) {
-          const storedBooks = localStorage.getItem('guest_books');
-          if (storedBooks) {
-            const guestBooks = JSON.parse(storedBooks);
-            const updatedBooks = guestBooks.map((b: any) => {
-              if (b.location && b.location.room === shelfToDelete.room && b.location.bookshelf === shelfToDelete.bookshelf) {
-                return { ...b, location: null };
-              }
-              return b;
-            });
-            localStorage.setItem('guest_books', JSON.stringify(updatedBooks));
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to delete guest shelf:', e);
-      }
-      loadShelves();
-      window.location.reload();
-      return;
-    }
-
     try {
-      await supabase.from('shelves').delete().eq('id', id);
-      loadShelves();
+      await deleteLocation(id);
+      onLocationsChanged?.();
     } catch {
       console.warn('Failed to delete location');
     }
@@ -295,34 +134,9 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
 
   const handleConfirmDeleteRoom = async (room: string) => {
     setConfirmingDeleteRoom(null);
-    setShelves(prev => prev.filter(s => s.room !== room));
-
-    if (isGuest) {
-      const finalShelves = shelves.filter(s => s.room !== room);
-      try {
-        localStorage.setItem('guest_shelves', JSON.stringify(finalShelves));
-        const storedBooks = localStorage.getItem('guest_books');
-        if (storedBooks) {
-          const guestBooks = JSON.parse(storedBooks);
-          const updatedBooks = guestBooks.map((b: any) => {
-            if (b.location && b.location.room === room) {
-              return { ...b, location: null };
-            }
-            return b;
-          });
-          localStorage.setItem('guest_books', JSON.stringify(updatedBooks));
-        }
-      } catch (e) {
-        console.warn('Failed to delete guest room:', e);
-      }
-      loadShelves();
-      window.location.reload();
-      return;
-    }
-
     try {
-      await supabase.from('shelves').delete().eq('room', room);
-      loadShelves();
+      await deleteRoom(room);
+      onLocationsChanged?.();
     } catch {
       console.warn('Failed to delete room');
     }
@@ -704,9 +518,10 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
       <AnimatePresence>
         {isAddLocationOpen && (
           <AddLocationModal
+            isGuest={isGuest}
             onClose={() => setIsAddLocationOpen(false)}
             onLocationAdded={() => {
-              loadShelves();
+              loadLocations();
             }}
           />
         )}

@@ -75,7 +75,9 @@ export default function BookModal({
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTitleDraft(book.title);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAuthorDraft(book.authors.join(', '));
   }, [book]);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -717,6 +719,7 @@ export default function BookModal({
       <AnimatePresence>
         {isAddLocationOpen && (
           <AddLocationModal
+            isGuest={isGuest}
             onClose={() => setIsAddLocationOpen(false)}
             onLocationAdded={(newLoc) => {
               setShelves(prev => [...prev, newLoc]);

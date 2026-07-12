@@ -13,63 +13,66 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
   const supabase = createClient();
 
   // Load books from Supabase or localStorage guest mode
-  useEffect(() => {
-    const loadBooks = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (isGuest) {
-          // Reseed everything when the curated guest catalog/shelf set has changed since this
-          // browser last cached it, so guests don't get stuck on data from an older version.
-          const isStale = localStorage.getItem('guest_data_version') !== GUEST_DATA_VERSION;
-          if (isStale) {
-            localStorage.removeItem('guest_books');
-            localStorage.removeItem('guest_shelves');
-            localStorage.setItem('guest_data_version', GUEST_DATA_VERSION);
-          }
-
-          if (!localStorage.getItem('guest_shelves')) {
-            localStorage.setItem('guest_shelves', JSON.stringify(GUEST_SHELVES));
-          }
-
-          const stored = localStorage.getItem('guest_books');
-          if (stored) {
-            setBooks(JSON.parse(stored));
-          } else if (initialGuestBooks && initialGuestBooks.length > 0) {
-            setBooks(initialGuestBooks);
-            localStorage.setItem('guest_books', JSON.stringify(initialGuestBooks));
-          }
-        } else {
-          // Logged-in Supabase fetch
-          const { data, error: fetchErr } = await supabase
-            .from('books')
-            .select('*, location:location_id(room, bookshelf)');
-
-          if (fetchErr) {
-            setError(fetchErr.message);
-            console.error('Failed to load books:', fetchErr);
-          } else if (data) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const formatted = data.map((b: any) => ({
-              ...b,
-              location: b.location ? { room: b.location.room, bookshelf: b.location.bookshelf } : null,
-              authors: b.authors || [],
-              genres: b.genres || [],
-            }));
-            setBooks(formatted);
-          }
+  const refetchBooks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (isGuest) {
+        const stored = localStorage.getItem('guest_books');
+        if (stored) {
+          setBooks(JSON.parse(stored));
+        } else if (initialGuestBooks && initialGuestBooks.length > 0) {
+          setBooks(initialGuestBooks);
+          localStorage.setItem('guest_books', JSON.stringify(initialGuestBooks));
         }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to load books';
-        setError(msg);
-        console.error('Error loading books:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      } else {
+        // Logged-in Supabase fetch
+        const { data, error: fetchErr } = await supabase
+          .from('books')
+          .select('*, location:location_id(room, bookshelf)');
 
-    loadBooks();
+        if (fetchErr) {
+          setError(fetchErr.message);
+          console.error('Failed to load books:', fetchErr);
+        } else if (data) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const formatted = data.map((b: any) => ({
+            ...b,
+            location: b.location ? { room: b.location.room, bookshelf: b.location.bookshelf } : null,
+            authors: b.authors || [],
+            genres: b.genres || [],
+          }));
+          setBooks(formatted);
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load books';
+      setError(msg);
+      console.error('Error loading books:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [supabase, isGuest, initialGuestBooks]);
+
+  useEffect(() => {
+    if (isGuest) {
+      // Reseed everything when the curated guest catalog/shelf set has changed since this
+      // browser last cached it, so guests don't get stuck on data from an older version.
+      const isStale = localStorage.getItem('guest_data_version') !== GUEST_DATA_VERSION;
+      if (isStale) {
+        localStorage.removeItem('guest_books');
+        localStorage.removeItem('guest_shelves');
+        localStorage.setItem('guest_data_version', GUEST_DATA_VERSION);
+      }
+
+      if (!localStorage.getItem('guest_shelves')) {
+        localStorage.setItem('guest_shelves', JSON.stringify(GUEST_SHELVES));
+      }
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refetchBooks();
+  }, [refetchBooks, isGuest]);
 
   // Update book status
   const updateBookStatus = useCallback(async (id: string, status: Book['status']) => {
@@ -224,5 +227,6 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
     moveBooks,
     addBook,
     setBooks,
+    refetchBooks,
   };
 }

@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { createClient } from '@/lib/supabase/client';
+import { useLocations } from '@/lib/hooks/useLocations';
 
 interface AddLocationModalProps {
   onClose: () => void;
   onLocationAdded: (location: { id: string; room: string; bookshelf: string }) => void;
+  isGuest?: boolean;
 }
 
-export default function AddLocationModal({ onClose, onLocationAdded }: AddLocationModalProps) {
-  const supabase = createClient();
+export default function AddLocationModal({ onClose, onLocationAdded, isGuest = false }: AddLocationModalProps) {
+  const { addLocation, shelves } = useLocations(isGuest);
   const [room, setRoom] = useState('');
   const [bookshelf, setBookshelf] = useState('');
-  const [roomsList, setRoomsList] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -55,21 +55,7 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
     };
   }, [onClose]);
 
-  // Fetch unique room names from existing shelves on mount
-  useEffect(() => {
-    async function loadRooms() {
-      try {
-        const { data } = await supabase.from('shelves').select('room');
-        if (data) {
-          const uniqueRooms = Array.from(new Set(data.map(d => d.room))).filter(Boolean);
-          setRoomsList(uniqueRooms);
-        }
-      } catch {
-        console.warn('Failed to load existing rooms list');
-      }
-    }
-    loadRooms();
-  }, [supabase]);
+  const roomsList = Array.from(new Set(shelves.map((s) => s.room))).filter(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,52 +68,12 @@ export default function AddLocationModal({ onClose, onLocationAdded }: AddLocati
     setError(null);
 
     try {
-      // Get current user session
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('No authenticated user session');
-      }
-
-      // Check if location already exists
-      const { data: existing } = await supabase
-        .from('shelves')
-        .select('*')
-        .eq('room', room.trim())
-        .eq('bookshelf', bookshelf.trim())
-        .eq('user_id', user.id);
-
-      if (existing && existing.length > 0) {
-        setError('This bookshelf in this room already exists!');
-        setLoading(false);
-        return;
-      }
-
-      // Insert new location
-      const { data, error: insertError } = await supabase
-        .from('shelves')
-        .insert([{
-          room: room.trim(),
-          bookshelf: bookshelf.trim(),
-          user_id: user.id
-        }])
-        .select();
-
-      if (insertError) throw insertError;
-
-      if (data && data[0]) {
-        onLocationAdded(data[0]);
-        onClose();
-      }
-    } catch {
-      console.error('Error inserting location');
-      // Fallback for offline/guest mockup testing
-      const mockId = Math.random().toString(36).substring(7);
-      onLocationAdded({
-        id: mockId,
-        room: room.trim(),
-        bookshelf: bookshelf.trim(),
-      });
+      const newLoc = await addLocation(room, bookshelf);
+      onLocationAdded(newLoc);
       onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error inserting location';
+      setError(msg);
     } finally {
       setLoading(false);
     }

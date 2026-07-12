@@ -16,7 +16,6 @@ import MobileSearchOverlay from '@/components/MobileSearchOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
-import { GUEST_SHELVES, GUEST_DATA_VERSION } from '@/lib/guestData';
 import { useBooks } from '@/lib/hooks/useBooks';
 
 /** Closes an open search pill when the user clicks anywhere outside its wrapper element. */
@@ -52,93 +51,7 @@ const bookMatchesQuery = (book: Book, normalizedQuery: string) => {
   );
 };
 
-// Pre-loaded mock books matching the styles in the mockup
-const defaultMockBooks: Book[] = [
-  {
-    id: '1',
-    title: 'Yellow Face',
-    authors: ['RF Kuang'],
-    published_date: '2019',
-    cover_url: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1674498314i/62047984.jpg',
-    location: { room: 'Living room', bookshelf: 'Tall Shelf' },
-    genres: ['Fiction', 'History', 'Satire'],
-    status: 'Completed',
-    favorite: true,
-  },
-  {
-    id: '2',
-    title: 'Babel',
-    authors: ['RF Kuang'],
-    published_date: '2022',
-    cover_url: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1674498314i/59487611.jpg',
-    location: { room: 'Living room', bookshelf: 'Short Shelf' },
-    genres: ['Fantasy', 'Fiction', 'Historical'],
-    status: 'Reading',
-    favorite: false,
-  },
-  {
-    id: '3',
-    title: 'The Hobbit',
-    authors: ['J.R.R. Tolkien'],
-    published_date: '1937',
-    cover_url: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1546071216i/5907.jpg',
-    location: { room: 'Bedroom', bookshelf: 'Bedside Table' },
-    genres: ['Fantasy', 'Classic'],
-    status: 'To Read',
-    favorite: false,
-  },
-  {
-    id: '4',
-    title: 'Tomorrow, and Tomorrow, and Tomorrow',
-    authors: ['Gabrielle Zevin'],
-    published_date: '2022',
-    cover_url: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1639017684i/58784475.jpg',
-    location: { room: 'Living room', bookshelf: 'Tall Shelf' },
-    genres: ['Fiction', 'Contemporary', 'Gaming'],
-    status: 'Completed',
-    favorite: true,
-  },
-  {
-    id: '5',
-    title: 'Circe',
-    authors: ['Madeline Miller'],
-    published_date: '2018',
-    location: { room: 'Bedroom', bookshelf: 'Bedside Table' },
-    genres: ['Fantasy', 'Mythology'],
-    status: 'Completed',
-    favorite: true,
-  },
-  {
-    id: '6',
-    title: 'Project Hail Mary',
-    authors: ['Andy Weir'],
-    published_date: '2021',
-    location: { room: 'Living room', bookshelf: 'Short Shelf' },
-    genres: ['Science Fiction'],
-    status: 'Reading',
-    favorite: false,
-  },
-  {
-    id: '7',
-    title: 'Klara and the Sun',
-    authors: ['Kazuo Ishiguro'],
-    published_date: '2021',
-    location: { room: 'Study', bookshelf: 'Corner Shelf' },
-    genres: ['Fiction', 'Science Fiction'],
-    status: 'To Read',
-    favorite: false,
-  },
-  {
-    id: '8',
-    title: 'The Song of Achilles',
-    authors: ['Madeline Miller'],
-    published_date: '2011',
-    location: { room: 'Bedroom', bookshelf: 'Bedside Table' },
-    genres: ['Fantasy', 'Mythology', 'Romance'],
-    status: 'Completed',
-    favorite: false,
-  }
-];
+
 
 const EMPTY_GUEST_BOOKS: Book[] = [];
 
@@ -166,7 +79,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     deleteBooks,
     moveBooks,
     addBook,
-    setBooks
+    refetchBooks,
   } = useBooks(isGuest, initialGuestBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isManageLocationsOpen, setIsManageLocationsOpen] = useState(false);
@@ -1027,7 +940,11 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
           />
         )}
         {isManageLocationsOpen && (
-          <ManageLocationsModal onClose={() => setIsManageLocationsOpen(false)} isGuest={isGuest} />
+          <ManageLocationsModal
+            onClose={() => setIsManageLocationsOpen(false)}
+            onLocationsChanged={refetchBooks}
+            isGuest={isGuest}
+          />
         )}
         {isScanModalOpen && (
           <ScanBookModal
@@ -1036,17 +953,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             showToast={showToast}
             isGuest={isGuest}
             onBookAdded={(newBook) => {
-              setBooks(prev => {
-                const updated = [newBook, ...prev];
-                if (isGuest) {
-                  try {
-                    localStorage.setItem('guest_books', JSON.stringify(updated));
-                  } catch (e) {
-                    console.warn('Failed to save guest book:', e);
-                  }
-                }
-                return updated;
-              });
+              addBook(newBook);
               setIsScanModalOpen(false);
               showToast(`Added "${newBook.title}" to your library`);
             }}
