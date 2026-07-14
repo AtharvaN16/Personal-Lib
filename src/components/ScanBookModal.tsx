@@ -493,6 +493,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
 
     try {
       await onBookAdded(draftBook, draftLocationId || undefined);
+      setDraftBook(null);
+      localStorage.removeItem('single_scan_draft');
+      localStorage.removeItem('single_scan_draft_location');
+      setState('idle');
       onClose();
     } catch {
       console.warn('Failed to save scanned book');

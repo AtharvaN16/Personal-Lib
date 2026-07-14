@@ -959,6 +959,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
               } catch (err: unknown) {
                 console.error(err);
                 showToast('Failed to add book to library');
+                throw err;
               }
             }}
           />

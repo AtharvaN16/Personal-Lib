@@ -159,18 +159,39 @@ export function useScanQueue(
     const row = queue.find((q) => q.id === id);
     if (!row) return;
     setQueue((prev) => prev.map((q) => (q.id === id ? { ...q, rowState: 'saving' } : q)));
-    await persistQueuedBook(row);
-    setQueue((prev) => prev.filter((q) => q.id !== id));
-    showToast(`Added "${row.title}" to your library`);
+    try {
+      await persistQueuedBook(row);
+      setQueue((prev) => prev.filter((q) => q.id !== id));
+      showToast(`Added "${row.title}" to your library`);
+    } catch {
+      setQueue((prev) => prev.map((q) => (q.id === id ? { ...q, rowState: 'idle' } : q)));
+    }
   }, [queue, persistQueuedBook, showToast, setQueue]);
 
   const saveAllQueue = useCallback(async () => {
     if (queue.length === 0) return;
     const rows = queue;
     setQueue((prev) => prev.map((q) => ({ ...q, rowState: 'saving' })));
-    await Promise.all(rows.map((row) => persistQueuedBook(row)));
-    setQueue([]);
-    showToast(`Added ${rows.length} book${rows.length === 1 ? '' : 's'} to your library`);
+    
+    const results = await Promise.allSettled(rows.map((row) => persistQueuedBook(row)));
+    
+    const failedIds = new Set<string>();
+    results.forEach((res, idx) => {
+      if (res.status === 'rejected') {
+        failedIds.add(rows[idx].id);
+      }
+    });
+
+    if (failedIds.size > 0) {
+      setQueue((prev) =>
+        prev
+          .filter((q) => failedIds.has(q.id))
+          .map((q) => ({ ...q, rowState: 'idle' }))
+      );
+      showToast(`Failed to save ${failedIds.size} book(s)`);
+    } else {
+      setQueue([]);
+    }
   }, [queue, persistQueuedBook, showToast, setQueue]);
 
   return {
