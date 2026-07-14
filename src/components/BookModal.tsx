@@ -418,8 +418,8 @@ export default function BookModal({
                 </span>
               </button>
 
-              {/* Delete Button (Trash) - not shown for an unsaved scan preview; CLOSE already discards it */}
-              {!isNew && (
+              {/* Delete Button (Trash) - shown for saved books or new unsaved drafts that have an onDelete callback */}
+              {(!isNew || !!onDelete) && (
                 <button
                   onClick={handleDeleteClick}
                   className="icon-btn"
@@ -427,7 +427,7 @@ export default function BookModal({
                     ...styles.iconBtn,
                     color: 'var(--error)'
                   }}
-                  title="Delete book"
+                  title={isNew ? "Discard draft" : "Delete book"}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '26px' }}>
                     delete
