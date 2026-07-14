@@ -249,10 +249,10 @@ export default function BookModal({
 
   const handleConfirmDelete = () => {
     setIsConfirmingDelete(false);
-    if (isNew) {
-      onClose();
+    if (onDelete) {
+      onDelete(book.id);
     } else {
-      onDelete?.(book.id);
+      onClose();
     }
   };
 

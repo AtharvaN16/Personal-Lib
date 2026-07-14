@@ -81,13 +81,55 @@ interface ScanBookModalProps {
 
 export default function ScanBookModal({ onClose, onBookAdded, books, showToast, isGuest = false }: ScanBookModalProps) {
   const supabase = createClient();
-  const [state, setState] = useState<ScanState>('idle');
+  const [mode, setMode] = useState<ScanMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('scan_modal_mode') as ScanMode;
+      if (saved === 'single' || saved === 'location') return saved;
+    }
+    return 'single';
+  });
+  const [queue, setQueue] = useState<QueuedBook[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('multi_scan_queue');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return [];
+  });
+  const [draftBook, setDraftBook] = useState<Book | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('single_scan_draft');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return null;
+  });
+  const [draftLocationId, setDraftLocationId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('single_scan_draft_location') || '';
+    }
+    return '';
+  });
+  const [state, setState] = useState<ScanState>(() => {
+    if (typeof window !== 'undefined') {
+      const hasDraft = localStorage.getItem('single_scan_draft');
+      if (hasDraft) return 'loaded';
+    }
+    return 'idle';
+  });
   const [manualIsbn, setManualIsbn] = useState('');
   const [failedIsbn, setFailedIsbn] = useState('');
-  const [draftBook, setDraftBook] = useState<Book | null>(null);
-  const [draftLocationId, setDraftLocationId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [mode, setMode] = useState<ScanMode>('single');
   const [locationSetupOpen, setLocationSetupOpen] = useState(false);
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [setupRoom, setSetupRoom] = useState('');
@@ -99,7 +141,28 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   const [currentRoom, setCurrentRoom] = useState('');
   const [currentShelfId, setCurrentShelfId] = useState('');
   const [editingDefault, setEditingDefault] = useState(false);
-  const [queue, setQueue] = useState<QueuedBook[]>([]);
+
+  useEffect(() => {
+    localStorage.setItem('scan_modal_mode', mode);
+  }, [mode]);
+
+  useEffect(() => {
+    if (queue.length > 0) {
+      localStorage.setItem('multi_scan_queue', JSON.stringify(queue));
+    } else {
+      localStorage.removeItem('multi_scan_queue');
+    }
+  }, [queue]);
+
+  useEffect(() => {
+    if (draftBook) {
+      localStorage.setItem('single_scan_draft', JSON.stringify(draftBook));
+      localStorage.setItem('single_scan_draft_location', draftLocationId);
+    } else {
+      localStorage.removeItem('single_scan_draft');
+      localStorage.removeItem('single_scan_draft_location');
+    }
+  }, [draftBook, draftLocationId]);
   const modalRef = useRef<HTMLDivElement>(null);
   const queueListRef = useRef<HTMLDivElement>(null);
   const prevQueueLengthRef = useRef(0);
@@ -435,6 +498,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     setQueue(prev => prev.map(q => ({ ...q, rowState: 'saving' })));
     await Promise.all(rows.map(row => persistQueuedBook(row)));
     setQueue([]);
+    localStorage.removeItem('multi_scan_queue');
     showToast(`Added ${rows.length} book${rows.length === 1 ? '' : 's'} to your library`);
   };
 
@@ -635,6 +699,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
 
     if (isDuplicate) {
       showToast(`"${draftBook.title}" already exists in library`);
+      setDraftBook(null);
+      localStorage.removeItem('single_scan_draft');
+      localStorage.removeItem('single_scan_draft_location');
       onClose();
       return;
     }
@@ -667,6 +734,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
         ...draftBook,
         id: data && data[0] ? data[0].id : draftBook.id,
       });
+      setDraftBook(null);
+      localStorage.removeItem('single_scan_draft');
+      localStorage.removeItem('single_scan_draft_location');
       onClose();
     } catch {
       // No authenticated Supabase session (or the insert failed) — fall back to a local-only
@@ -674,10 +744,21 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       console.warn('Failed to save scanned book to Supabase, adding locally instead');
       const mockId = Math.random().toString(36).substring(7);
       onBookAdded({ ...draftBook, id: mockId });
+      setDraftBook(null);
+      localStorage.removeItem('single_scan_draft');
+      localStorage.removeItem('single_scan_draft_location');
       onClose();
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleDiscardDraft = () => {
+    setDraftBook(null);
+    localStorage.removeItem('single_scan_draft');
+    localStorage.removeItem('single_scan_draft_location');
+    setState('idle');
+    onClose();
   };
 
   if (mode === 'location') {
@@ -878,6 +959,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
         isNew
         isSaving={isSaving}
         onSaveNew={handleSaveNew}
+        onDelete={handleDiscardDraft}
         onFavoriteToggle={handleDraftFavoriteToggle}
         onStatusChange={handleDraftStatusChange}
         onLocationChange={handleDraftLocationChange}
