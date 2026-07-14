@@ -40,6 +40,7 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
     const previouslyFocused = document.activeElement as HTMLElement | null;
     modalRef.current?.focus();
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -68,6 +69,7 @@ export default function ManageLocationsModal({ onClose, isGuest = false }: Manag
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       previouslyFocused?.focus();
     };
   }, [onClose]);
