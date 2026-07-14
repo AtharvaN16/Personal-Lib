@@ -101,6 +101,8 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   const [editingDefault, setEditingDefault] = useState(false);
   const [queue, setQueue] = useState<QueuedBook[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
+  const queueListRef = useRef<HTMLDivElement>(null);
+  const prevQueueLengthRef = useRef(0);
   const isMobile = useIsMobile();
 
   // Focus trap / Escape / body scroll lock for the idle/loading/error chrome.
@@ -193,6 +195,16 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       cancelled = true;
     };
   }, [isGuest]);
+
+  useEffect(() => {
+    if (queue.length > prevQueueLengthRef.current) {
+      queueListRef.current?.scrollTo({
+        top: queueListRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+    prevQueueLengthRef.current = queue.length;
+  }, [queue.length]);
 
   const resolveLocationSelection = useCallback(async (
     room: string,
@@ -800,7 +812,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
             </AnimatePresence>
           </div>
 
-          <div style={styles.queueList}>
+          <div ref={queueListRef} style={styles.queueList}>
             {queue.length === 0 ? (
               <p style={styles.emptyQueueText}>No books scanned yet</p>
             ) : (
