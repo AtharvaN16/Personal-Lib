@@ -54,7 +54,7 @@ export function useScanQueue(
       (q.isbn && result.isbn && q.isbn.replace(/[\s-]/g, '') === result.isbn.replace(/[\s-]/g, '')) ||
       (q.title.toLowerCase().trim() === result.title.toLowerCase().trim() &&
         q.authors.map((a) => a.toLowerCase().trim()).join(',') ===
-          q.authors.map((a) => a.toLowerCase().trim()).join(','))
+          result.authors.map((a) => a.toLowerCase().trim()).join(','))
     );
 
     if (isDuplicate) {

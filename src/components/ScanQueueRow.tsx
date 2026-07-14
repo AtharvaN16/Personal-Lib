@@ -150,7 +150,7 @@ export default function ScanQueueRow({
               <button
                 type="button"
                 onClick={() => onCancelEditLocation(book.id)}
-                className="icon-btn"
+                className={`icon-btn ${vibrateClass}`}
                 style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
                 title="Cancel"
                 aria-label="Cancel"
@@ -191,7 +191,7 @@ export default function ScanQueueRow({
         <button
           type="button"
           onClick={startEdit}
-          className="icon-btn"
+          className={`icon-btn ${!book.editingLocation && !book.locationId ? 'vibrate-attention' : ''}`}
           style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
           title="Change location"
           aria-label="Change location"
