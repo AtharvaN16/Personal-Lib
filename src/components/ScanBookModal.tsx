@@ -61,13 +61,16 @@ interface ScanBookModalProps {
 
 export default function ScanBookModal({ onClose, onBookAdded, books, showToast, isGuest = false }: ScanBookModalProps) {
   const { shelves, addLocation } = useLocations(isGuest);
+  const [isStateLoaded, setIsStateLoaded] = useState(false);
   const [state, setState] = useState<ScanState>('idle');
+  const [mode, setMode] = useState<ScanMode>('single');
+  const [queue, setQueue] = useState<QueuedBook[]>([]);
+  const [draftBook, setDraftBook] = useState<Book | null>(null);
+  const [draftLocationId, setDraftLocationId] = useState<string>('');
+
   const [manualIsbn, setManualIsbn] = useState('');
   const [failedIsbn, setFailedIsbn] = useState('');
-  const [draftBook, setDraftBook] = useState<Book | null>(null);
-  const [draftLocationId, setDraftLocationId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [mode, setMode] = useState<ScanMode>('single');
   const [locationSetupOpen, setLocationSetupOpen] = useState(false);
   const [setupRoom, setSetupRoom] = useState('');
   const [setupShelfId, setSetupShelfId] = useState('');
@@ -79,7 +82,82 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   const [currentShelfId, setCurrentShelfId] = useState('');
   const [editingDefault, setEditingDefault] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // 1. Mode
+    const savedMode = localStorage.getItem('scan_modal_mode');
+    if (savedMode === 'single' || savedMode === 'location') {
+      setMode(savedMode);
+    }
+
+    // 2. Queue
+    const savedQueue = localStorage.getItem('multi_scan_queue');
+    if (savedQueue) {
+      try {
+        const parsed = JSON.parse(savedQueue);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.map(item => ({
+            ...item,
+            rowState: 'idle' as const,
+            editingLocation: false,
+          }));
+          setQueue(sanitized);
+        }
+      } catch (e) {
+        console.error('Failed to parse saved multi_scan_queue', e);
+      }
+    }
+
+    // 3. Draft & state
+    const savedDraft = localStorage.getItem('single_scan_draft');
+    const savedDraftLocation = localStorage.getItem('single_scan_draft_location') || '';
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          setDraftBook(parsed as Book);
+          setDraftLocationId(savedDraftLocation);
+          setState('loaded');
+        }
+      } catch (e) {
+        console.error('Failed to parse saved single_scan_draft', e);
+      }
+    }
+
+    setIsStateLoaded(true);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (!isStateLoaded) return;
+    localStorage.setItem('scan_modal_mode', mode);
+  }, [mode, isStateLoaded]);
+
+  useEffect(() => {
+    if (!isStateLoaded) return;
+    if (queue.length > 0) {
+      localStorage.setItem('multi_scan_queue', JSON.stringify(queue));
+    } else {
+      localStorage.removeItem('multi_scan_queue');
+    }
+  }, [queue, isStateLoaded]);
+
+  useEffect(() => {
+    if (!isStateLoaded) return;
+    if (draftBook) {
+      localStorage.setItem('single_scan_draft', JSON.stringify(draftBook));
+      localStorage.setItem('single_scan_draft_location', draftLocationId);
+    } else {
+      localStorage.removeItem('single_scan_draft');
+      localStorage.removeItem('single_scan_draft_location');
+    }
+  }, [draftBook, draftLocationId, isStateLoaded]);
+
   const modalRef = useRef<HTMLDivElement>(null);
+  const queueListRef = useRef<HTMLDivElement>(null);
+  const prevQueueLengthRef = useRef(0);
   const isMobile = useIsMobile();
 
   // Focus trap / Escape / body scroll lock for the idle/loading/error chrome.
@@ -90,6 +168,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     const previouslyFocused = document.activeElement as HTMLElement | null;
     modalRef.current?.focus();
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -118,6 +197,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       previouslyFocused?.focus();
     };
   }, [onClose, state]);
@@ -144,6 +224,16 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       cancelled = true;
     };
   }, [isGuest]);
+
+  useEffect(() => {
+    if (queue.length > prevQueueLengthRef.current) {
+      queueListRef.current?.scrollTo({
+        top: queueListRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+    prevQueueLengthRef.current = queue.length;
+  }, [queue.length]);
 
   const resolveLocationSelection = useCallback(async (
     room: string,
@@ -176,12 +266,11 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     : [];
 
   const {
-    queue,
     addResultToQueue,
     removeFromQueue,
     startEditLocation,
     cancelEditLocation,
-    confirmLocation,
+    confirmLocation: confirmChanges,
     saveQueueRow,
     saveAllQueue,
   } = useScanQueue(
@@ -190,7 +279,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     onBookAdded,
     showToast,
     resolveLocationSelection,
-    uniqueRooms
+    uniqueRooms,
+    queue,
+    setQueue
   );
 
   const handleStartMultiScan = async () => {
@@ -277,6 +368,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
 
     setLocationSetupOpen(false);
   };
+
 
   const runLookup = useCallback(async (isbn: string) => {
     setState('loading');
@@ -390,6 +482,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
 
     if (isDuplicate) {
       showToast(`"${draftBook.title}" already exists in library`);
+      setDraftBook(null);
+      localStorage.removeItem('single_scan_draft');
+      localStorage.removeItem('single_scan_draft_location');
       onClose();
       return;
     }
@@ -404,6 +499,14 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleDiscardDraft = () => {
+    setDraftBook(null);
+    localStorage.removeItem('single_scan_draft');
+    localStorage.removeItem('single_scan_draft_location');
+    setState('idle');
+    onClose();
   };
 
   if (mode === 'location') {
@@ -550,7 +653,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
             </AnimatePresence>
           </div>
 
-          <div style={styles.queueList}>
+          <div ref={queueListRef} style={styles.queueList}>
             {queue.length === 0 ? (
               <p style={styles.emptyQueueText}>No books scanned yet</p>
             ) : (
@@ -563,7 +666,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                   onRemove={removeFromQueue}
                   onStartEditLocation={startEditLocation}
                   onCancelEditLocation={cancelEditLocation}
-                  onConfirmLocation={confirmLocation}
+                  onConfirmChanges={confirmChanges}
                 />
               ))
             )}
@@ -604,6 +707,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
         isNew
         isSaving={isSaving}
         onSaveNew={handleSaveNew}
+        onDelete={handleDiscardDraft}
         onFavoriteToggle={handleDraftFavoriteToggle}
         onStatusChange={handleDraftStatusChange}
         onLocationChange={handleDraftLocationChange}

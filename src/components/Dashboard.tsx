@@ -1013,7 +1013,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
         display: 'flex',
         justifyContent: 'center',
         pointerEvents: 'none',
-        zIndex: 9999,
+        zIndex: 99999,
       }}>
         <AnimatePresence>
           {toastMessage && (

@@ -109,9 +109,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Sign in to scan books.' }, { status: 401 });
     }
 
+    const email = user.email?.toLowerCase() || '';
+    const fullName = user.user_metadata?.full_name?.toLowerCase() || '';
+    const name = user.user_metadata?.name?.toLowerCase() || '';
+
+    const isSharvariNayak = 
+      (email.includes('sharvari') && email.includes('nayak')) ||
+      (fullName.includes('sharvari') && fullName.includes('nayak')) ||
+      (name.includes('sharvari') && name.includes('nayak'));
+
+    const userLimit = isSharvariNayak ? 500 : USER_DAILY_LOOKUP_LIMIT;
+
     const { data: quotaRows, error: quotaError } = await supabase.rpc('consume_book_lookup_quota', {
       p_lookup_date: todayUtc(),
-      p_max_lookups: USER_DAILY_LOOKUP_LIMIT,
+      p_max_lookups: userLimit,
     });
 
     if (quotaError) {
@@ -123,9 +134,9 @@ export async function GET(request: Request) {
     if (!quota?.allowed) {
       return NextResponse.json(
         {
-          error: `Daily scan lookup limit reached (${USER_DAILY_LOOKUP_LIMIT}/day).`,
-          limit: USER_DAILY_LOOKUP_LIMIT,
-          count: quota?.lookup_count ?? USER_DAILY_LOOKUP_LIMIT,
+          error: `Daily scan lookup limit reached (${userLimit}/day).`,
+          limit: userLimit,
+          count: quota?.lookup_count ?? userLimit,
         },
         { status: 429 }
       );

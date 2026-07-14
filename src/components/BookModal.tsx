@@ -88,6 +88,7 @@ export default function BookModal({
     const previouslyFocused = document.activeElement as HTMLElement | null;
     modalRef.current?.focus();
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -116,6 +117,7 @@ export default function BookModal({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       previouslyFocused?.focus();
     };
   }, [onClose]);
@@ -249,10 +251,10 @@ export default function BookModal({
 
   const handleConfirmDelete = () => {
     setIsConfirmingDelete(false);
-    if (isNew) {
-      onClose();
+    if (onDelete) {
+      onDelete(book.id);
     } else {
-      onDelete?.(book.id);
+      onClose();
     }
   };
 
@@ -418,8 +420,8 @@ export default function BookModal({
                 </span>
               </button>
 
-              {/* Delete Button (Trash) - not shown for an unsaved scan preview; CLOSE already discards it */}
-              {!isNew && (
+              {/* Delete Button (Trash) - shown for saved books or new unsaved drafts that have an onDelete callback */}
+              {(!isNew || !!onDelete) && (
                 <button
                   onClick={handleDeleteClick}
                   className="icon-btn"
@@ -427,7 +429,7 @@ export default function BookModal({
                     ...styles.iconBtn,
                     color: 'var(--error)'
                   }}
-                  title="Delete book"
+                  title={isNew ? "Discard draft" : "Delete book"}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '26px' }}>
                     delete

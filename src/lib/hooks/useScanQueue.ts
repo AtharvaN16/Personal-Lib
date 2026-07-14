@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { Book } from '@/components/BookModal';
 
 export interface QueuedBook {
@@ -35,10 +36,10 @@ export function useScanQueue(
   onBookAdded: (book: Omit<Book, 'id'>, locationId?: string) => Promise<void> | void,
   showToast: (msg: string) => void,
   resolveLocationSelection: (room: string, shelfId: string) => Promise<{ id: string; room: string; bookshelf: string } | null>,
-  uniqueRooms: string[]
+  uniqueRooms: string[],
+  queue: QueuedBook[],
+  setQueue: Dispatch<SetStateAction<QueuedBook[]>>
 ) {
-  const [queue, setQueue] = useState<QueuedBook[]>([]);
-
   const addResultToQueue = useCallback((
     result: BookLookupResult,
     defaultLocationId: string,
@@ -80,27 +81,35 @@ export function useScanQueue(
       },
     ]);
     return true;
-  }, [books, queue, showToast]);
+  }, [books, queue, showToast, setQueue]);
 
   const removeFromQueue = useCallback((id: string) => {
     setQueue((prev) => prev.filter((q) => q.id !== id));
-  }, []);
+  }, [setQueue]);
 
   const startEditLocation = useCallback((id: string) => {
     setQueue((prev) => prev.map((q) => (q.id === id ? { ...q, editingLocation: true } : q)));
-  }, []);
+  }, [setQueue]);
 
   const cancelEditLocation = useCallback((id: string) => {
     setQueue((prev) => prev.map((q) => (q.id === id ? { ...q, editingLocation: false } : q)));
-  }, []);
+  }, [setQueue]);
 
-  const confirmLocation = useCallback(async (id: string, room: string, shelfId: string) => {
+  const confirmChanges = useCallback(async (
+    id: string,
+    title: string,
+    authors: string[],
+    room: string,
+    shelfId: string
+  ) => {
     if (!room || !uniqueRooms.includes(room)) {
       setQueue((prev) =>
         prev.map((q) =>
           q.id === id
             ? {
                 ...q,
+                title,
+                authors,
                 locationId: '',
                 location: null,
                 overridden: true,
@@ -118,6 +127,8 @@ export function useScanQueue(
         q.id === id
           ? {
               ...q,
+              title,
+              authors,
               locationId: resolved.id,
               location: { room: resolved.room, bookshelf: resolved.bookshelf },
               overridden: true,
@@ -126,7 +137,7 @@ export function useScanQueue(
           : q
       )
     );
-  }, [uniqueRooms, resolveLocationSelection]);
+  }, [uniqueRooms, resolveLocationSelection, setQueue]);
 
   const persistQueuedBook = useCallback(async (row: QueuedBook) => {
     const draftBook: Omit<Book, 'id'> = {
@@ -151,7 +162,7 @@ export function useScanQueue(
     await persistQueuedBook(row);
     setQueue((prev) => prev.filter((q) => q.id !== id));
     showToast(`Added "${row.title}" to your library`);
-  }, [queue, persistQueuedBook, showToast]);
+  }, [queue, persistQueuedBook, showToast, setQueue]);
 
   const saveAllQueue = useCallback(async () => {
     if (queue.length === 0) return;
@@ -160,7 +171,7 @@ export function useScanQueue(
     await Promise.all(rows.map((row) => persistQueuedBook(row)));
     setQueue([]);
     showToast(`Added ${rows.length} book${rows.length === 1 ? '' : 's'} to your library`);
-  }, [queue, persistQueuedBook, showToast]);
+  }, [queue, persistQueuedBook, showToast, setQueue]);
 
   return {
     queue,
@@ -168,7 +179,7 @@ export function useScanQueue(
     removeFromQueue,
     startEditLocation,
     cancelEditLocation,
-    confirmLocation,
+    confirmLocation: confirmChanges,
     saveQueueRow,
     saveAllQueue,
     setQueue,
