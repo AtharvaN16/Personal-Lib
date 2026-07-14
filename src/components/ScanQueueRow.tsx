@@ -59,11 +59,6 @@ export default function ScanQueueRow({
     ? shelves.filter(s => s.room === editRoom && s.bookshelf !== '')
     : [];
 
-  const needsLocationSaving = book.editingLocation
-    ? !editRoom || (editRoomIsKnown && shelvesInRoom.length > 0 && !editShelfId)
-    : !book.locationId;
-  const vibrateClass = needsLocationSaving ? 'vibrate-attention' : '';
-
   return (
     <div style={styles.row} className="scan-queue-row">
       <div style={styles.coverWrapper}>
@@ -138,7 +133,7 @@ export default function ScanQueueRow({
                   editRoom,
                   editShelfId
                 )}
-                className={`icon-btn ${vibrateClass}`}
+                className="icon-btn"
                 style={{ ...styles.rowIconBtn, color: 'var(--accent-primary)' }}
                 title="Save changes"
                 aria-label="Save changes"
@@ -150,7 +145,7 @@ export default function ScanQueueRow({
               <button
                 type="button"
                 onClick={() => onCancelEditLocation(book.id)}
-                className={`icon-btn ${vibrateClass}`}
+                className="icon-btn"
                 style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
                 title="Cancel"
                 aria-label="Cancel"
@@ -191,7 +186,7 @@ export default function ScanQueueRow({
         <button
           type="button"
           onClick={startEdit}
-          className={`icon-btn ${!book.editingLocation && !book.locationId ? 'vibrate-attention' : ''}`}
+          className="icon-btn"
           style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
           title="Change location"
           aria-label="Change location"

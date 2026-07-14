@@ -81,6 +81,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   const [currentRoom, setCurrentRoom] = useState('');
   const [currentShelfId, setCurrentShelfId] = useState('');
   const [editingDefault, setEditingDefault] = useState(false);
+  const [defaultLocationAttention, setDefaultLocationAttention] = useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -313,10 +314,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     setSetupRoom(defaultLocationObj?.room ?? '');
     setSetupShelfId(defaultLocationId);
     setEditingDefault(true);
+    setDefaultLocationAttention(false);
   };
 
   const handleCancelEditDefault = () => {
     setEditingDefault(false);
+    setDefaultLocationAttention(false);
   };
 
   const handleConfirmDefaultChange = async () => {
@@ -331,6 +334,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     setDefaultLocationId(resolved.id);
     setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
     setEditingDefault(false);
+    setDefaultLocationAttention(false);
   };
 
   const handleSaveDefaultLocation = async () => {
@@ -365,6 +369,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     // Sync multi-scan queue location
     setDefaultLocationId(resolved.id);
     setDefaultLocationObj({ room: resolved.room, bookshelf: resolved.bookshelf });
+    setDefaultLocationAttention(false);
 
     setLocationSetupOpen(false);
   };
@@ -389,6 +394,9 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
         const added = addResultToQueue(result, defaultLocationId, defaultLocationObj);
         if (added) {
           setManualIsbn('');
+          if (!defaultLocationId) {
+            setDefaultLocationAttention(true);
+          }
         }
         setState('idle');
         return;
@@ -610,7 +618,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                     <button
                       type="button"
                       onClick={handleConfirmDefaultChange}
-                      className="icon-btn"
+                      className={`icon-btn ${defaultLocationAttention ? 'vibrate-attention' : ''}`}
                       style={{ ...styles.iconBtnAction, color: 'var(--accent-primary)' }}
                       title="Save default location"
                       aria-label="Save default location"
@@ -622,7 +630,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                     <button
                       type="button"
                       onClick={handleCancelEditDefault}
-                      className="icon-btn"
+                      className={`icon-btn ${defaultLocationAttention ? 'vibrate-attention' : ''}`}
                       style={{ ...styles.iconBtnAction, color: 'var(--text-secondary)' }}
                       title="Cancel"
                       aria-label="Cancel"
@@ -649,7 +657,12 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                         : 'Unassigned'}
                     </span>
                   </div>
-                  <button type="button" onClick={handleStartEditDefault} style={styles.editLink}>
+                  <button
+                    type="button"
+                    onClick={handleStartEditDefault}
+                    style={styles.editLink}
+                    className={defaultLocationAttention ? 'vibrate-attention' : ''}
+                  >
                     Change
                   </button>
                 </motion.div>

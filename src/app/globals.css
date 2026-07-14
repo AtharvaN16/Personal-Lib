@@ -631,28 +631,18 @@ a {
   animation-direction: reverse;
 }
 
-/* Rapid shake immediately, followed by periodic subtle jiggle */
+/* Single rapid shake to draw the eye — no periodic repeat */
 @keyframes alert-vibrate {
-  /* Initial rapid shake (0s - 0.5s) */
   0% { transform: translateX(0); }
   10% { transform: translateX(-4px); }
   20% { transform: translateX(4px); }
   30% { transform: translateX(-4px); }
   40% { transform: translateX(4px); }
-  50% { transform: translateX(0); }
-  /* Rest & Periodic jiggles (repeats every 3s loop) */
-  80%, 100% { transform: translate(0, 0); }
-  82% { transform: translate(-2px, 0) rotate(-1deg); }
-  84% { transform: translate(2px, 0) rotate(1deg); }
-  86% { transform: translate(-2px, 0) rotate(-1deg); }
-  88% { transform: translate(2px, 0) rotate(1deg); }
-  90% { transform: translate(-1px, 0) rotate(-0.5deg); }
-  92% { transform: translate(1px, 0) rotate(0.5deg); }
-  94% { transform: translate(0, 0); }
+  50%, 100% { transform: translateX(0); }
 }
 
 .vibrate-attention {
-  animation: alert-vibrate 3s ease-in-out infinite;
+  animation: alert-vibrate 0.5s ease-in-out 1;
 }
 
 
