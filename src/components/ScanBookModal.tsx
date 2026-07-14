@@ -450,34 +450,46 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
     setQueue(prev => prev.map(q => (q.id === id ? { ...q, editingLocation: false } : q)));
   };
 
-  const handleConfirmQueueLocation = async (id: string, room: string, shelfId: string) => {
+  const handleConfirmQueueChanges = async (
+    id: string,
+    title: string,
+    authors: string[],
+    room: string,
+    shelfId: string
+  ) => {
     if (!room || !uniqueRooms.includes(room)) {
-      setQueue(prev => prev.map(q => (
-        q.id === id
-          ? {
-              ...q,
-              locationId: '',
-              location: null,
-              overridden: true,
-              editingLocation: false,
-            }
-          : q
-      )));
+      setQueue(prev => prev.map(q => {
+        if (q.id === id) {
+          return {
+            ...q,
+            title,
+            authors,
+            locationId: '',
+            location: null,
+            overridden: true,
+            editingLocation: false,
+          };
+        }
+        return q;
+      }));
       return;
     }
     const resolved = await resolveLocationSelection(room, shelfId);
     if (!resolved) return;
-    setQueue(prev => prev.map(q => (
-      q.id === id
-        ? {
-            ...q,
-            locationId: resolved.id,
-            location: { room: resolved.room, bookshelf: resolved.bookshelf },
-            overridden: true,
-            editingLocation: false,
-          }
-        : q
-    )));
+    setQueue(prev => prev.map(q => {
+      if (q.id === id) {
+        return {
+          ...q,
+          title,
+          authors,
+          locationId: resolved.id,
+          location: { room: resolved.room, bookshelf: resolved.bookshelf },
+          overridden: true,
+          editingLocation: false,
+        };
+      }
+      return q;
+    }));
   };
 
   const runLookup = useCallback(async (isbn: string) => {
@@ -825,7 +837,7 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
                   onRemove={handleRemoveFromQueue}
                   onStartEditLocation={handleStartEditQueueLocation}
                   onCancelEditLocation={handleCancelEditQueueLocation}
-                  onConfirmLocation={handleConfirmQueueLocation}
+                  onConfirmChanges={handleConfirmQueueChanges}
                 />
               ))
             )}

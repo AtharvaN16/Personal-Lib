@@ -11,7 +11,7 @@ interface ScanQueueRowProps {
   onRemove: (id: string) => void;
   onStartEditLocation: (id: string) => void;
   onCancelEditLocation: (id: string) => void;
-  onConfirmLocation: (id: string, room: string, shelfId: string) => void;
+  onConfirmChanges: (id: string, title: string, authors: string[], room: string, shelfId: string) => void;
 }
 
 export default function ScanQueueRow({
@@ -21,14 +21,18 @@ export default function ScanQueueRow({
   onRemove,
   onStartEditLocation,
   onCancelEditLocation,
-  onConfirmLocation,
+  onConfirmChanges,
 }: ScanQueueRowProps) {
   const [imgError, setImgError] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editAuthor, setEditAuthor] = useState('');
   const [editRoom, setEditRoom] = useState('');
   const [editShelfId, setEditShelfId] = useState('');
   const isSaving = book.rowState === 'saving';
 
   const startEdit = () => {
+    setEditTitle(book.title);
+    setEditAuthor(book.authors.join(', '));
     setEditRoom(book.location?.room ?? '');
     setEditShelfId(book.locationId);
     onStartEditLocation(book.id);
@@ -58,66 +62,92 @@ export default function ScanQueueRow({
       </div>
 
       <div style={styles.textCol}>
-        <span style={styles.title}>{book.title}</span>
-        <span style={styles.author}>{book.authors.join(', ') || 'Unknown Author'}</span>
         {book.editingLocation ? (
-          <div style={styles.editLocationRow}>
-            <select
-              aria-label="Select room"
-              value={editRoom}
-              onChange={(e) => { setEditRoom(e.target.value); setEditShelfId(''); }}
-              style={styles.miniSelect}
-              className="book-modal-select"
-            >
-              <option value="">Unassigned</option>
-              {uniqueRooms.map((r, i) => (
-                <option key={i} value={r}>{r}</option>
-              ))}
-            </select>
-            {editRoomIsKnown && (
+          <div style={styles.editFieldsWrapper}>
+            <input
+              type="text"
+              aria-label="Edit title"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              style={styles.miniInput}
+              placeholder="Title"
+            />
+            <input
+              type="text"
+              aria-label="Edit author"
+              value={editAuthor}
+              onChange={(e) => setEditAuthor(e.target.value)}
+              style={styles.miniInput}
+              placeholder="Author(s)"
+            />
+            <div style={styles.editLocationRow}>
               <select
-                aria-label="Select shelf"
-                value={editShelfId}
-                onChange={(e) => setEditShelfId(e.target.value)}
+                aria-label="Select room"
+                value={editRoom}
+                onChange={(e) => { setEditRoom(e.target.value); setEditShelfId(''); }}
                 style={styles.miniSelect}
                 className="book-modal-select"
               >
                 <option value="">Unassigned</option>
-                {shelvesInRoom.map((s) => (
-                  <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                {uniqueRooms.map((r, i) => (
+                  <option key={i} value={r}>{r}</option>
                 ))}
               </select>
-            )}
-            <button
-              type="button"
-              onClick={() => onConfirmLocation(book.id, editRoom, editShelfId)}
-              className="icon-btn"
-              style={{ ...styles.rowIconBtn, color: 'var(--accent-primary)' }}
-              title="Save location change"
-              aria-label="Save location change"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                check
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onCancelEditLocation(book.id)}
-              className="icon-btn"
-              style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
-              title="Cancel"
-              aria-label="Cancel"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                close
-              </span>
-            </button>
+              {editRoomIsKnown && (
+                <select
+                  aria-label="Select shelf"
+                  value={editShelfId}
+                  onChange={(e) => setEditShelfId(e.target.value)}
+                  style={styles.miniSelect}
+                  className="book-modal-select"
+                >
+                  <option value="">Unassigned</option>
+                  {shelvesInRoom.map((s) => (
+                    <option key={s.id} value={s.id}>{s.bookshelf}</option>
+                  ))}
+                </select>
+              )}
+              <button
+                type="button"
+                onClick={() => onConfirmChanges(
+                  book.id,
+                  editTitle,
+                  editAuthor.split(',').map(a => a.trim()).filter(Boolean),
+                  editRoom,
+                  editShelfId
+                )}
+                className="icon-btn"
+                style={{ ...styles.rowIconBtn, color: 'var(--accent-primary)' }}
+                title="Save changes"
+                aria-label="Save changes"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                  check
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onCancelEditLocation(book.id)}
+                className="icon-btn"
+                style={{ ...styles.rowIconBtn, color: 'var(--text-secondary)' }}
+                title="Cancel"
+                aria-label="Cancel"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                  close
+                </span>
+              </button>
+            </div>
           </div>
         ) : (
-          <span style={styles.location}>
-            {book.location?.room}
-            {book.location?.bookshelf ? ` • ${book.location.bookshelf}` : ''}
-          </span>
+          <>
+            <span style={styles.title}>{book.title}</span>
+            <span style={styles.author}>{book.authors.join(', ') || 'Unknown Author'}</span>
+            <span style={styles.location}>
+              {book.location?.room}
+              {book.location?.bookshelf ? ` • ${book.location.bookshelf}` : ''}
+            </span>
+          </>
         )}
       </div>
 
@@ -254,5 +284,23 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: 'none',
     outline: 'none',
     fontSize: '0.8rem',
+  },
+  editFieldsWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    width: '100%',
+  },
+  miniInput: {
+    padding: '4px 8px',
+    border: '1px solid rgba(17, 22, 37, 0.12)',
+    borderRadius: '0px',
+    background: 'var(--bg-sheet)',
+    color: 'var(--text-primary)',
+    fontSize: '0.85rem',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
   },
 };
