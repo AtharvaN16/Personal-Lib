@@ -93,7 +93,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       const saved = localStorage.getItem('multi_scan_queue');
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed.map(q => ({ ...q, rowState: 'idle' }));
+          }
         } catch {
           // ignore
         }
@@ -106,7 +109,10 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
       const saved = localStorage.getItem('single_scan_draft');
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return parsed as Book;
+          }
         } catch {
           // ignore
         }
@@ -122,8 +128,17 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
   });
   const [state, setState] = useState<ScanState>(() => {
     if (typeof window !== 'undefined') {
-      const hasDraft = localStorage.getItem('single_scan_draft');
-      if (hasDraft) return 'loaded';
+      const saved = localStorage.getItem('single_scan_draft');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return 'loaded';
+          }
+        } catch {
+          // ignore
+        }
+      }
     }
     return 'idle';
   });

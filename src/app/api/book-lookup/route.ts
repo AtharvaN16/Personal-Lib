@@ -109,10 +109,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Sign in to scan books.' }, { status: 401 });
     }
 
+    const email = user.email?.toLowerCase() || '';
+    const fullName = user.user_metadata?.full_name?.toLowerCase() || '';
+    const name = user.user_metadata?.name?.toLowerCase() || '';
+
     const isSharvariNayak = 
-      (user.email?.toLowerCase().includes('sharvari') && user.email?.toLowerCase().includes('nayak')) ||
-      (user.user_metadata?.full_name?.toLowerCase().includes('sharvari') && user.user_metadata?.full_name?.toLowerCase().includes('nayak')) ||
-      (user.user_metadata?.name?.toLowerCase().includes('sharvari') && user.user_metadata?.name?.toLowerCase().includes('nayak'));
+      (email.includes('sharvari') && email.includes('nayak')) ||
+      (fullName.includes('sharvari') && fullName.includes('nayak')) ||
+      (name.includes('sharvari') && name.includes('nayak'));
 
     const userLimit = isSharvariNayak ? 500 : USER_DAILY_LOOKUP_LIMIT;
 

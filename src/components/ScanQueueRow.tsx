@@ -29,8 +29,6 @@ export default function ScanQueueRow({
   const [editRoom, setEditRoom] = useState('');
   const [editShelfId, setEditShelfId] = useState('');
   const isSaving = book.rowState === 'saving';
-  const needsLocationSaving = !book.locationId;
-  const vibrateClass = needsLocationSaving ? 'vibrate-attention' : '';
 
   const startEdit = () => {
     setEditTitle(book.title);
@@ -45,6 +43,11 @@ export default function ScanQueueRow({
   const shelvesInRoom = editRoomIsKnown
     ? shelves.filter(s => s.room === editRoom && s.bookshelf !== '')
     : [];
+
+  const needsLocationSaving = book.editingLocation
+    ? !editRoom || (editRoomIsKnown && shelvesInRoom.length > 0 && !editShelfId)
+    : !book.locationId;
+  const vibrateClass = needsLocationSaving ? 'vibrate-attention' : '';
 
   return (
     <div style={styles.row} className="scan-queue-row">
