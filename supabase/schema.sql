@@ -185,6 +185,8 @@ create table if not exists public.profiles (
   updated_at timestamp with time zone not null default now()
 );
 
+alter table public.profiles add column if not exists decoration_style text not null default 'wavy';
+
 alter table public.profiles enable row level security;
 
 create policy "Users can view their own profile"
