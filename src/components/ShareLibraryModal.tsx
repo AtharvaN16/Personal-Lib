@@ -104,8 +104,12 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
 
   const handleCopy = async () => {
     if (!state.shareUrl) return;
-    await navigator.clipboard.writeText(state.shareUrl);
-    setCopyLabel('Copied!');
+    try {
+      await navigator.clipboard.writeText(state.shareUrl);
+      setCopyLabel('Copied!');
+    } catch {
+      setCopyLabel('Copy failed');
+    }
     setTimeout(() => setCopyLabel('Copy'), 2000);
   };
 
