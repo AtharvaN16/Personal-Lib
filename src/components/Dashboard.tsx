@@ -18,6 +18,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 import { useBooks } from '@/lib/hooks/useBooks';
 import { normalizeQuery, bookMatchesQuery } from '@/lib/bookSearch';
+import { groupBooksByRoom } from '@/lib/bookGrouping';
 
 /** Closes an open search pill when the user clicks anywhere outside its wrapper element. */
 function useCloseOnOutsideClick(active: boolean, wrapperId: string, onClose: () => void) {
@@ -325,13 +326,9 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const activeSearchMatches = appliedQuery ? displayedBooks : [];
 
   // Grouping logic for room filters with multiple bookshelves
-  const allBooksInRoom = filterRoom
-    ? books.filter(b => b.location?.room === filterRoom)
-    : [];
-  const uniqueShelvesInRoom = Array.from(
-    new Set(allBooksInRoom.map(b => b.location?.bookshelf).filter((s): s is string => Boolean(s)))
-  );
-  const hasUnassignedInRoom = allBooksInRoom.some(b => !b.location?.bookshelf);
+  const roomGrouping = filterRoom ? groupBooksByRoom(books, filterRoom) : null;
+  const uniqueShelvesInRoom = roomGrouping?.bookshelves ?? [];
+  const hasUnassignedInRoom = (roomGrouping?.unassignedBooks.length ?? 0) > 0;
 
   const shouldDivideGrid =
     filterMode === 'location' &&
@@ -339,7 +336,8 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     (uniqueShelvesInRoom.length > 1 || (uniqueShelvesInRoom.length === 1 && hasUnassignedInRoom));
 
   const sortedShelves = [...uniqueShelvesInRoom].sort();
-  const unassignedBooks = displayedBooks.filter(b => !b.location?.bookshelf);
+  const unassignedBooks =
+    roomGrouping?.unassignedBooks.filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery))) ?? [];
   const otherMatchCount = activeSearchMatches.length - 1;
   const displayLabel =
     activeSearchMatches.length === 0 ? filterLabel
@@ -745,7 +743,9 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
           {shouldDivideGrid ? (
             <div style={{ width: '100%' }}>
               {sortedShelves.map((shelf) => {
-                const shelfBooks = displayedBooks.filter(b => b.location?.bookshelf === shelf);
+                const shelfBooks = (roomGrouping?.booksByShelf[shelf] ?? []).filter(b =>
+                  bookMatchesQuery(b, normalizeQuery(appliedQuery))
+                );
                 if (shelfBooks.length === 0) return null;
                 return (
                   <div key={shelf} style={styles.shelfSection}>
