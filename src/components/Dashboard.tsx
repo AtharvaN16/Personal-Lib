@@ -935,7 +935,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
           </motion.button>
         )}
 
-        {isEditMode && selectedBookIds.size > 0 && (
+        {isEditMode && selectedBookIds.size > 0 && !isDeleteConfirming && (
           <motion.button
             key="favorite-fab"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -959,7 +959,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
           </motion.button>
         )}
 
-        {isEditMode && selectedBookIds.size > 0 && (
+        {isEditMode && selectedBookIds.size > 0 && !isDeleteConfirming && (
           <motion.button
             key="complete-fab"
             initial={{ opacity: 0, scale: 0.8 }}

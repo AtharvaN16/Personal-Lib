@@ -151,6 +151,7 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
 
   // Bulk-set favorite status (multi-edit mode)
   const bulkSetFavorite = useCallback(async (ids: string[], favorite: boolean) => {
+    if (ids.length === 0) return;
     const isMultiple = ids.length > 1;
     if (isGuest) {
       setBooks((prev) => {
@@ -174,6 +175,7 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
 
   // Bulk-set reading status (multi-edit mode)
   const bulkSetStatus = useCallback(async (ids: string[], status: Book['status']) => {
+    if (ids.length === 0) return;
     const isMultiple = ids.length > 1;
     if (isGuest) {
       setBooks((prev) => {
