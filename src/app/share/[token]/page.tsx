@@ -44,9 +44,6 @@ export default async function SharePage({ params }: PageProps) {
     cover_url: b.cover_url,
     location: b.location ? { room: b.location.room, bookshelf: b.location.bookshelf } : null,
     status: b.status,
-    favorite: b.favorite,
-    notes: b.notes,
-    genres: b.genres || [],
   }));
 
   const shelves: Shelf[] = shelvesData || [];

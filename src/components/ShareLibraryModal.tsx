@@ -17,7 +17,6 @@ interface ShareState {
 export default function ShareLibraryModal({ accentColor, onClose }: ShareLibraryModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const qrContainerRef = useRef<HTMLDivElement>(null);
-  const qrCodeRef = useRef<InstanceType<typeof import('qr-code-styling').default> | null>(null);
 
   const [state, setState] = useState<ShareState>({ shareToken: null, shareEnabled: false, shareUrl: null });
   const [loading, setLoading] = useState(true);
@@ -77,7 +76,6 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
         backgroundOptions: { color: '#FFFDFB' },
       });
       qr.append(qrContainerRef.current);
-      qrCodeRef.current = qr;
     });
 
     return () => { cancelled = true; };
