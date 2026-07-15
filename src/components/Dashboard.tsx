@@ -382,10 +382,9 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
         <br />
         Currently showing{' '}
         <span
+          className="decorated-underline"
           style={{
             color: 'var(--accent-primary)',
-            textDecoration: 'underline wavy var(--accent-primary)',
-            textDecorationThickness: '1.5px',
             textUnderlineOffset: isMobile ? '2px' : '6px',
             fontStyle: 'italic',
           }}
@@ -507,6 +506,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={() => committedQuery ? clearSearch() : setIsHeaderSearching(true)}
+                  className="decorated-underline"
                   style={{
                     background: 'none',
                     border: 'none',
@@ -516,8 +516,6 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                     fontStyle: 'italic',
                     fontSize: '32px',
                     color: 'var(--accent-primary)',
-                    textDecoration: 'underline wavy var(--accent-primary)',
-                    textDecorationThickness: '1.5px',
                     textUnderlineOffset: isMobile ? '2px' : '6px',
                   }}
                 >
@@ -583,6 +581,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={exitEditMode}
+                  className="decorated-underline"
                   style={{ ...styles.editModeTrigger, textUnderlineOffset: isMobile ? '2px' : '6px' }}
                 >
                   Done
@@ -595,6 +594,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={enterEditMode}
+                  className="decorated-underline"
                   style={{ ...styles.editModeTrigger, textUnderlineOffset: isMobile ? '2px' : '6px' }}
                 >
                   Edit
@@ -1314,8 +1314,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontStyle: 'italic',
     fontSize: '32px',
     color: 'var(--accent-primary)',
-    textDecoration: 'underline wavy var(--accent-primary)',
-    textDecorationThickness: '1.5px',
     textUnderlineOffset: '6px',
   },
   scanFab: {
