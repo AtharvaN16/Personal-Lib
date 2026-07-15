@@ -199,3 +199,10 @@ create policy "Users can update their own profile"
   on public.profiles for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Public sharing: an opt-in read-only link + QR code for the owner's library.
+-- share_token is generated on first enable and preserved across disable/re-enable
+-- (see /api/share) so a printed QR code doesn't go stale from toggling sharing off.
+alter table public.profiles
+  add column if not exists share_token text unique,
+  add column if not exists share_enabled boolean not null default false;
