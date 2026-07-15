@@ -13,10 +13,11 @@ interface AccountMenuProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   isGuest?: boolean;
+  onShareLibrary?: () => void;
 }
 
 /** Desktop-only dropdown sheet, anchored under the "Menu" trigger, replacing the old bare Logout link. */
-export default function AccountMenu({ email, themeColor, onThemeColorChange, isOpen, onOpenChange, isGuest = false }: AccountMenuProps) {
+export default function AccountMenu({ email, themeColor, onThemeColorChange, isOpen, onOpenChange, isGuest = false, onShareLibrary }: AccountMenuProps) {
   const logout = useLogout();
   const [showPalette, setShowPalette] = useState(false);
 
@@ -107,6 +108,15 @@ export default function AccountMenu({ email, themeColor, onThemeColorChange, isO
             <Link href="/about" style={styles.row} onClick={() => onOpenChange(false)}>
               <span style={styles.rowLabel}>About</span>
             </Link>
+
+            {!isGuest && onShareLibrary && (
+              <button
+                onClick={() => { onShareLibrary(); onOpenChange(false); }}
+                style={{ ...styles.row, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+              >
+                <span style={styles.rowLabel}>Share Library</span>
+              </button>
+            )}
 
             <div style={styles.bottomGroup}>
               {isGuest ? (

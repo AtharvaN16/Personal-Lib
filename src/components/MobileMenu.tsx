@@ -12,10 +12,11 @@ interface MobileMenuProps {
   email?: string | null;
   themeColor: string;
   onThemeColorChange: (hex: string) => void;
+  onShareLibrary?: () => void;
 }
 
 /** Hamburger dropdown menu (mobile only): dimmed+blurred backdrop, links slide down underneath the header. */
-export default function MobileMenu({ onClose, onManageLocations, isGuest = false, email = null, themeColor, onThemeColorChange }: MobileMenuProps) {
+export default function MobileMenu({ onClose, onManageLocations, isGuest = false, email = null, themeColor, onThemeColorChange, onShareLibrary }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logout = useLogout();
   const [showPalette, setShowPalette] = useState(false);
@@ -139,6 +140,18 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
         >
           About
         </button>
+
+        {!isGuest && onShareLibrary && (
+          <button
+            className="mobile-menu-row"
+            onClick={() => {
+              onShareLibrary();
+              onClose();
+            }}
+          >
+            Share Library
+          </button>
+        )}
 
         {/* Bottom items, pushed via margin-top: auto */}
         <div className="mobile-menu-group" style={{ marginTop: 'auto', marginBottom: '24px' }}>

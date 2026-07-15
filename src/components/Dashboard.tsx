@@ -12,6 +12,7 @@ import { TextAnimate } from '@/registry/magicui/text-animate';
 import HeroAnimation from '@/components/HeroAnimation';
 import SearchPill from '@/components/SearchPill';
 import MobileMenu from '@/components/MobileMenu';
+import ShareLibraryModal from '@/components/ShareLibraryModal';
 import MobileSearchOverlay from '@/components/MobileSearchOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -75,6 +76,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   } = useBooks(isGuest, initialGuestBooks);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isManageLocationsOpen, setIsManageLocationsOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -601,6 +603,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                     isOpen={isAccountMenuOpen}
                     onOpenChange={setIsAccountMenuOpen}
                     isGuest={isGuest}
+                    onShareLibrary={isGuest ? undefined : () => setIsShareModalOpen(true)}
                   />
                 </motion.div>
               )}
@@ -1013,6 +1016,12 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             isGuest={isGuest}
           />
         )}
+        {isShareModalOpen && (
+          <ShareLibraryModal
+            accentColor={themeColor}
+            onClose={() => setIsShareModalOpen(false)}
+          />
+        )}
         {isScanModalOpen && (
           <ScanBookModal
             onClose={() => setIsScanModalOpen(false)}
@@ -1059,6 +1068,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             email={userEmail}
             themeColor={themeColor}
             onThemeColorChange={setThemeColor}
+            onShareLibrary={isGuest ? undefined : () => setIsShareModalOpen(true)}
           />
         )}
         {isMobileSearchOpen && (
