@@ -47,7 +47,7 @@ Icon color: `var(--accent-primary)` (matches Move), consistent with existing FAB
   if (filterMode === 'no-cover') return !b.cover_url;
   ```
   This reuses the same `cover_url` falsy check the book grid already uses to decide whether to render `getPlaceholderColor`/`getSpineColor` in place of a real cover image — so "missing cover" here means exactly "currently showing the placeholder," matching the request.
-- Update the active-filter label logic (~line 288) to add a `filterMode === 'no-cover' ? 'Missing covers'` branch, consistent with the existing `'Favorites'` / `'Unread books'` labels.
+- Update the active-filter label logic (~line 288) to add a `filterMode === 'no-cover' ? 'Currently showing books without cover'` branch, consistent with the existing `'Favorites'` / `'Unread books'` labels. (The FilterPanel option itself stays labeled "Missing covers" — this text is the descriptive label shown in the dashboard header while the filter is active.)
 
 ## 3. Decoration style preference
 
