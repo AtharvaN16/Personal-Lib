@@ -309,6 +309,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     if (filterMode === 'favorites') return !!b.favorite;
     if (filterMode === 'unread') return b.status === 'To Read';
     if (filterMode === 'location') return filterRoom ? b.location?.room === filterRoom : true;
+    if (filterMode === 'no-cover') return !b.cover_url;
     return true;
   };
 
@@ -316,6 +317,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     filterMode === 'favorites' ? 'Favorites'
     : filterMode === 'unread' ? 'Unread books'
     : filterMode === 'location' && filterRoom ? `Books in ${filterRoom}`
+    : filterMode === 'no-cover' ? 'Currently showing books without cover'
     : 'Entire catalog';
 
   // While a search pill is open, the grid/"Currently showing" live-preview whatever is typed.

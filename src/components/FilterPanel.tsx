@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
-export type FilterMode = 'all' | 'favorites' | 'unread' | 'location';
+export type FilterMode = 'all' | 'favorites' | 'unread' | 'location' | 'no-cover';
 
 interface FilterPanelProps {
   mode: FilterMode;
@@ -140,7 +140,18 @@ export default function FilterPanel({ mode, room, rooms, onApply, onClose }: Fil
             />
             <span style={styles.optionLabel}>Show based on Location</span>
           </label>
- 
+
+          <label style={styles.optionRow}>
+            <input
+              type="radio"
+              name="filterMode"
+              checked={draftMode === 'no-cover'}
+              onChange={() => selectMode('no-cover')}
+              style={styles.radioButton}
+            />
+            <span style={styles.optionLabel}>Missing covers</span>
+          </label>
+
           {draftMode === 'location' && (
             <div style={styles.roomsList}>
               {rooms.length === 0 ? (
