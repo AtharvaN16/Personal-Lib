@@ -17,6 +17,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 import { useBooks } from '@/lib/hooks/useBooks';
+import { normalizeQuery, bookMatchesQuery } from '@/lib/bookSearch';
 
 /** Closes an open search pill when the user clicks anywhere outside its wrapper element. */
 function useCloseOnOutsideClick(active: boolean, wrapperId: string, onClose: () => void) {
@@ -40,18 +41,6 @@ function useCloseOnOutsideClick(active: boolean, wrapperId: string, onClose: () 
     };
   }, [active, wrapperId, onClose]);
 }
-
-const normalizeQuery = (query: string) => query.toLowerCase().trim().replace(/\s+/g, ' ');
-
-const bookMatchesQuery = (book: Book, normalizedQuery: string) => {
-  if (!normalizedQuery) return true;
-  return (
-    book.title.toLowerCase().includes(normalizedQuery) ||
-    book.authors.some(a => a.toLowerCase().includes(normalizedQuery))
-  );
-};
-
-
 
 const EMPTY_GUEST_BOOKS: Book[] = [];
 
