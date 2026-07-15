@@ -7,9 +7,6 @@ const linkStyle: React.CSSProperties = {
   fontStyle: 'italic',
   fontFamily: 'var(--font-newsreader), Georgia, serif',
   color: 'var(--accent-primary)',
-  textDecoration: 'underline wavy var(--accent-primary)',
-  textDecorationThickness: '1.5px',
-  textUnderlineOffset: '4px',
   display: 'inline-block',
 };
 
