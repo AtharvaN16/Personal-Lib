@@ -658,3 +658,32 @@ a {
     text-decoration-thickness: 1.5px;
   }
 }
+
+/* Used by ShareLibraryModal's "Print QR Code" button: isolates the QR code + caption as the
+   only visible content when the browser print dialog renders the page. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .share-print-area,
+  .share-print-area * {
+    visibility: visible;
+  }
+  .share-print-area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 40px;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
