@@ -319,7 +319,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     filterMode === 'favorites' ? 'Favorites'
     : filterMode === 'unread' ? 'Unread books'
     : filterMode === 'location' && filterRoom ? `Books in ${filterRoom}`
-    : filterMode === 'no-cover' ? 'Currently showing books without cover'
+    : filterMode === 'no-cover' ? 'Books without cover'
     : 'Entire catalog';
 
   // While a search pill is open, the grid/"Currently showing" live-preview whatever is typed.
@@ -944,7 +944,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             transition={{ duration: 0.3, ease: 'easeOut' }}
             onClick={handleBulkFavorite}
             aria-label="Favorite selected books"
-            style={{ ...styles.scanFab, bottom: '160px' }}
+            style={{ ...styles.scanFab, bottom: '176px' }}
           >
             <span
               className="material-symbols-outlined"
@@ -968,7 +968,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             transition={{ duration: 0.3, ease: 'easeOut' }}
             onClick={handleBulkComplete}
             aria-label="Mark selected books completed"
-            style={{ ...styles.scanFab, bottom: '216px' }}
+            style={{ ...styles.scanFab, bottom: '248px' }}
           >
             <span
               className="material-symbols-outlined"
@@ -978,7 +978,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                 fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
               }}
             >
-              task_alt
+              trophy
             </span>
           </motion.button>
         )}
