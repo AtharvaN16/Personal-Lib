@@ -15,7 +15,6 @@ import MobileMenu from '@/components/MobileMenu';
 import MobileSearchOverlay from '@/components/MobileSearchOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { useDecorationStyle } from '@/hooks/useDecorationStyle';
 import { getPlaceholderColor, getSpineColor } from '@/lib/placeholderCover';
 import { useBooks } from '@/lib/hooks/useBooks';
 
@@ -101,7 +100,6 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
   const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
   const isMobile = useIsMobile();
   const { themeColor, setThemeColor } = useThemeColor(isGuest);
-  const { decorationStyle, setDecorationStyle } = useDecorationStyle(isGuest);
 
   // The header visually locks into its compact/scrolled appearance while editing — regardless of
   // actual scroll position — so Edit Mode's "Done" trigger and the compact title/nav stay put
@@ -384,9 +382,10 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
         <br />
         Currently showing{' '}
         <span
-          className="decorated-underline"
           style={{
             color: 'var(--accent-primary)',
+            textDecoration: 'underline wavy var(--accent-primary)',
+            textDecorationThickness: '1.5px',
             textUnderlineOffset: isMobile ? '2px' : '6px',
             fontStyle: 'italic',
           }}
@@ -508,7 +507,6 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={() => committedQuery ? clearSearch() : setIsHeaderSearching(true)}
-                  className="decorated-underline"
                   style={{
                     background: 'none',
                     border: 'none',
@@ -518,6 +516,8 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                     fontStyle: 'italic',
                     fontSize: '32px',
                     color: 'var(--accent-primary)',
+                    textDecoration: 'underline wavy var(--accent-primary)',
+                    textDecorationThickness: '1.5px',
                     textUnderlineOffset: isMobile ? '2px' : '6px',
                   }}
                 >
@@ -583,7 +583,6 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={exitEditMode}
-                  className="decorated-underline"
                   style={{ ...styles.editModeTrigger, textUnderlineOffset: isMobile ? '2px' : '6px' }}
                 >
                   Done
@@ -596,7 +595,6 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={enterEditMode}
-                  className="decorated-underline"
                   style={{ ...styles.editModeTrigger, textUnderlineOffset: isMobile ? '2px' : '6px' }}
                 >
                   Edit
@@ -613,8 +611,6 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                     email={userEmail}
                     themeColor={themeColor}
                     onThemeColorChange={setThemeColor}
-                    decorationStyle={decorationStyle}
-                    onDecorationStyleChange={setDecorationStyle}
                     isOpen={isAccountMenuOpen}
                     onOpenChange={setIsAccountMenuOpen}
                     isGuest={isGuest}
@@ -1074,8 +1070,6 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
             email={userEmail}
             themeColor={themeColor}
             onThemeColorChange={setThemeColor}
-            decorationStyle={decorationStyle}
-            onDecorationStyleChange={setDecorationStyle}
           />
         )}
         {isMobileSearchOpen && (
@@ -1320,6 +1314,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontStyle: 'italic',
     fontSize: '32px',
     color: 'var(--accent-primary)',
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textDecorationThickness: '1.5px',
     textUnderlineOffset: '6px',
   },
   scanFab: {

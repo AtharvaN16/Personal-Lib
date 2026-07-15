@@ -7,6 +7,8 @@ const linkStyle: React.CSSProperties = {
   fontStyle: 'italic',
   fontFamily: 'var(--font-newsreader), Georgia, serif',
   color: 'var(--accent-primary)',
+  textDecoration: 'underline wavy var(--accent-primary)',
+  textDecorationThickness: '1.5px',
   textUnderlineOffset: '4px',
   display: 'inline-block',
 };
@@ -70,13 +72,12 @@ export default function AboutPage() {
             href="https://atharvanayak.design"
             target="_blank"
             rel="noopener noreferrer"
-            className="decorated-underline"
             style={linkStyle}
           >
             atharvanayak.design
           </motion.a>
           <AnimatedWords text=", or say hello at " />
-          <motion.a variants={wordVariants} href="mailto:atharvanayak16@gmail.com" className="decorated-underline" style={linkStyle}>
+          <motion.a variants={wordVariants} href="mailto:atharvanayak16@gmail.com" style={linkStyle}>
             atharvanayak16@gmail.com
           </motion.a>
           <AnimatedWords text="." />

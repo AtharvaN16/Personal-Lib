@@ -765,7 +765,6 @@ export default function ScanBookModal({ onClose, onBookAdded, books, showToast, 
           <button
             type="button"
             onClick={handleStartMultiScan}
-            className="decorated-underline"
             style={styles.scanMultipleTopRight}
             aria-label="Scan multiple books"
           >
@@ -1126,6 +1125,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     marginTop: '4px',
   },
+  scanByLocationLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--accent-primary)',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    padding: 0,
+    textDecoration: 'underline wavy var(--accent-primary)',
+    textUnderlineOffset: '4px',
+    marginTop: '4px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
   scanMultipleTopRight: {
     position: 'absolute',
     top: '24px',
@@ -1137,6 +1149,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
     cursor: 'pointer',
     padding: 0,
+    textDecoration: 'underline wavy var(--accent-primary)',
     textUnderlineOffset: '4px',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     zIndex: 10,
