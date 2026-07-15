@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLogout } from '@/hooks/useLogout';
 import ThemeSwatches from '@/components/ThemeSwatches';
+import DecorationSwatches from '@/components/DecorationSwatches';
+import type { DecorationStyle } from '@/lib/userPrefs';
 
 interface MobileMenuProps {
   onClose: () => void;
@@ -12,13 +14,16 @@ interface MobileMenuProps {
   email?: string | null;
   themeColor: string;
   onThemeColorChange: (hex: string) => void;
+  decorationStyle: DecorationStyle;
+  onDecorationStyleChange: (style: DecorationStyle) => void;
 }
 
 /** Hamburger dropdown menu (mobile only): dimmed+blurred backdrop, links slide down underneath the header. */
-export default function MobileMenu({ onClose, onManageLocations, isGuest = false, email = null, themeColor, onThemeColorChange }: MobileMenuProps) {
+export default function MobileMenu({ onClose, onManageLocations, isGuest = false, email = null, themeColor, onThemeColorChange, decorationStyle, onDecorationStyleChange }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logout = useLogout();
   const [showPalette, setShowPalette] = useState(false);
+  const [showDecoration, setShowDecoration] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -115,6 +120,43 @@ export default function MobileMenu({ onClose, onManageLocations, isGuest = false
                 padding: '6px 24px 16px 24px',
               }}>
                 <ThemeSwatches value={themeColor} onChange={onThemeColorChange} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          className="mobile-menu-row"
+          onClick={() => setShowDecoration(!showDecoration)}
+          style={{ justifyContent: 'flex-end', gap: '8px', width: '100%' }}
+        >
+          <span>Decoration</span>
+          <motion.span
+            animate={{ rotate: showDecoration ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ display: 'inline-flex', alignItems: 'center' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </motion.span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {showDecoration && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                padding: '6px 24px 16px 24px',
+              }}>
+                <DecorationSwatches value={decorationStyle} onChange={onDecorationStyleChange} />
               </div>
             </motion.div>
           )}
