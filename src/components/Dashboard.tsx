@@ -382,8 +382,10 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
         <br />
         Currently showing{' '}
         <span
+          className="hover-wavy-underline"
           style={{
             color: 'var(--accent-primary)',
+            textUnderlineOffset: '6px',
             fontStyle: 'italic',
           }}
         >
@@ -504,6 +506,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={() => committedQuery ? clearSearch() : setIsHeaderSearching(true)}
+                  className="hover-wavy-underline"
                   style={{
                     background: 'none',
                     border: 'none',
@@ -513,6 +516,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                     fontStyle: 'italic',
                     fontSize: '32px',
                     color: 'var(--accent-primary)',
+                    textUnderlineOffset: '6px',
                   }}
                 >
                   {committedQuery ? 'Clear search' : 'Search'}
@@ -577,6 +581,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={exitEditMode}
+                  className="hover-wavy-underline"
                   style={styles.editModeTrigger}
                 >
                   Done
@@ -589,6 +594,7 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
                   exit={{ opacity: 0, filter: 'blur(6px)' }}
                   transition={{ duration: 0.25 }}
                   onClick={enterEditMode}
+                  className="hover-wavy-underline"
                   style={styles.editModeTrigger}
                 >
                   Edit
@@ -1308,6 +1314,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontStyle: 'italic',
     fontSize: '32px',
     color: 'var(--accent-primary)',
+    textUnderlineOffset: '6px',
   },
   scanFab: {
     position: 'fixed',

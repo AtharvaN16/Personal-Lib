@@ -195,6 +195,7 @@ function LoginForm() {
         <button
           type="button"
           onClick={handleSkip}
+          className="hover-wavy-underline"
           style={styles.outsideGuestBtn}
         >
           Skip and explore as guest
@@ -394,6 +395,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.95rem',
     fontWeight: '600',
     cursor: 'pointer',
+    textUnderlineOffset: '4px',
     marginTop: '40px', // 40px top margin below the card
     fontFamily: 'var(--font-instrument-sans), sans-serif',
     transition: 'color 0.2s ease',

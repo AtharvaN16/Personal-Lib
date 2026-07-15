@@ -223,10 +223,12 @@ export function TextAnimate({
               )}
               <span
                 onClick={node.onClick}
+                className="hover-wavy-underline"
                 style={{
                   display: 'inline-block',
                   fontStyle: 'italic',
                   color: 'var(--accent-primary)',
+                  textUnderlineOffset: '6px',
                   position: 'relative',
                   ...(isClickable ? {
                     cursor: 'pointer',

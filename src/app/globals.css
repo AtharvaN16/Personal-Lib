@@ -644,3 +644,17 @@ a {
 .vibrate-attention {
   animation: alert-vibrate 0.5s ease-in-out 1;
 }
+
+/* Wavy underline only on hover, and only on devices with real hover
+   (mouse/trackpad) — (hover: hover) excludes touch-only devices entirely,
+   so mobile never shows it, without any JS viewport-width check. */
+.hover-wavy-underline {
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-wavy-underline:hover {
+    text-decoration: underline wavy currentColor;
+    text-decoration-thickness: 1.5px;
+  }
+}
