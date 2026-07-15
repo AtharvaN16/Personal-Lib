@@ -6,7 +6,7 @@ export interface LocationPref {
   bookshelf: string;
 }
 
-export type DecorationStyle = 'wavy' | 'dotted' | 'stitched' | 'scribble';
+export type DecorationStyle = 'wavy' | 'dotted' | 'stitched';
 
 export interface UserPrefs {
   themeColor: string;

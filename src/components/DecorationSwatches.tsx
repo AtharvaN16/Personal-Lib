@@ -4,10 +4,9 @@ import { motion, type Variants } from 'framer-motion';
 import type { DecorationStyle } from '@/lib/userPrefs';
 
 const DECORATION_OPTIONS: { style: DecorationStyle; label: string }[] = [
-  { style: 'wavy', label: 'Wiggly' },
-  { style: 'dotted', label: 'Dotted' },
-  { style: 'stitched', label: 'Stitched' },
-  { style: 'scribble', label: 'Scribble' },
+  { style: 'wavy', label: 'Style 1' },
+  { style: 'dotted', label: 'Style 2' },
+  { style: 'stitched', label: 'Style 3' },
 ];
 
 interface DecorationSwatchesProps {
@@ -61,17 +60,12 @@ export default function DecorationSwatches({ value, onChange }: DecorationSwatch
             aria-label={opt.label}
             aria-pressed={selected}
             whileTap={{ scale: 0.9 }}
-            style={{
-              ...styles.swatch,
-              boxShadow: selected
-                ? '0 0 0 2px var(--bg-sheet), 0 0 0 4px var(--accent-primary)'
-                : '0 1px 3px rgba(17, 22, 37, 0.15)',
-            }}
+            style={styles.swatch}
           >
             <span
               className="decorated-underline"
               data-decoration-preview={opt.style}
-              style={{ color: 'var(--accent-primary)' }}
+              style={{ color: selected ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
             >
               {opt.label}
             </span>
@@ -95,7 +89,5 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: '0.8rem',
     fontFamily: 'var(--font-instrument-sans), sans-serif',
-    borderRadius: '6px',
-    transition: 'box-shadow 0.15s ease',
   },
 };
