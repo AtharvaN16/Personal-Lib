@@ -225,12 +225,11 @@ export function TextAnimate({
               )}
               <span
                 onClick={node.onClick}
+                className="decorated-underline"
                 style={{
                   display: 'inline-block',
                   fontStyle: 'italic',
                   color: 'var(--accent-primary)',
-                  textDecoration: 'underline wavy var(--accent-primary)',
-                  textDecorationThickness: '1.5px',
                   textUnderlineOffset: isMobile ? '2px' : '6px',
                   position: 'relative',
                   ...(isClickable ? {
