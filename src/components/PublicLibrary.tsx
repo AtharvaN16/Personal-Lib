@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Book } from '@/components/BookModal';
 import { Shelf } from '@/lib/hooks/useLocations';
 import { normalizeQuery, bookMatchesQuery } from '@/lib/bookSearch';
+import { groupBooksByRoom } from '@/lib/bookGrouping';
 import PublicBookCard from '@/components/PublicBookCard';
 import PublicBookDetail from '@/components/PublicBookDetail';
 import SearchPill from '@/components/SearchPill';
@@ -37,7 +38,7 @@ interface PublicLibraryProps {
   accentColor: string;
 }
 
-export default function PublicLibrary({ books, accentColor }: PublicLibraryProps) {
+export default function PublicLibrary({ books, shelves, accentColor }: PublicLibraryProps) {
   const isMobile = useIsMobile();
   const [isSearching, setIsSearching] = useState(false);
   const [isHeaderSearching, setIsHeaderSearching] = useState(false);
@@ -46,6 +47,8 @@ export default function PublicLibrary({ books, accentColor }: PublicLibraryProps
   const [hasSearched, setHasSearched] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [view, setView] = useState<'catalogue' | 'locations'>('catalogue');
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--accent-primary', accentColor);
@@ -79,7 +82,14 @@ export default function PublicLibrary({ books, accentColor }: PublicLibraryProps
 
   const appliedQuery = (isSearching || isHeaderSearching) ? searchQuery : committedQuery;
   const displayedBooks = books.filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)));
-  const displayLabel = `${displayedBooks.length} book${displayedBooks.length === 1 ? '' : 's'}`;
+  const rooms = Array.from(new Set([
+    ...books.map(b => b.location?.room).filter((r): r is string => Boolean(r)),
+    ...shelves.map(s => s.room),
+  ]));
+  const roomGrouping = activeRoom ? groupBooksByRoom(books, activeRoom) : null;
+  const displayLabel = activeRoom
+    ? `Books in ${activeRoom}`
+    : `${displayedBooks.length} book${displayedBooks.length === 1 ? '' : 's'}`;
   const headerCompact = isScrolled;
 
   const searchContent = (
@@ -213,24 +223,96 @@ export default function PublicLibrary({ books, accentColor }: PublicLibraryProps
         </section>
 
         <motion.div style={styles.booksSection}>
-          <div style={styles.booksGrid} className="books-grid">
-            <AnimatePresence>
-              {displayedBooks.map((book) => (
-                <motion.div
-                  key={book.id}
-                  layout
-                  initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <PublicBookCard book={book} onClick={setSelectedBook} isMobile={isMobile} />
-                </motion.div>
+          {view === 'catalogue' ? (
+            <div style={styles.booksGrid} className="books-grid">
+              <AnimatePresence>
+                {displayedBooks.map((book) => (
+                  <motion.div
+                    key={book.id}
+                    layout
+                    initial={{ opacity: 0, y: 35, filter: 'blur(10px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: 35, filter: 'blur(0px)' }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PublicBookCard book={book} onClick={setSelectedBook} isMobile={isMobile} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : activeRoom === null ? (
+            <div style={styles.roomList}>
+              {rooms.map((room) => (
+                <button key={room} onClick={() => setActiveRoom(room)} style={styles.roomRow}>
+                  {room}
+                </button>
               ))}
-            </AnimatePresence>
-          </div>
+            </div>
+          ) : (
+            <div>
+              <button onClick={() => setActiveRoom(null)} style={styles.backLink}>← All rooms</button>
+              {roomGrouping!.bookshelves.map((shelf) => {
+                const shelfBooks = roomGrouping!.booksByShelf[shelf].filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery)));
+                if (shelfBooks.length === 0) return null;
+                return (
+                  <div key={shelf} style={styles.shelfSection}>
+                    <div style={styles.shelfHeaderWrapper}>
+                      <div style={styles.shelfHeaderLine} />
+                      <h2 style={styles.shelfHeading}>Books on {shelf}</h2>
+                      <div style={styles.shelfHeaderLine} />
+                    </div>
+                    <div style={styles.booksGrid} className="books-grid">
+                      {shelfBooks.map((book) => (
+                        <PublicBookCard key={book.id} book={book} onClick={setSelectedBook} isMobile={isMobile} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {roomGrouping!.unassignedBooks.filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery))).length > 0 && (
+                <div style={styles.shelfSection}>
+                  <div style={styles.shelfHeaderWrapper}>
+                    <div style={styles.shelfHeaderLine} />
+                    <h2 style={styles.shelfHeading}>Other books in {activeRoom}</h2>
+                    <div style={styles.shelfHeaderLine} />
+                  </div>
+                  <div style={styles.booksGrid} className="books-grid">
+                    {roomGrouping!.unassignedBooks.filter(b => bookMatchesQuery(b, normalizeQuery(appliedQuery))).map((book) => (
+                      <PublicBookCard key={book.id} book={book} onClick={setSelectedBook} isMobile={isMobile} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       </main>
+
+      <AnimatePresence>
+        {headerCompact && (
+          <motion.div
+            key="view-toggle"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            style={styles.viewToggle}
+          >
+            <button
+              onClick={() => { setView('catalogue'); setActiveRoom(null); }}
+              style={{ ...styles.viewToggleBtn, ...(view === 'catalogue' ? styles.viewToggleBtnActive : {}) }}
+            >
+              Catalogue
+            </button>
+            <button
+              onClick={() => setView('locations')}
+              style={{ ...styles.viewToggleBtn, ...(view === 'locations' ? styles.viewToggleBtnActive : {}) }}
+            >
+              Locations
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {selectedBook && (
@@ -323,5 +405,88 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'grid',
     width: '100%',
     paddingBottom: '24px',
+  },
+  viewToggle: {
+    position: 'fixed',
+    right: '32px',
+    bottom: '32px',
+    display: 'flex',
+    backgroundColor: 'var(--bg-sheet)',
+    borderRadius: '9999px',
+    boxShadow: '0 4px 16px rgba(17, 22, 37, 0.18)',
+    padding: '4px',
+    zIndex: 1000,
+  },
+  viewToggleBtn: {
+    background: 'none',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '9999px',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  viewToggleBtnActive: {
+    backgroundColor: 'var(--accent-primary)',
+    color: 'var(--bg-sheet)',
+  },
+  roomList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    maxWidth: '480px',
+    margin: '0 auto',
+  },
+  roomRow: {
+    background: 'none',
+    border: 'none',
+    borderBottom: '1px dashed rgba(17, 22, 37, 0.15)',
+    padding: '16px 8px',
+    textAlign: 'left',
+    cursor: 'pointer',
+    fontSize: '1.1rem',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  backLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    padding: 0,
+    marginBottom: '24px',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+  },
+  shelfSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    marginBottom: '16px',
+  },
+  shelfHeaderWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: '48px',
+    marginBottom: '32px',
+    width: '100%',
+  },
+  shelfHeaderLine: {
+    flexGrow: 1,
+    height: '1px',
+    borderBottom: '1px dashed rgba(17, 22, 37, 0.15)',
+  },
+  shelfHeading: {
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: 'var(--text-secondary)',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    whiteSpace: 'nowrap',
+    opacity: 0.85,
   },
 };
