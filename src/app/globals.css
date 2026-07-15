@@ -652,6 +652,7 @@ a {
 .decorated-underline {
   text-decoration: none;
   position: relative;
+  display: inline-block;
 }
 
 :root[data-decoration="wavy"] .decorated-underline,
@@ -666,8 +667,8 @@ html:not([data-decoration]) .decorated-underline {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -3px;
-  height: 4px;
+  bottom: -0.16em;
+  height: 0.18em;
   background-color: currentColor;
   -webkit-mask-repeat: repeat-x;
   mask-repeat: repeat-x;
@@ -678,15 +679,15 @@ html:not([data-decoration]) .decorated-underline {
 :root[data-decoration="dotted"] .decorated-underline::after {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='4' viewBox='0 0 11 4'%3E%3Ccircle cx='2' cy='2' r='2' fill='black'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='4' viewBox='0 0 11 4'%3E%3Ccircle cx='2' cy='2' r='2' fill='black'/%3E%3C/svg%3E");
-  -webkit-mask-size: 11px 4px;
-  mask-size: 11px 4px;
+  -webkit-mask-size: 0.62em 0.18em;
+  mask-size: 0.62em 0.18em;
 }
 
 :root[data-decoration="stitched"] .decorated-underline::after {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='4' viewBox='0 0 13 4'%3E%3Crect x='0' y='0.5' width='7' height='3' rx='1' fill='black'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='4' viewBox='0 0 13 4'%3E%3Crect x='0' y='0.5' width='7' height='3' rx='1' fill='black'/%3E%3C/svg%3E");
-  -webkit-mask-size: 13px 4px;
-  mask-size: 13px 4px;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='4' viewBox='0 0 14 4'%3E%3Crect x='0' y='0.5' width='8' height='3' rx='0.5' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='4' viewBox='0 0 14 4'%3E%3Crect x='0' y='0.5' width='8' height='3' rx='0.5' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 0.9em 0.18em;
+  mask-size: 0.9em 0.18em;
 }
 
 /* DecorationSwatches previews: each swatch shows its own style regardless of
@@ -709,8 +710,8 @@ html:not([data-decoration]) .decorated-underline {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -3px;
-  height: 4px;
+  bottom: -0.16em;
+  height: 0.18em;
   background-color: currentColor;
   -webkit-mask-repeat: repeat-x;
   mask-repeat: repeat-x;
@@ -718,13 +719,13 @@ html:not([data-decoration]) .decorated-underline {
 [data-decoration-preview="dotted"].decorated-underline::after {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='4' viewBox='0 0 11 4'%3E%3Ccircle cx='2' cy='2' r='2' fill='black'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='4' viewBox='0 0 11 4'%3E%3Ccircle cx='2' cy='2' r='2' fill='black'/%3E%3C/svg%3E");
-  -webkit-mask-size: 11px 4px;
-  mask-size: 11px 4px;
+  -webkit-mask-size: 0.62em 0.18em;
+  mask-size: 0.62em 0.18em;
 }
 [data-decoration-preview="stitched"].decorated-underline::after {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='4' viewBox='0 0 13 4'%3E%3Crect x='0' y='0.5' width='7' height='3' rx='1' fill='black'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='4' viewBox='0 0 13 4'%3E%3Crect x='0' y='0.5' width='7' height='3' rx='1' fill='black'/%3E%3C/svg%3E");
-  -webkit-mask-size: 13px 4px;
-  mask-size: 13px 4px;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='4' viewBox='0 0 14 4'%3E%3Crect x='0' y='0.5' width='8' height='3' rx='0.5' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='4' viewBox='0 0 14 4'%3E%3Crect x='0' y='0.5' width='8' height='3' rx='0.5' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 0.9em 0.18em;
+  mask-size: 0.9em 0.18em;
 }
 
