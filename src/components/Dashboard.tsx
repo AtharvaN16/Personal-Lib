@@ -78,6 +78,8 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
     updateBookDetails,
     deleteBooks,
     moveBooks,
+    bulkSetFavorite,
+    bulkSetStatus,
     addBook,
     refetchBooks,
   } = useBooks(isGuest, initialGuestBooks);
@@ -239,6 +241,32 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
       showToast(`Deleted ${count} book${count === 1 ? '' : 's'}`);
     } catch {
       console.warn('Failed to bulk delete books');
+    }
+  };
+
+  // Bulk-favorite every currently selected book, then exit Edit Mode
+  const handleBulkFavorite = async () => {
+    const ids = Array.from(selectedBookIds);
+    const count = ids.length;
+    try {
+      await bulkSetFavorite(ids, true);
+      exitEditMode();
+      showToast(`Favorited ${count} book${count === 1 ? '' : 's'}`);
+    } catch {
+      console.warn('Failed to bulk favorite books');
+    }
+  };
+
+  // Bulk-mark every currently selected book Completed, then exit Edit Mode
+  const handleBulkComplete = async () => {
+    const ids = Array.from(selectedBookIds);
+    const count = ids.length;
+    try {
+      await bulkSetStatus(ids, 'Completed');
+      exitEditMode();
+      showToast(`Marked ${count} book${count === 1 ? '' : 's'} completed`);
+    } catch {
+      console.warn('Failed to bulk update book status');
     }
   };
 
@@ -897,6 +925,54 @@ export default function Dashboard({ isGuest = false, initialGuestBooks = EMPTY_G
               }}
             >
               drive_file_move
+            </span>
+          </motion.button>
+        )}
+
+        {isEditMode && selectedBookIds.size > 0 && (
+          <motion.button
+            key="favorite-fab"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            onClick={handleBulkFavorite}
+            aria-label="Favorite selected books"
+            style={{ ...styles.scanFab, bottom: '160px' }}
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '24px',
+                color: 'var(--accent-primary)',
+                fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+              }}
+            >
+              favorite
+            </span>
+          </motion.button>
+        )}
+
+        {isEditMode && selectedBookIds.size > 0 && (
+          <motion.button
+            key="complete-fab"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            onClick={handleBulkComplete}
+            aria-label="Mark selected books completed"
+            style={{ ...styles.scanFab, bottom: '216px' }}
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '24px',
+                color: 'var(--accent-primary)',
+                fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+              }}
+            >
+              task_alt
             </span>
           </motion.button>
         )}

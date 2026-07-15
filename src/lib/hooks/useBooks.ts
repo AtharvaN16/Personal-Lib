@@ -149,6 +149,52 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
     setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, favorite } : b)));
   }, [isGuest, supabase]);
 
+  // Bulk-set favorite status (multi-edit mode)
+  const bulkSetFavorite = useCallback(async (ids: string[], favorite: boolean) => {
+    const isMultiple = ids.length > 1;
+    if (isGuest) {
+      setBooks((prev) => {
+        const updated = prev.map((b) => (ids.includes(b.id) ? { ...b, favorite } : b));
+        localStorage.setItem('guest_books', JSON.stringify(updated));
+        return updated;
+      });
+      return;
+    }
+
+    const query = supabase.from('books').update({ favorite });
+    const { error: updateErr } = isMultiple ? await query.in('id', ids) : await query.eq('id', ids[0]);
+
+    if (updateErr) {
+      console.error('Failed to bulk favorite book(s):', updateErr);
+      throw new Error(updateErr.message);
+    }
+
+    setBooks((prev) => prev.map((b) => (ids.includes(b.id) ? { ...b, favorite } : b)));
+  }, [isGuest, supabase]);
+
+  // Bulk-set reading status (multi-edit mode)
+  const bulkSetStatus = useCallback(async (ids: string[], status: Book['status']) => {
+    const isMultiple = ids.length > 1;
+    if (isGuest) {
+      setBooks((prev) => {
+        const updated = prev.map((b) => (ids.includes(b.id) ? { ...b, status } : b));
+        localStorage.setItem('guest_books', JSON.stringify(updated));
+        return updated;
+      });
+      return;
+    }
+
+    const query = supabase.from('books').update({ status });
+    const { error: updateErr } = isMultiple ? await query.in('id', ids) : await query.eq('id', ids[0]);
+
+    if (updateErr) {
+      console.error('Failed to bulk update status for book(s):', updateErr);
+      throw new Error(updateErr.message);
+    }
+
+    setBooks((prev) => prev.map((b) => (ids.includes(b.id) ? { ...b, status } : b)));
+  }, [isGuest, supabase]);
+
   // Update book title and authors details
   const updateBookDetails = useCallback(async (id: string, title: string, authors: string[]) => {
     if (isGuest) {
@@ -296,6 +342,8 @@ export function useBooks(isGuest: boolean = false, initialGuestBooks: Book[] = [
     updateBookDetails,
     deleteBooks,
     moveBooks,
+    bulkSetFavorite,
+    bulkSetStatus,
     addBook,
     setBooks,
     refetchBooks,
