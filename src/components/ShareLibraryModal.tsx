@@ -175,13 +175,14 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                 aria-checked={state.shareEnabled}
                 style={{
                   ...styles.switchTrack,
+                  justifyContent: state.shareEnabled ? 'flex-end' : 'flex-start',
                   backgroundColor: state.shareEnabled ? accentColor : 'rgba(17, 22, 37, 0.15)',
                   opacity: toggling ? 0.6 : 1,
                 }}
               >
                 <motion.span
-                  animate={{ x: state.shareEnabled ? 20 : 2 }}
-                  transition={{ duration: 0.2 }}
+                  layout
+                  transition={{ type: 'spring', stiffness: 700, damping: 35 }}
                   style={styles.switchThumb}
                 />
               </button>
@@ -293,22 +294,23 @@ const styles: Record<string, React.CSSProperties> = {
   },
   switchTrack: {
     width: '44px',
-    height: '24px',
+    height: '26px',
     borderRadius: '9999px',
     border: 'none',
-    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    boxSizing: 'border-box',
+    padding: '2px',
     cursor: 'pointer',
-    padding: 0,
     transition: 'background-color 0.2s ease',
   },
   switchThumb: {
-    position: 'absolute',
-    top: '2px',
-    width: '20px',
-    height: '20px',
+    width: '22px',
+    height: '22px',
     borderRadius: '50%',
     backgroundColor: '#FFFDFB',
     boxShadow: '0 1px 3px rgba(17, 22, 37, 0.3)',
+    flexShrink: 0,
   },
   qrWrapper: {
     display: 'flex',
