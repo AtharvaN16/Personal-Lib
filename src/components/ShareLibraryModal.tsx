@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ThemeSwatches from '@/components/ThemeSwatches';
 
 interface ShareLibraryModalProps {
   accentColor: string;
@@ -17,12 +18,17 @@ interface ShareState {
 export default function ShareLibraryModal({ accentColor, onClose }: ShareLibraryModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const qrContainerRef = useRef<HTMLDivElement>(null);
+  const qrInstanceRef = useRef<InstanceType<typeof import('qr-code-styling').default> | null>(null);
 
   const [state, setState] = useState<ShareState>({ shareToken: null, shareEnabled: false, shareUrl: null });
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [copyLabel, setCopyLabel] = useState('Copy');
   const [isConfirmingRegen, setIsConfirmingRegen] = useState(false);
+  const [qrColor, setQrColor] = useState(accentColor);
+  const [message, setMessage] = useState('Scan to see my library');
+  const [editingMessage, setEditingMessage] = useState(false);
+  const [draftMessage, setDraftMessage] = useState('');
 
   // Focus trap / escape / body-scroll-lock, matching AddLocationModal's pattern
   useEffect(() => {
@@ -57,7 +63,22 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
     return () => { cancelled = true; };
   }, []);
 
-  // Render/update the QR code whenever the share URL or accent color changes.
+  useEffect(() => {
+    const storedColor = localStorage.getItem('share-qr-color');
+    const storedMessage = localStorage.getItem('share-qr-message');
+    if (storedColor) setQrColor(storedColor);
+    if (storedMessage) setMessage(storedMessage);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('share-qr-color', qrColor);
+  }, [qrColor]);
+
+  useEffect(() => {
+    localStorage.setItem('share-qr-message', message);
+  }, [message]);
+
+  // Render/update the QR code whenever the share URL or QR color changes.
   useEffect(() => {
     if (!state.shareEnabled || !state.shareUrl || !qrContainerRef.current) return;
 
@@ -66,20 +87,21 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
       if (cancelled || !qrContainerRef.current) return;
       qrContainerRef.current.innerHTML = '';
       const qr = new QRCodeStyling({
-        width: 220,
-        height: 220,
+        width: 176,
+        height: 176,
         data: state.shareUrl!,
-        margin: 8,
-        dotsOptions: { color: accentColor, type: 'rounded' },
-        cornersSquareOptions: { color: accentColor, type: 'extra-rounded' },
-        cornersDotOptions: { color: accentColor, type: 'dot' },
+        margin: 6,
+        dotsOptions: { color: qrColor, type: 'rounded' },
+        cornersSquareOptions: { color: qrColor, type: 'extra-rounded' },
+        cornersDotOptions: { color: qrColor, type: 'dot' },
         backgroundOptions: { color: '#FFFDFB' },
       });
       qr.append(qrContainerRef.current);
+      qrInstanceRef.current = qr;
     });
 
     return () => { cancelled = true; };
-  }, [state.shareEnabled, state.shareUrl, accentColor]);
+  }, [state.shareEnabled, state.shareUrl, qrColor]);
 
   const postAction = useCallback(async (action: 'enable' | 'disable' | 'regenerate') => {
     setToggling(true);
@@ -131,6 +153,24 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const toTitleCase = (s: string) =>
+    s.trim().replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
+  const startEditingMessage = () => {
+    setDraftMessage(message);
+    setEditingMessage(true);
+  };
+
+  const commitMessage = () => {
+    const next = toTitleCase(draftMessage);
+    if (next) setMessage(next);
+    setEditingMessage(false);
+  };
+
+  const cancelEditingMessage = () => {
+    setEditingMessage(false);
   };
 
   return (
@@ -206,8 +246,31 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                   >
                     <div className="share-print-area">
                       <div ref={qrContainerRef} style={styles.qrWrapper} />
-                      <p style={styles.printCaption}>Scan to see our library</p>
                     </div>
+
+                    <div style={styles.swatchRow} className="no-print">
+                      <ThemeSwatches value={qrColor} onChange={setQrColor} />
+                    </div>
+
+                    <div style={styles.messageRow} className="no-print">
+                      {editingMessage ? (
+                        <input
+                          autoFocus
+                          value={draftMessage}
+                          onChange={(e) => setDraftMessage(e.target.value)}
+                          onBlur={commitMessage}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitMessage();
+                            if (e.key === 'Escape') cancelEditingMessage();
+                          }}
+                          className="field-white"
+                          style={styles.messageInput}
+                        />
+                      ) : (
+                        <p style={{ ...styles.messageText, color: qrColor }}>{message}</p>
+                      )}
+                    </div>
+                    <p className="share-print-area" style={{ ...styles.printCaption, color: qrColor }}>{message}</p>
 
                     <div style={styles.actionsRow} className="no-print">
                       <button onClick={handlePrint} style={styles.secondaryBtn}>Print QR Code</button>
@@ -340,6 +403,32 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '1rem',
     color: 'var(--text-primary)',
     marginBottom: '20px',
+  },
+  swatchRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginBottom: '14px',
+  },
+  messageRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginBottom: '16px',
+  },
+  messageText: {
+    textAlign: 'center',
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    fontWeight: 600,
+    fontSize: '1.05rem',
+    margin: 0,
+    cursor: 'default',
+  },
+  messageInput: {
+    width: '100%',
+    maxWidth: '320px',
+    padding: '8px 12px',
+    fontSize: '0.95rem',
+    borderRadius: '0px',
+    textAlign: 'center',
   },
   actionsRow: {
     display: 'flex',
