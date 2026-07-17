@@ -30,6 +30,9 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
   const [editingMessage, setEditingMessage] = useState(false);
   const [draftMessage, setDraftMessage] = useState('');
   const [pngReady, setPngReady] = useState(false);
+  const [printCount, setPrintCount] = useState<1 | 2 | 4 | 6 | 8>(4);
+  const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const [qrPngDataUrl, setQrPngDataUrl] = useState<string | null>(null);
 
   // Focus trap / escape / body-scroll-lock, matching AddLocationModal's pattern
   useEffect(() => {
@@ -85,7 +88,7 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
     setPngReady(false);
 
     let cancelled = false;
-    import('qr-code-styling').then(({ default: QRCodeStyling }) => {
+    import('qr-code-styling').then(async ({ default: QRCodeStyling }) => {
       if (cancelled || !qrContainerRef.current) return;
       qrContainerRef.current.innerHTML = '';
       const qr = new QRCodeStyling({
@@ -101,6 +104,14 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
       qr.append(qrContainerRef.current);
       qrInstanceRef.current = qr;
       setPngReady(true);
+
+      const blob = await qr.getRawData('png');
+      if (cancelled || !blob) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (!cancelled) setQrPngDataUrl(reader.result as string);
+      };
+      reader.readAsDataURL(blob as Blob);
     });
 
     return () => { cancelled = true; };
@@ -154,8 +165,10 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
     setIsConfirmingRegen(false);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrintCount = (count: 1 | 2 | 4 | 6 | 8) => {
+    setPrintCount(count);
+    setPrintMenuOpen(false);
+    requestAnimationFrame(() => window.print());
   };
 
   const handleDownloadPng = async () => {
@@ -252,9 +265,7 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                     exit={{ y: 8 }}
                     transition={{ duration: 0.25 }}
                   >
-                    <div className="share-print-area">
-                      <div ref={qrContainerRef} style={styles.qrWrapper} />
-                    </div>
+                    <div ref={qrContainerRef} style={styles.qrWrapper} />
 
                     <div style={styles.swatchRow} className="no-print">
                       <ThemeSwatches value={qrColor} onChange={setQrColor} />
@@ -278,7 +289,17 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                         <p style={{ ...styles.messageText, color: qrColor }}>{message}</p>
                       )}
                     </div>
-                    <p className="share-print-area" style={{ ...styles.printCaption, color: qrColor }}>{message}</p>
+                    <div className="share-print-area" data-print-count={printCount}>
+                      {Array.from({ length: printCount }).map((_, i) => (
+                        <div key={i} className="qr-print-card">
+                          {qrPngDataUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={qrPngDataUrl} alt="Library QR code" className="qr-print-card-image" />
+                          )}
+                          <p className="qr-print-card-message" style={{ color: qrColor }}>{message}</p>
+                        </div>
+                      ))}
+                    </div>
 
                     <div style={styles.iconToolbar} className="no-print">
                       <button
@@ -293,8 +314,9 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                         </svg>
                       </button>
                       <button
-                        onClick={handlePrint}
-                        style={styles.iconBtn}
+                        onClick={() => setPrintMenuOpen((v) => !v)}
+                        disabled={!qrPngDataUrl}
+                        style={{ ...styles.iconBtn, opacity: qrPngDataUrl ? 1 : 0.4, cursor: qrPngDataUrl ? 'pointer' : 'default' }}
                         title="Print"
                         aria-label="Print QR cards"
                       >
@@ -318,6 +340,34 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                         </svg>
                       </button>
                     </div>
+
+                    <AnimatePresence>
+                      {printMenuOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          style={{ overflow: 'hidden' }}
+                          className="no-print"
+                        >
+                          <div style={styles.printMenu}>
+                            {([1, 2, 4, 6, 8] as const).map((count) => (
+                              <button
+                                key={count}
+                                onClick={() => handlePrintCount(count)}
+                                style={{
+                                  ...styles.printMenuOption,
+                                  ...(printCount === count ? styles.printMenuOptionActive : {}),
+                                }}
+                              >
+                                {count}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     <div style={styles.linkRow} className="no-print">
                       <input readOnly value={state.shareUrl} className="field-white" style={styles.linkInput} />
@@ -462,14 +512,6 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     marginBottom: '8px',
   },
-  printCaption: {
-    textAlign: 'center',
-    fontFamily: 'var(--font-newsreader), Georgia, serif',
-    fontStyle: 'italic',
-    fontSize: '1rem',
-    color: 'var(--text-primary)',
-    marginBottom: '20px',
-  },
   swatchRow: {
     display: 'flex',
     justifyContent: 'center',
@@ -501,6 +543,27 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     gap: '6px',
     marginBottom: '20px',
+  },
+  printMenu: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '6px',
+    marginBottom: '16px',
+  },
+  printMenuOption: {
+    background: 'none',
+    border: '1px solid rgba(17, 22, 37, 0.15)',
+    color: 'var(--text-secondary)',
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    fontFamily: 'var(--font-instrument-sans), sans-serif',
+    padding: '4px 10px',
+    cursor: 'pointer',
+    borderRadius: '0px',
+  },
+  printMenuOptionActive: {
+    borderColor: 'var(--accent-primary)',
+    color: 'var(--accent-primary)',
   },
   iconBtn: {
     display: 'flex',
