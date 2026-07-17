@@ -70,6 +70,7 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
   useEffect(() => {
     const storedColor = localStorage.getItem('share-qr-color');
     const storedMessage = localStorage.getItem('share-qr-message');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (storedColor) setQrColor(storedColor);
     if (storedMessage) setMessage(storedMessage);
   }, []);
