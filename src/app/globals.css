@@ -659,6 +659,12 @@ a {
   }
 }
 
+/* The print-card grid is print-only content — hidden on screen, revealed by the
+   @media print override below. Without this, the cards render inline in the modal. */
+.share-print-area {
+  display: none;
+}
+
 /* Used by ShareLibraryModal's print toolbar: isolates a grid of small QR "shelf label"
    cards (count chosen via the inline cards-per-page control) as the only visible content
    when the browser print dialog renders the page. */
