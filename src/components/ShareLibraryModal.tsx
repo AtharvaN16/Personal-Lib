@@ -29,6 +29,7 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
   const [message, setMessage] = useState('Scan to see my library');
   const [editingMessage, setEditingMessage] = useState(false);
   const [draftMessage, setDraftMessage] = useState('');
+  const [pngReady, setPngReady] = useState(false);
 
   // Focus trap / escape / body-scroll-lock, matching AddLocationModal's pattern
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
   // Render/update the QR code whenever the share URL or QR color changes.
   useEffect(() => {
     if (!state.shareEnabled || !state.shareUrl || !qrContainerRef.current) return;
+    setPngReady(false);
 
     let cancelled = false;
     import('qr-code-styling').then(({ default: QRCodeStyling }) => {
@@ -98,6 +100,7 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
       });
       qr.append(qrContainerRef.current);
       qrInstanceRef.current = qr;
+      setPngReady(true);
     });
 
     return () => { cancelled = true; };
@@ -153,6 +156,11 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPng = async () => {
+    if (!qrInstanceRef.current) return;
+    await qrInstanceRef.current.download({ name: 'library-qr', extension: 'png' });
   };
 
   const toTitleCase = (s: string) =>
@@ -272,14 +280,68 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                     </div>
                     <p className="share-print-area" style={{ ...styles.printCaption, color: qrColor }}>{message}</p>
 
-                    <div style={styles.actionsRow} className="no-print">
-                      <button onClick={handlePrint} style={styles.secondaryBtn}>Print QR Code</button>
+                    <div style={styles.iconToolbar} className="no-print">
+                      <button
+                        onClick={startEditingMessage}
+                        style={styles.iconBtn}
+                        title="Edit message"
+                        aria-label="Edit message"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={handlePrint}
+                        style={styles.iconBtn}
+                        title="Print"
+                        aria-label="Print QR cards"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6 9 6 2 18 2 18 9" />
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                          <rect x="6" y="14" width="12" height="8" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={handleDownloadPng}
+                        disabled={!pngReady}
+                        style={{ ...styles.iconBtn, opacity: pngReady ? 1 : 0.4, cursor: pngReady ? 'pointer' : 'default' }}
+                        title="Download PNG"
+                        aria-label="Download QR as PNG"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                      </button>
                     </div>
 
                     <div style={styles.linkRow} className="no-print">
                       <input readOnly value={state.shareUrl} className="field-white" style={styles.linkInput} />
-                      <button onClick={handleCopy} style={styles.secondaryBtn}>{copyLabel}</button>
-                      <button onClick={handleShare} style={styles.primaryBtn}>Share</button>
+                      <button onClick={handleCopy} style={styles.iconBtn} title={copyLabel} aria-label={copyLabel}>
+                        {copyLabel === 'Copied!' ? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        )}
+                      </button>
+                      <button onClick={handleShare} style={styles.iconBtn} title="Share" aria-label="Share link">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                        </svg>
+                      </button>
                     </div>
 
                     <div className="no-print" style={styles.regenRow}>
@@ -290,8 +352,12 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
                           <button onClick={() => setIsConfirmingRegen(false)} style={styles.cancelBtn}>Cancel</button>
                         </span>
                       ) : (
-                        <button onClick={() => setIsConfirmingRegen(true)} style={styles.regenLink}>
-                          Regenerate link
+                        <button onClick={() => setIsConfirmingRegen(true)} style={styles.iconBtn} title="Regenerate link" aria-label="Regenerate link">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                          </svg>
                         </button>
                       )}
                     </div>
@@ -430,10 +496,26 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '0px',
     textAlign: 'center',
   },
-  actionsRow: {
+  iconToolbar: {
     display: 'flex',
     justifyContent: 'center',
+    gap: '6px',
     marginBottom: '20px',
+  },
+  iconBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '28px',
+    height: '28px',
+    background: 'none',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    padding: 0,
+    flexShrink: 0,
+    transition: 'color 0.15s ease, background-color 0.15s ease',
   },
   linkRow: {
     display: 'flex',
@@ -451,16 +533,6 @@ const styles: Record<string, React.CSSProperties> = {
   regenRow: {
     borderTop: '1px solid rgba(17, 22, 37, 0.12)',
     paddingTop: '16px',
-  },
-  regenLink: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-secondary)',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-    padding: 0,
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-    textDecoration: 'underline',
   },
   confirmRow: {
     display: 'flex',
@@ -493,29 +565,5 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     padding: 0,
     fontFamily: 'var(--font-instrument-sans), sans-serif',
-  },
-  secondaryBtn: {
-    background: 'none',
-    border: '1px solid rgba(17, 22, 37, 0.15)',
-    color: 'var(--text-primary)',
-    padding: '8px 14px',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-    borderRadius: '0px',
-    whiteSpace: 'nowrap',
-  },
-  primaryBtn: {
-    backgroundColor: 'var(--accent-primary)',
-    border: 'none',
-    boxShadow: '0 2px 6px rgba(17, 22, 37, 0.08)',
-    color: 'var(--bg-sheet)',
-    padding: '8px 16px',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontWeight: 'bold',
-    fontFamily: 'var(--font-instrument-sans), sans-serif',
-    whiteSpace: 'nowrap',
   },
 };
