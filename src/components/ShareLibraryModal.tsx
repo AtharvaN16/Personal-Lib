@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ShareLibraryModalProps {
   accentColor: string;
@@ -188,38 +188,54 @@ export default function ShareLibraryModal({ accentColor, onClose }: ShareLibrary
               </button>
             </div>
 
-            {state.shareEnabled && state.shareUrl && (
-              <>
-                <div className="share-print-area">
-                  <div ref={qrContainerRef} style={styles.qrWrapper} />
-                  <p style={styles.printCaption}>Scan to see our library</p>
-                </div>
+            <AnimatePresence initial={false}>
+              {state.shareEnabled && state.shareUrl && (
+                <motion.div
+                  key="share-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <motion.div
+                    initial={{ y: 8 }}
+                    animate={{ y: 0 }}
+                    exit={{ y: 8 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <div className="share-print-area">
+                      <div ref={qrContainerRef} style={styles.qrWrapper} />
+                      <p style={styles.printCaption}>Scan to see our library</p>
+                    </div>
 
-                <div style={styles.actionsRow} className="no-print">
-                  <button onClick={handlePrint} style={styles.secondaryBtn}>Print QR Code</button>
-                </div>
+                    <div style={styles.actionsRow} className="no-print">
+                      <button onClick={handlePrint} style={styles.secondaryBtn}>Print QR Code</button>
+                    </div>
 
-                <div style={styles.linkRow} className="no-print">
-                  <input readOnly value={state.shareUrl} className="field-white" style={styles.linkInput} />
-                  <button onClick={handleCopy} style={styles.secondaryBtn}>{copyLabel}</button>
-                  <button onClick={handleShare} style={styles.primaryBtn}>Share</button>
-                </div>
+                    <div style={styles.linkRow} className="no-print">
+                      <input readOnly value={state.shareUrl} className="field-white" style={styles.linkInput} />
+                      <button onClick={handleCopy} style={styles.secondaryBtn}>{copyLabel}</button>
+                      <button onClick={handleShare} style={styles.primaryBtn}>Share</button>
+                    </div>
 
-                <div className="no-print" style={styles.regenRow}>
-                  {isConfirmingRegen ? (
-                    <span style={styles.confirmRow}>
-                      <span style={styles.confirmText}>This invalidates the old link/QR code.</span>
-                      <button onClick={handleRegenerate} style={styles.confirmBtn}>Regenerate</button>
-                      <button onClick={() => setIsConfirmingRegen(false)} style={styles.cancelBtn}>Cancel</button>
-                    </span>
-                  ) : (
-                    <button onClick={() => setIsConfirmingRegen(true)} style={styles.regenLink}>
-                      Regenerate link
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
+                    <div className="no-print" style={styles.regenRow}>
+                      {isConfirmingRegen ? (
+                        <span style={styles.confirmRow}>
+                          <span style={styles.confirmText}>This invalidates the old link/QR code.</span>
+                          <button onClick={handleRegenerate} style={styles.confirmBtn}>Regenerate</button>
+                          <button onClick={() => setIsConfirmingRegen(false)} style={styles.cancelBtn}>Cancel</button>
+                        </span>
+                      ) : (
+                        <button onClick={() => setIsConfirmingRegen(true)} style={styles.regenLink}>
+                          Regenerate link
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
       </motion.div>
